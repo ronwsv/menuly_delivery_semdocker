@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Meus Pedidos - {{ restaurante.nome }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="display-6">Meus Pedidos</h1>
+                    <p class="text-muted mb-0">Acompanhe o histórico dos seus pedidos em {{ restaurante.nome }}</p>
+                </div>
+                <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Fazer Novo Pedido
+                </a>
+            </div>
+
+            {% if pedidos %}
+                <!-- Lista de pedidos -->
+                {% for pedido in pedidos %}
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="bi bi-receipt me-2"></i>
+                                Pedido #{{ pedido.numero }}
+                            </h5>
+                            <small class="text-muted">{{ pedido.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if pedido.status == 'entregue' %}bg-success{% elif pedido.status == 'cancelado' %}bg-danger{% elif pedido.status == 'preparando' %}bg-warning text-dark{% elif pedido.status == 'a_caminho' %}bg-info{% else %}bg-primary{% endif %} fs-6 mb-2">
+                                {{ pedido.get_status_display }}
+                            </span>
+                            <div class="fw-bold text-primary">R$ {{ pedido.total|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Itens do pedido -->
+                            <div class="col-lg-8">
+                                <h6 class="mb-3">
+                                    <i class="bi bi-bag me-2"></i>Itens do Pedido
+                                </h6>
+                                
+                                {% for item in pedido.itens.all %}
+                                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-secondary me-2">{{ item.quantidade }}x</span>
+                                            <strong>{{ item.produto.nome }}</strong>
+                                        </div>
+                                        
+                                        {% if item.observacoes %}
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-chat-text me-1"></i>{{ item.observacoes }}
+                                            </small>
+                                        {% endif %}
+                                        
+                                        <!-- Personalizações -->
+                                        {% for personalizacao in item.personalizacoes.all %}
+                                            <small class="text-info d-block">
+                                                <i class="bi bi-plus me-1"></i>{{ personalizacao.nome_item }}
+                                                {% if personalizacao.preco > 0 %}
+                                                    (+R$ {{ personalizacao.preco|floatformat:2 }})
+                                                {% endif %}
+                                            </small>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="text-end">
+                                        <span class="fw-medium">R$ {{ item.subtotal|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                <!-- Resumo do pedido -->
+                                <div class="bg-light p-3 rounded mt-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Subtotal:</span>
+                                        <span>R$ {{ pedido.subtotal|floatformat:2 }}</span>
+                                    </div>
+                                    {% if pedido.taxa_entrega > 0 %}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Taxa de Entrega:</span>
+                                        <span>R$ {{ pedido.taxa_entrega|floatformat:2 }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between fw-bold">
+                                        <span>Total:</span>
+                                        <span class="text-primary">R$ {{ pedido.total|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Informações do pedido -->
+                            <div class="col-lg-4">
+                                <h6 class="mb-3">
+                                    <i class="bi bi-info-circle me-2"></i>Informações
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Tipo de Entrega:</small>
+                                    <span>
+                                        {% if pedido.tipo_entrega == 'delivery' %}
+                                            <i class="bi bi-truck me-1"></i>Delivery
+                                        {% else %}
+                                            <i class="bi bi-shop me-1"></i>Retirada no Local
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Forma de Pagamento:</small>
+                                    <span>{{ pedido.get_forma_pagamento_display }}</span>
+                                </div>
+                                
+                                {% if pedido.tipo_entrega == 'delivery' and pedido.endereco_logradouro %}
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Endereço de Entrega:</small>
+                                    <address class="mb-0 small">
+                                        {{ pedido.endereco_logradouro }}, {{ pedido.endereco_numero }}<br>
+                                        {% if pedido.endereco_complemento %}{{ pedido.endereco_complemento }}<br>{% endif %}
+                                        {{ pedido.endereco_bairro }} - {{ pedido.endereco_cidade }}/{{ pedido.endereco_estado }}
+                                        {% if pedido.endereco_cep %}<br>CEP: {{ pedido.endereco_cep }}{% endif %}
+                                    </address>
+                                </div>
+                                {% endif %}
+                                
+                                {% if pedido.observacoes %}
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Observações:</small>
+                                    <small>{{ pedido.observacoes }}</small>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Ações -->
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'loja:detalhes_pedido' restaurante_slug=restaurante.slug pedido_id=pedido.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye me-1"></i>Ver Detalhes
+                                    </a>
+                                    
+                                    {% if pedido.status == 'novo' or pedido.status == 'confirmado' %}
+                                    <button class="btn btn-outline-danger btn-sm" onclick="confirmarCancelamento('{{ pedido.numero }}')">
+                                        <i class="bi bi-x-circle me-1"></i>Cancelar Pedido
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if pedido.status == 'entregue' %}
+                                    <button class="btn btn-success btn-sm" onclick="repetirPedido('{{ pedido.id }}')">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Repetir Pedido
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Paginação -->
+                {% if pedidos.has_other_pages %}
+                <nav aria-label="Navegação dos pedidos">
+                    <ul class="pagination justify-content-center">
+                        {% if pedidos.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ pedidos.previous_page_number }}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in pedidos.paginator.page_range %}
+                            {% if pedidos.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pedidos.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ pedidos.next_page_number }}">Próximo</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+            {% else %}
+                <!-- Nenhum pedido encontrado -->
+                <div class="text-center py-5">
+                    <i class="bi bi-bag-x display-1 text-muted mb-4"></i>
+                    <h3>Você ainda não fez pedidos</h3>
+                    <p class="text-muted mb-4">Que tal explorar nosso cardápio e fazer seu primeiro pedido?</p>
+                    <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-list-ul me-2"></i>Ver Cardápio
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarCancelamento(numeroPedido) {
+    if (confirm(`Tem certeza que deseja cancelar o pedido #${numeroPedido}?`)) {
+        // Aqui você pode implementar a lógica de cancelamento
+        alert('Funcionalidade de cancelamento será implementada em breve.');
+    }
+}
+
+function repetirPedido(pedidoId) {
+    // Aqui você pode implementar a lógica para repetir o pedido
+    alert('Funcionalidade de repetir pedido será implementada em breve.');
+}
+</script>
+{% endblock %}

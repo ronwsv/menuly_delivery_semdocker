@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Contato - {{ restaurante.nome }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header da página -->
+            <div class="text-center mb-5">
+                <h1 class="display-4">Entre em Contato</h1>
+                <p class="lead text-muted">Estamos aqui para ajudar você! Fale conosco através dos canais abaixo.</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Informações de Contato -->
+                <div class="col-lg-6">
+                    <div class="row g-3">
+                        <!-- Telefone -->
+                        {% if restaurante.telefone %}
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-telephone-fill fs-4"></i>
+                                    </div>
+                                    <h5 class="card-title">Telefone</h5>
+                                    <p class="card-text">
+                                        <a href="tel:{{ restaurante.telefone }}" class="btn btn-outline-primary">
+                                            {{ restaurante.telefone }}
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- WhatsApp -->
+                        {% if restaurante.whatsapp %}
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-whatsapp fs-4"></i>
+                                    </div>
+                                    <h5 class="card-title">WhatsApp</h5>
+                                    <p class="card-text">
+                                        <a href="https://wa.me/{{ restaurante.whatsapp }}" target="_blank" class="btn btn-outline-success">
+                                            {{ restaurante.whatsapp }}
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- E-mail -->
+                        {% if restaurante.email %}
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-envelope-fill fs-4"></i>
+                                    </div>
+                                    <h5 class="card-title">E-mail</h5>
+                                    <p class="card-text">
+                                        <a href="mailto:{{ restaurante.email }}" class="btn btn-outline-info">
+                                            {{ restaurante.email }}
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Endereço e Horários -->
+                <div class="col-lg-6">
+                    <!-- Endereço -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                                Nosso Endereço
+                            </h5>
+                            <address class="mb-0">
+                                {% if restaurante.endereco %}
+                                    {{ restaurante.endereco }}<br>
+                                {% endif %}
+                                {% if restaurante.cidade and restaurante.estado %}
+                                    {{ restaurante.cidade }}, {{ restaurante.estado }}<br>
+                                {% endif %}
+                                {% if restaurante.cep %}
+                                    CEP: {{ restaurante.cep }}
+                                {% endif %}
+                            </address>
+                        </div>
+                    </div>
+
+                    <!-- Horários -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-clock-fill text-primary me-2"></i>
+                                Horário de Funcionamento
+                            </h5>
+                            {% if restaurante.horarios_funcionamento.all %}
+                                <div class="list-group list-group-flush">
+                                    {% for horario in restaurante.horarios_funcionamento.all %}
+                                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                            <strong>{{ horario.get_dia_semana_display }}:</strong>
+                                            <span class="{% if horario.aberto %}text-success{% else %}text-muted{% endif %}">
+                                                {% if horario.aberto %}
+                                                    {{ horario.horario_abertura|time:"H:i" }} - {{ horario.horario_fechamento|time:"H:i" }}
+                                                {% else %}
+                                                    Fechado
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted mb-0">
+                                    Entre em contato para saber nossos horários.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de pedidos online -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="card border-0 bg-primary text-white">
+                        <div class="card-body text-center py-5">
+                            <h3 class="card-title">Faça seu pedido online!</h3>
+                            <p class="card-text fs-5 mb-4">
+                                É mais fácil e rápido. Navegue pelo nosso cardápio e escolha seus pratos favoritos.
+                            </p>
+                            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                                <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-light btn-lg">
+                                    <i class="bi bi-list-ul me-2"></i>Ver Cardápio
+                                </a>
+                                {% if restaurante.whatsapp %}
+                                    <a href="https://wa.me/{{ restaurante.whatsapp }}" target="_blank" class="btn btn-success btn-lg">
+                                        <i class="bi bi-whatsapp me-2"></i>Pedir no WhatsApp
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações adicionais -->
+            {% if restaurante.taxa_entrega or restaurante.valor_minimo_entrega %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-info-circle me-2"></i>Informações sobre Delivery
+                        </h6>
+                        <div class="row">
+                            {% if restaurante.taxa_entrega %}
+                                <div class="col-md-6">
+                                    <strong>Taxa de Entrega:</strong> R$ {{ restaurante.taxa_entrega|floatformat:2 }}
+                                </div>
+                            {% endif %}
+                            {% if restaurante.valor_minimo_entrega %}
+                                <div class="col-md-6">
+                                    <strong>Pedido Mínimo:</strong> R$ {{ restaurante.valor_minimo_entrega|floatformat:2 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if restaurante.tempo_entrega_min and restaurante.tempo_entrega_max %}
+                            <div class="mt-2">
+                                <strong>Tempo de Entrega:</strong> {{ restaurante.tempo_entrega_min }}-{{ restaurante.tempo_entrega_max }} minutos
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

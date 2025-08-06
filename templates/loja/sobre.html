@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sobre {{ restaurante.nome }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header da página -->
+            <div class="text-center mb-5">
+                {% if restaurante.logo %}
+                    <img src="{{ restaurante.logo.url }}" alt="Logo {{ restaurante.nome }}" class="mb-3" style="max-height: 100px; object-fit: contain;">
+                {% endif %}
+                <h1 class="display-4">{{ restaurante.nome }}</h1>
+                <p class="lead text-muted">{{ restaurante.descricao|default:"Conheça nossa história e nossos valores" }}</p>
+            </div>
+
+            <!-- Descrição principal -->
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto">
+                    {% if restaurante.descricao_longa %}
+                        <div class="fs-5 lh-lg">{{ restaurante.descricao_longa|linebreaks }}</div>
+                    {% elif restaurante.descricao %}
+                        <div class="fs-5 lh-lg">{{ restaurante.descricao|linebreaks }}</div>
+                    {% else %}
+                        <div class="fs-5 lh-lg">
+                            <p>Bem-vindo ao {{ restaurante.nome }}! Somos um restaurante comprometido em oferecer a melhor experiência gastronômica para nossos clientes.</p>
+                            <p>Nossa equipe trabalha com dedicação para preparar pratos deliciosos com ingredientes frescos e de qualidade.</p>
+                            <p>Esperamos você para uma experiência única de sabores!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-5">
+
+            <!-- Informações de contato e funcionamento -->
+            <div class="row g-4">
+                <!-- Endereço e Contato -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h4 class="card-title">
+                                <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                                Nosso Endereço
+                            </h4>
+                            <address class="mb-0">
+                                {% if restaurante.endereco %}
+                                    {{ restaurante.endereco }}<br>
+                                {% endif %}
+                                {% if restaurante.cidade and restaurante.estado %}
+                                    {{ restaurante.cidade }}, {{ restaurante.estado }}<br>
+                                {% endif %}
+                                {% if restaurante.cep %}
+                                    CEP: {{ restaurante.cep }}<br>
+                                {% endif %}
+                            </address>
+                            
+                            {% if restaurante.telefone %}
+                                <div class="mt-3">
+                                    <strong><i class="bi bi-telephone-fill text-primary me-2"></i>Telefone:</strong> 
+                                    <a href="tel:{{ restaurante.telefone }}" class="text-decoration-none">{{ restaurante.telefone }}</a>
+                                </div>
+                            {% endif %}
+                            
+                            {% if restaurante.whatsapp %}
+                                <div class="mt-2">
+                                    <strong><i class="bi bi-whatsapp text-success me-2"></i>WhatsApp:</strong> 
+                                    <a href="https://wa.me/{{ restaurante.whatsapp }}" target="_blank" class="text-decoration-none text-success">{{ restaurante.whatsapp }}</a>
+                                </div>
+                            {% endif %}
+                            
+                            {% if restaurante.email %}
+                                <div class="mt-2">
+                                    <strong><i class="bi bi-envelope-fill text-primary me-2"></i>E-mail:</strong> 
+                                    <a href="mailto:{{ restaurante.email }}" class="text-decoration-none">{{ restaurante.email }}</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Horário de Funcionamento -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h4 class="card-title">
+                                <i class="bi bi-clock-fill text-primary me-2"></i>
+                                Horário de Funcionamento
+                            </h4>
+                            {% if restaurante.horarios_funcionamento.all %}
+                                <div class="list-group list-group-flush">
+                                    {% for horario in restaurante.horarios_funcionamento.all %}
+                                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                            <strong>{{ horario.get_dia_semana_display }}:</strong>
+                                            <span class="{% if horario.aberto %}text-success{% else %}text-muted{% endif %}">
+                                                {% if horario.aberto %}
+                                                    {{ horario.horario_abertura|time:"H:i" }} - {{ horario.horario_fechamento|time:"H:i" }}
+                                                {% else %}
+                                                    Fechado
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Nosso horário de funcionamento não está disponível no momento. 
+                                    Entre em contato conosco para mais informações.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações de entrega -->
+            {% if restaurante.taxa_entrega or restaurante.tempo_entrega_min %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-truck text-primary me-2"></i>
+                                    Informações de Entrega
+                                </h5>
+                                <div class="row">
+                                    {% if restaurante.taxa_entrega %}
+                                        <div class="col-md-6">
+                                            <strong>Taxa de Entrega:</strong> R$ {{ restaurante.taxa_entrega|floatformat:2 }}
+                                        </div>
+                                    {% endif %}
+                                    {% if restaurante.tempo_entrega_min and restaurante.tempo_entrega_max %}
+                                        <div class="col-md-6">
+                                            <strong>Tempo de Entrega:</strong> {{ restaurante.tempo_entrega_min }}-{{ restaurante.tempo_entrega_max }} minutos
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% if restaurante.valor_minimo_entrega %}
+                                    <div class="mt-2">
+                                        <strong>Pedido Mínimo:</strong> R$ {{ restaurante.valor_minimo_entrega|floatformat:2 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Call to Action -->
+            <div class="text-center mt-5 pt-4">
+                <h4>Pronto para fazer seu pedido?</h4>
+                <p class="text-muted">Explore nosso cardápio e descubra sabores incríveis!</p>
+                <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-list-ul me-2"></i>Ver Cardápio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

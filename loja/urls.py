@@ -31,6 +31,7 @@ urlpatterns = [
     
     # Cliente
     path('meus-pedidos/', views.MeusPedidosView.as_view(), name='meus_pedidos'),
+    path('acessar-pedidos/', views.AcessarPedidosView.as_view(), name='acessar_pedidos'),
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
     
     # Páginas institucionais

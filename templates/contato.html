@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Contato - Menuly{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4">Entre em Contato</h1>
+                <p class="lead text-muted">Estamos aqui para ajudar você! Fale conosco através dos canais abaixo.</p>
+            </div>
+
+            <!-- Informações de Contato -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-envelope-fill fs-4"></i>
+                            </div>
+                            <h5 class="card-title">E-mail</h5>
+                            <p class="card-text">
+                                <a href="mailto:contato@menuly.com.br" class="btn btn-outline-primary">
+                                    contato@menuly.com.br
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-whatsapp fs-4"></i>
+                            </div>
+                            <h5 class="card-title">WhatsApp</h5>
+                            <p class="card-text">
+                                <a href="https://wa.me/5511999999999" target="_blank" class="btn btn-outline-success">
+                                    (11) 99999-9999
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário de Contato -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Envie sua Mensagem</h5>
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nome" class="form-label">Nome *</label>
+                                <input type="text" class="form-control" id="nome" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">E-mail *</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <input type="tel" class="form-control" id="telefone">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="assunto" class="form-label">Assunto *</label>
+                                <select class="form-select" id="assunto" required>
+                                    <option value="">Selecione o assunto</option>
+                                    <option value="duvidas">Dúvidas Gerais</option>
+                                    <option value="restaurante">Quero cadastrar meu restaurante</option>
+                                    <option value="suporte">Suporte Técnico</option>
+                                    <option value="parceria">Parcerias</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="mensagem" class="form-label">Mensagem *</label>
+                            <textarea class="form-control" id="mensagem" rows="5" required placeholder="Descreva sua dúvida, sugestão ou solicitação..."></textarea>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send me-2"></i>Enviar Mensagem
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- FAQ Rápido -->
+            <div class="mt-5">
+                <h4 class="mb-4">Perguntas Frequentes</h4>
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                Como cadastrar meu restaurante no Menuly?
+                            </button>
+                        </h2>
+                        <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Entre em contato conosco através do formulário acima ou WhatsApp. Nossa equipe entrará em contato para explicar o processo de cadastro e as funcionalidades disponíveis.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                Quanto custa usar a plataforma?
+                            </button>
+                        </h2>
+                        <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Oferecemos diferentes planos para atender às necessidades de cada restaurante. Entre em contato para conhecer nossos valores e condições especiais.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                Como funciona o suporte técnico?
+                            </button>
+                        </h2>
+                        <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Oferecemos suporte técnico através de WhatsApp, e-mail e chat online. Nossa equipe está disponível para ajudar com dúvidas sobre o uso da plataforma.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="text-center mt-5 pt-4">
+                <h4>Quer conhecer nossos restaurantes parceiros?</h4>
+                <p class="text-muted">Navegue pela nossa plataforma e descubra opções deliciosas!</p>
+                <a href="{% url 'landing_page' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-house me-2"></i>Ver Restaurantes
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

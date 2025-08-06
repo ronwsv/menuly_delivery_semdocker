@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Meus Pedidos - {{ restaurante.nome }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5">Acompanhe seus Pedidos</h1>
+                <p class="lead text-muted">Digite seu número de celular para ver o histórico dos seus pedidos em {{ restaurante.nome }}.</p>
+            </div>
+
+            <!-- Formulário de busca -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="celular" class="form-label">Número do Celular</label>
+                                <input type="tel" 
+                                       class="form-control form-control-lg" 
+                                       id="celular" 
+                                       name="celular" 
+                                       value="{{ celular_buscado }}"
+                                       placeholder="(11) 99999-9999" 
+                                       required>
+                                <small class="form-text text-muted">Digite o número usado no pedido</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-search me-2"></i>Buscar Pedidos
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Resultados da busca -->
+            {% if pedidos_encontrados %}
+                <div class="mb-4">
+                    <h4>
+                        <i class="bi bi-bag-check text-success me-2"></i>
+                        Pedidos encontrados para {{ celular_buscado }}
+                    </h4>
+                    <p class="text-muted">{{ pedidos_encontrados|length }} pedido(s) encontrado(s)</p>
+                </div>
+
+                <!-- Lista de pedidos -->
+                {% for pedido in pedidos_encontrados %}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Pedido #{{ pedido.numero }}</strong>
+                            <small class="text-muted ms-2">{{ pedido.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <span class="badge {% if pedido.status == 'entregue' %}bg-success{% elif pedido.status == 'cancelado' %}bg-danger{% elif pedido.status == 'preparando' %}bg-warning{% else %}bg-primary{% endif %} fs-6">
+                            {{ pedido.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Itens do pedido -->
+                                <h6 class="mb-3">Itens do Pedido:</h6>
+                                {% for item in pedido.itens.all %}
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <span class="fw-medium">{{ item.quantidade }}x {{ item.produto.nome }}</span>
+                                            {% if item.observacoes %}
+                                                <br><small class="text-muted">{{ item.observacoes }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <span class="text-end">R$ {{ item.subtotal|floatformat:2 }}</span>
+                                    </div>
+                                {% endfor %}
+                                
+                                <!-- Total -->
+                                <hr>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>Total do Pedido:</strong>
+                                    <strong class="text-primary">R$ {{ pedido.total|floatformat:2 }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <!-- Informações de entrega -->
+                                <h6 class="mb-3">Informações:</h6>
+                                <div class="small">
+                                    <p class="mb-2">
+                                        <strong>Tipo:</strong> 
+                                        {% if pedido.tipo_entrega == 'delivery' %}
+                                            <i class="bi bi-truck me-1"></i>Delivery
+                                        {% else %}
+                                            <i class="bi bi-shop me-1"></i>Retirada
+                                        {% endif %}
+                                    </p>
+                                    
+                                    <p class="mb-2">
+                                        <strong>Pagamento:</strong> {{ pedido.get_forma_pagamento_display }}
+                                    </p>
+                                    
+                                    {% if pedido.tipo_entrega == 'delivery' and pedido.endereco_logradouro %}
+                                        <p class="mb-2">
+                                            <strong>Endereço:</strong><br>
+                                            {{ pedido.endereco_logradouro }}, {{ pedido.endereco_numero }}<br>
+                                            {{ pedido.endereco_bairro }} - {{ pedido.endereco_cidade }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    {% if pedido.observacoes %}
+                                        <p class="mb-2">
+                                            <strong>Observações:</strong><br>
+                                            {{ pedido.observacoes }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Botão de detalhes -->
+                                <a href="{% url 'loja:detalhes_pedido' restaurante_slug=restaurante.slug pedido_id=pedido.id %}" 
+                                   class="btn btn-outline-primary btn-sm w-100 mt-3">
+                                    <i class="bi bi-eye me-1"></i>Ver Detalhes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+            {% elif celular_buscado %}
+                <!-- Nenhum pedido encontrado -->
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle fs-4 mb-3 d-block"></i>
+                    <h5>Nenhum pedido encontrado</h5>
+                    <p class="mb-0">Não encontramos pedidos para o número {{ celular_buscado }} neste restaurante.</p>
+                </div>
+            {% endif %}
+
+            <!-- Informações adicionais -->
+            <div class="row mt-5">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <i class="bi bi-telephone-fill text-primary fs-2 mb-3"></i>
+                            <h5>Precisa de Ajuda?</h5>
+                            <p class="text-muted">Entre em contato conosco</p>
+                            <a href="{% url 'loja:contato' restaurante_slug=restaurante.slug %}" class="btn btn-primary">
+                                Falar Conosco
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <i class="bi bi-plus-circle-fill text-success fs-2 mb-3"></i>
+                            <h5>Fazer Novo Pedido</h5>
+                            <p class="text-muted">Explore nosso cardápio</p>
+                            <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-success">
+                                Ver Cardápio
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara para o telefone
+    const telefoneInput = document.getElementById('celular');
+    telefoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        value = value.replace(/(\d{2})(\d)/, '($1) $2');
+        value = value.replace(/(\d{4,5})(\d{4})$/, '$1-$2');
+        e.target.value = value;
+    });
+});
+</script>
+{% endblock %}

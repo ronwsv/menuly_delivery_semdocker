@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sobre o Menuly{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4">Sobre o Menuly</h1>
+                <p class="lead text-muted">Sua plataforma completa de delivery e gestão de restaurantes</p>
+            </div>
+
+            <!-- Descrição Principal -->
+            <div class="mb-5">
+                <p class="fs-5 lh-lg">
+                    O <strong>Menuly</strong> é uma plataforma inovadora que conecta restaurantes e clientes de forma simples e eficiente. 
+                    Nossa missão é facilitar a experiência de pedidos online, oferecendo as melhores ferramentas para estabelecimentos 
+                    gastronômicos e a melhor experiência para os consumidores.
+                </p>
+                
+                <p class="fs-5 lh-lg">
+                    Com o Menuly, restaurantes podem gerenciar seus cardápios, pedidos e entregas de forma integrada, 
+                    enquanto os clientes desfrutam de uma interface intuitiva para descobrir e pedir seus pratos favoritos.
+                </p>
+            </div>
+
+            <hr class="my-5">
+
+            <!-- Características -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-shop fs-4"></i>
+                            </div>
+                            <h5 class="card-title">Para Restaurantes</h5>
+                            <p class="card-text">
+                                Gerencie seu cardápio, acompanhe pedidos em tempo real e tenha controle total sobre seu negócio.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-people fs-4"></i>
+                            </div>
+                            <h5 class="card-title">Para Clientes</h5>
+                            <p class="card-text">
+                                Navegue por cardápios, faça pedidos facilmente e acompanhe sua entrega em tempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-lightning fs-4"></i>
+                            </div>
+                            <h5 class="card-title">Rápido e Eficiente</h5>
+                            <p class="card-text">
+                                Interface otimizada para agilizar pedidos e melhorar a experiência de todos os usuários.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-shield-check fs-4"></i>
+                            </div>
+                            <h5 class="card-title">Seguro e Confiável</h5>
+                            <p class="card-text">
+                                Plataforma segura com proteção de dados e transações confiáveis.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="text-center">
+                <h3>Pronto para começar?</h3>
+                <p class="text-muted mb-4">Explore nossos restaurantes parceiros e faça seu primeiro pedido!</p>
+                <a href="{% url 'landing_page' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="bi bi-house me-2"></i>Ver Restaurantes
+                </a>
+                <a href="{% url 'contato_menuly' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-envelope me-2"></i>Entre em Contato
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

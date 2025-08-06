@@ -578,7 +578,12 @@ class ConfirmarPedidoView(BaseLojaView):
 
         if not ultimo_pedido_id:
             messages.warning(self.request, 'Não há um pedido recente para confirmar.')
-            return redirect('loja:home')
+            # Usar kwargs para pegar o restaurante_slug da URL
+            restaurante_slug = kwargs.get('restaurante_slug')
+            if restaurante_slug:
+                return redirect('loja:home', restaurante_slug=restaurante_slug)
+            else:
+                return redirect('landing_page')
 
         context = self.get_context_data(**kwargs)
         
@@ -649,8 +654,10 @@ class MeusPedidosView(LoginRequiredMixin, BaseLojaView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Buscar pedidos do usuário logado no restaurante atual
         pedidos = Pedido.objects.filter(
-            cliente=self.request.user
+            cliente=self.request.user,
+            restaurante=context['restaurante']
         ).exclude(status='carrinho').order_by('-created_at')
         
         # Paginação
@@ -895,14 +902,20 @@ class AcessarPedidosView(BaseLojaView):
         usuario = Usuario.objects.filter(celular=celular).first()
 
         if usuario:
-            # Busca os pedidos associados ao usuário e seu histórico
+            # Busca os pedidos associados ao usuário no restaurante atual
             pedidos = Pedido.objects.filter(
-                cliente=usuario
-            ).prefetch_related('historico_status').order_by('-created_at')
+                cliente=usuario,
+                restaurante=context['restaurante']
+            ).prefetch_related('historico_status', 'itens').order_by('-created_at')
+            
             context['pedidos_encontrados'] = pedidos
             context['celular_buscado'] = celular
+            context['usuario_encontrado'] = usuario
+            
             if not pedidos.exists():
-                messages.info(request, 'Nenhum pedido encontrado para este número de celular.')
+                messages.info(request, f'Nenhum pedido encontrado para o número {celular} neste restaurante.')
+            else:
+                messages.success(request, f'Encontrados {pedidos.count()} pedido(s) para o número {celular}.')
         else:
             messages.warning(request, 'Nenhum cliente encontrado com este número de celular.')
             
