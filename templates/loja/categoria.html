@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load loja_extras %}
+{% load humanize %}
+
+{% block title %}{{ categoria.nome }} - {{ restaurante_atual.nome }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header da Categoria -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="text-center">
+                <h1 class="display-5 fw-bold text-primary mb-3">
+                    {{ categoria.nome }}
+                </h1>
+                {% if categoria.descricao %}
+                    <p class="lead text-muted">
+                        {{ categoria.descricao }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegação por Categorias (Menu Secundário) -->
+    {% if categorias_menu %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{% loja_url 'cardapio' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-grid"></i> Todas
+                </a>
+                {% for cat_menu in categorias_menu %}
+                    <a href="{% loja_url 'categoria' categoria_slug=cat_menu.slug %}" 
+                       class="btn {% if cat_menu.slug == categoria.slug %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">
+                        {{ cat_menu.nome }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Produtos da Categoria -->
+    <div class="row g-4">
+        {% for produto in produtos %}
+            <div class="col-lg-6 col-xl-4">
+                <div class="card cardapio-produto-card h-100 shadow-sm">
+                    <!-- Imagem do Produto -->
+                    <div class="position-relative">
+                        {% if produto.imagem_principal %}
+                            <img src="{{ produto.imagem_principal.url }}" 
+                                 class="cardapio-produto-img" 
+                                 alt="{{ produto.nome }}"
+                                 loading="lazy">
+                        {% else %}
+                            <div class="cardapio-produto-img bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Badges -->
+                        {% if produto.tem_promocao %}
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                                <i class="bi bi-percent"></i> Promoção
+                            </span>
+                        {% endif %}
+                        
+                        {% if produto.destaque %}
+                            <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">
+                                <i class="bi bi-star-fill"></i> Destaque
+                            </span>
+                        {% endif %}
+                        
+                        {% if not produto.disponivel %}
+                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75">
+                                <span class="badge bg-secondary fs-6">Indisponível</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Conteúdo do Card -->
+                    <div class="cardapio-produto-body d-flex flex-column">
+                        <h5 class="cardapio-produto-title">{{ produto.nome }}</h5>
+                        
+                        <p class="cardapio-produto-descricao flex-grow-1">
+                            {{ produto.descricao|truncatewords:15 }}
+                        </p>
+                        
+                        <!-- Footer do Card -->
+                        <div class="cardapio-produto-footer mt-auto">
+                            <!-- Preço -->
+                            <div class="cardapio-produto-preco">
+                                {% if produto.tem_promocao %}
+                                    <small class="text-decoration-line-through text-muted me-1">
+                                        R$ {{ produto.preco|floatformat:2|intcomma }}
+                                    </small><br>
+                                    <span class="text-danger fw-bold">
+                                        R$ {{ produto.preco_promocional|floatformat:2|intcomma }}
+                                    </span>
+                                {% else %}
+                                    R$ {{ produto.preco|floatformat:2|intcomma }}
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Botões -->
+                            <div class="d-flex gap-2">
+                                <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                
+                                {% if produto.disponivel %}
+                                    <button class="btn btn-adicionar-carrinho btn-sm" 
+                                            data-produto-id="{{ produto.id }}">
+                                        <i class="bi bi-cart-plus"></i> Adicionar
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-secondary btn-sm" disabled>
+                                        <i class="bi bi-x-circle"></i> Indisponível
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">Nenhum produto aqui</h3>
+                    <p class="text-muted">Ainda não adicionamos produtos nesta categoria.</p>
+                    <a href="{% loja_url 'cardapio' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Ver todas as categorias
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    {% if produtos.has_other_pages %}
+        <nav aria-label="Paginação de produtos" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if produtos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ produtos.previous_page_number }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                {% endif %}
+
+                {% for i in produtos.paginator.page_range %}
+                    {% if produtos.number == i %}
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if produtos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ produtos.next_page_number }}" aria-label="Próxima">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cardapio-produto-card {
+        border-radius: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        background: white;
+    }
+
+    .cardapio-produto-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    }
+
+    .cardapio-produto-img {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .cardapio-produto-card:hover .cardapio-produto-img {
+        transform: scale(1.05);
+    }
+
+    .cardapio-produto-body {
+        padding: 1.5rem;
+    }
+
+    .cardapio-produto-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.75rem;
+    }
+
+    .cardapio-produto-descricao {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+        min-height: 50px; /* Garante uma altura mínima */
+    }
+
+    .cardapio-produto-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+
+    .cardapio-produto-preco {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #dc3545;
+    }
+</style>
+{% endblock %}

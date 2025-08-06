@@ -1,0 +1,563 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load loja_extras %}
+{% load humanize %}
+
+{% block title %}Cardápio - {{ restaurante_atual.nome }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header do Cardápio -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="text-center">
+                <h1 class="display-5 fw-bold text-primary mb-3">
+                    <i class="bi bi-menu-button-wide"></i>
+                    Nosso Cardápio
+                </h1>
+                <p class="lead text-muted">
+                    Descubra os sabores únicos da {{ restaurante_atual.nome }}
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros e Busca -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <form method="GET" action="{% loja_url 'buscar' %}" class="row g-3 align-items-center">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="search" 
+                                       name="q" 
+                                       class="form-control" 
+                                       placeholder="Buscar produtos no cardápio..." 
+                                       value="{{ request.GET.q }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navegação por Categorias -->
+    {% if categorias_menu %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{% loja_url 'cardapio' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-grid"></i> Todas
+                </a>
+                {% for categoria in categorias_menu %}
+                    <a href="{% loja_url 'categoria' categoria_slug=categoria.slug %}" class="btn btn-outline-primary btn-sm">
+                        {{ categoria.nome }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Cardápio por Categorias -->
+    {% for categoria in categorias_cardapio %}
+        <div class="cardapio-categoria mb-5" id="categoria-{{ categoria.slug }}">
+            <!-- Header da Categoria -->
+            <div class="categoria-header text-center mb-4">
+                <h2 class="h3 mb-2 text-primary">
+                    <i class="bi bi-star-fill"></i>
+                    {{ categoria.nome }}
+                </h2>
+                {% if categoria.descricao %}
+                    <p class="mb-0 text-muted">{{ categoria.descricao }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Produtos da Categoria -->
+            {% if categoria.produtos.all %}
+                <div class="row g-4">
+                    {% for produto in categoria.produtos.all %}
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="card cardapio-produto-card h-100 shadow-sm">
+                                <!-- Imagem do Produto -->
+                                <div class="position-relative">
+                                    {% if produto.imagem_principal %}
+                                        <img src="{{ produto.imagem_principal.url }}" 
+                                             class="cardapio-produto-img" 
+                                             alt="{{ produto.nome }}"
+                                             loading="lazy">
+                                    {% else %}
+                                        <div class="cardapio-produto-img bg-light d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Badges -->
+                                    {% if produto.tem_promocao %}
+                                        <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                                            <i class="bi bi-percent"></i> Promoção
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if produto.destaque %}
+                                        <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">
+                                            <i class="bi bi-star-fill"></i> Destaque
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if not produto.disponivel %}
+                                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75">
+                                            <span class="badge bg-secondary fs-6">Indisponível</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Conteúdo do Card -->
+                                <div class="cardapio-produto-body">
+                                    <h5 class="cardapio-produto-title">{{ produto.nome }}</h5>
+                                    
+                                    <p class="cardapio-produto-descricao">
+                                        {{ produto.descricao|truncatewords:15 }}
+                                    </p>
+                                    
+                                    <!-- Informações Extras -->
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> {{ produto.tempo_preparo|default:"15" }} min
+                                        </small>
+                                        {% if produto.calorias %}
+                                            <small class="text-muted">
+                                                <i class="bi bi-lightning"></i> {{ produto.calorias }} cal
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Footer do Card -->
+                                    <div class="cardapio-produto-footer">
+                                        <!-- Preço -->
+                                        <div class="cardapio-produto-preco">
+                                            {% if produto.tem_promocao %}
+                                                <small class="text-decoration-line-through text-muted me-1">
+                                                    R$ {{ produto.preco|floatformat:2 }}
+                                                </small><br>
+                                                <span class="text-danger fw-bold">
+                                                    R$ {{ produto.preco_promocional|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                R$ {{ produto.preco|floatformat:2 }}
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Botões -->
+                                        <div class="d-flex gap-2">
+                                            <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye"></i> Ver
+                                            </a>
+                                            
+                                            {% if produto.disponivel %}
+                                                <button class="btn btn-adicionar-carrinho btn-sm" 
+                                                        data-produto-id="{{ produto.id }}"
+                                                        data-categoria="{{ categoria.slug }}"
+                                                        data-nome="{{ produto.nome }}"
+                                                        data-preco="{% if produto.tem_promocao %}{{ produto.preco_promocional }}{% else %}{{ produto.preco }}{% endif %}">
+                                                    <i class="bi bi-cart-plus"></i> Adicionar
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="bi bi-x-circle"></i> Indisponível
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">Nenhum produto disponível nesta categoria.</p>
+                </div>
+            {% endif %}
+        </div>
+    {% empty %}
+        <!-- Cardápio Vazio -->
+        <div class="text-center py-5">
+            <i class="bi bi-menu-button-wide fs-1 text-muted mb-3"></i>
+            <h3 class="text-muted">Cardápio em preparação</h3>
+            <p class="text-muted">Em breve teremos deliciosos produtos para você!</p>
+            <a href="{% loja_url 'home' %}" class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i> Voltar à Página Inicial
+            </a>
+        </div>
+    {% endfor %}
+    
+    <!-- Botão Voltar ao Topo -->
+    <button id="btnVoltarTopo" class="btn btn-primary position-fixed" 
+            style="bottom: 20px; left: 20px; display: none; z-index: 1000;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cardapio-produto-card {
+        border-radius: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        height: 100%;
+        background: white;
+    }
+
+    .cardapio-produto-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    }
+
+    .cardapio-produto-img {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .cardapio-produto-card:hover .cardapio-produto-img {
+        transform: scale(1.05);
+    }
+
+    .cardapio-produto-body {
+        padding: 1.5rem;
+    }
+
+    .cardapio-produto-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+    }
+
+    .cardapio-produto-descricao {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .cardapio-produto-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+    }
+
+    .cardapio-produto-preco {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--cor-primaria, #dc3545);
+    }
+
+    .btn-adicionar-carrinho {
+        background: var(--cor-primaria, #dc3545);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-adicionar-carrinho:hover {
+        background: var(--cor-primaria-hover, #c82333);
+        transform: translateY(-1px);
+        color: white;
+    }
+
+    .btn-adicionar-carrinho:active {
+        transform: translateY(0);
+    }
+
+    .btn-adicionar-carrinho.loading {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    .btn-adicionar-carrinho.success {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+    }
+
+    .btn-adicionar-carrinho.error {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+    }
+
+    .categoria-header {
+        scroll-margin-top: 100px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .cardapio-produto-img {
+            height: 180px;
+        }
+        
+        .cardapio-produto-body {
+            padding: 1rem;
+        }
+        
+        .categoria-header h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados dos produtos do Django para JavaScript
+window.produtosDjango = window.produtosDjango || {};
+
+// Configurar eventos quando DOM carregar
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📋 Cardápio DOM carregado, configurando...');
+    
+    // Coletar dados dos produtos da página
+    coletarProdutosDaPagina();
+    
+    // Configurar eventos de carrinho
+    configurarEventosCarrinho();
+    
+    // Outras funcionalidades
+    configurarOutroEventos();
+});
+
+// Coletar dados dos produtos da página
+function coletarProdutosDaPagina() {
+    console.log('📦 Coletando produtos da página...');
+    
+    document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
+        const produtoId = botao.getAttribute('data-produto-id');
+        const nome = botao.getAttribute('data-nome');
+        const preco = parseFloat(botao.getAttribute('data-preco')) || 0;
+        const categoria = botao.getAttribute('data-categoria');
+        
+        if (produtoId && nome) {
+            const card = botao.closest('.cardapio-produto-card');
+            const img = card?.querySelector('img');
+            const imagem = img?.src || '/static/img/placeholder.jpg';
+            
+            window.produtosDjango[produtoId] = {
+                id: parseInt(produtoId),
+                nome: nome,
+                preco: preco,
+                categoria: categoria,
+                imagem: imagem,
+                disponivel: true
+            };
+            
+            console.log('📦 Produto coletado:', { id: produtoId, nome: nome, preco: preco });
+        }
+    });
+    
+    console.log('✅ Total de produtos coletados:', Object.keys(window.produtosDjango).length);
+}
+
+// Configurar eventos do carrinho
+function configurarEventosCarrinho() {
+    console.log('🛒 Configurando eventos do carrinho...');
+    
+    document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
+        botao.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-produto-id');
+            console.log('🛒 Clique no produto:', produtoId);
+            
+            // Efeito visual no botão
+            const botaoOriginal = this.innerHTML;
+            this.classList.add('loading');
+            this.innerHTML = '<i class="bi bi-hourglass-split"></i> Adicionando...';
+            
+            // Adicionar ao carrinho
+            setTimeout(() => {
+                if (adicionarAoCarrinhoCardapio(produtoId)) {
+                    // Sucesso
+                    this.innerHTML = '<i class="bi bi-check-circle"></i> Adicionado!';
+                    this.classList.remove('loading');
+                    this.classList.add('success');
+                    
+                    // Voltar ao normal
+                    setTimeout(() => {
+                        this.innerHTML = botaoOriginal;
+                        this.classList.remove('success');
+                    }, 2000);
+                } else {
+                    // Erro
+                    this.innerHTML = '<i class="bi bi-exclamation-circle"></i> Erro';
+                    this.classList.remove('loading');
+                    this.classList.add('error');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = botaoOriginal;
+                        this.classList.remove('error');
+                    }, 2000);
+                }
+            }, 500);
+        });
+    });
+    
+    console.log('✅ Configurados', document.querySelectorAll('.btn-adicionar-carrinho').length, 'botões do carrinho');
+}
+
+// Função para adicionar ao carrinho
+function adicionarAoCarrinhoCardapio(produtoId) {
+    console.log('🛒 Tentando adicionar produto:', produtoId);
+    
+    const produto = window.produtosDjango[produtoId];
+    
+    if (!produto) {
+        console.error('❌ Produto não encontrado:', produtoId);
+        console.log('📋 Produtos disponíveis:', Object.keys(window.produtosDjango));
+        alert('Produto não encontrado!');
+        return false;
+    }
+    
+    console.log('✅ Produto encontrado:', produto);
+    
+    // Inicializar carrinho
+    if (!window.carrinho) {
+        window.carrinho = JSON.parse(localStorage.getItem('carrinho_menuly') || '[]');
+    }
+    
+    // Verificar se já existe
+    const itemExistente = window.carrinho.find(item => String(item.id) === String(produto.id));
+    
+    if (itemExistente) {
+        itemExistente.quantidade += 1;
+        console.log('📦 Quantidade atualizada:', itemExistente);
+    } else {
+        const novoItem = {
+            id: produto.id,
+            nome: produto.nome,
+            preco: produto.preco,
+            quantidade: 1,
+            categoria: produto.categoria,
+            imagem: produto.imagem,
+            observacoes: ''
+        };
+        
+        window.carrinho.push(novoItem);
+        console.log('🆕 Novo item adicionado:', novoItem);
+    }
+    
+    // Salvar no localStorage
+    localStorage.setItem('carrinho_menuly', JSON.stringify(window.carrinho));
+    
+    // Atualizar contador
+    updateCarrinhoCounter();
+    
+    // Mostrar notificação
+    showToast(`${produto.nome} adicionado ao carrinho!`, 'success');
+    
+    return true;
+}
+
+// Atualizar contador do carrinho
+function updateCarrinhoCounter() {
+    if (typeof window.atualizarContadorCarrinho === 'function') {
+        window.atualizarContadorCarrinho();
+        return;
+    }
+    
+    const total = window.carrinho.reduce((sum, item) => sum + item.quantidade, 0);
+    const badges = document.querySelectorAll('#carrinho-badge, .carrinho-count, .cart-count');
+    
+    badges.forEach(badge => {
+        if (badge) {
+            badge.textContent = total;
+            badge.style.display = total > 0 ? 'inline' : 'none';
+        }
+    });
+    
+    console.log('🔢 Contador atualizado:', total);
+}
+
+// Notificação toast
+function showToast(message, type = 'info') {
+    if (typeof window.mostrarToast === 'function') {
+        window.mostrarToast(message, type);
+        return;
+    }
+    
+    // Fallback simples
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Outras funcionalidades
+function configurarOutroEventos() {
+    // Botão voltar ao topo
+    const btnTopo = document.getElementById('btnVoltarTopo');
+    if (btnTopo) {
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 300) {
+                btnTopo.style.display = 'block';
+            } else {
+                btnTopo.style.display = 'none';
+            }
+        });
+        
+        btnTopo.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+}
+</script>
+
+<!-- Script específico do cardápio profissional -->
+<script src="{% static 'js/cardapio.js' %}"></script>
+{% endblock %}

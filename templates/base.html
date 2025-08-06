@@ -1,0 +1,349 @@
+{% load loja_extras %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO -->
+    <title>{% block title %}{{ restaurante_atual.nome|default:"Menuly Delivery" }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ restaurante_atual.descricao|default:"Sistema de delivery moderno e eficiente" }}{% endblock %}">
+    <meta name="keywords" content="delivery, food, comida, {{ restaurante_atual.nome|default:"restaurante" }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:title" content="{% block og_title %}{{ restaurante_atual.nome|default:"Menuly Delivery" }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ restaurante_atual.descricao|default:"Sistema de delivery moderno e eficiente" }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% if restaurante_atual.banner %}{{ restaurante_atual.banner.url }}{% endif %}{% endblock %}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+    <meta property="twitter:title" content="{% block twitter_title %}{{ restaurante_atual.nome|default:"Menuly Delivery" }}{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}{{ restaurante_atual.descricao|default:"Sistema de delivery moderno e eficiente" }}{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}{% if restaurante_atual.banner %}{{ restaurante_atual.banner.url }}{% endif %}{% endblock %}">
+    
+    <!-- Favicon -->
+    {% if restaurante_atual.favicon %}
+        <link rel="icon" type="image/x-icon" href="{{ restaurante_atual.favicon.url }}">
+    {% else %}
+        <link rel="icon" type="image/x-icon" href="{% load static %}{% static 'img/favicon.ico' %}">
+    {% endif %}
+    
+    <!-- CSS -->
+    {% load static %}
+    
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Customizado -->
+    <link rel="stylesheet" href="{% static 'css/loja.css' %}">
+    
+    <!-- Variáveis CSS dinâmicas para White Label -->
+    <style>
+        :root {
+            --cor-primaria: {{ cores_tema.primaria|default:"#dc3545" }};
+            --cor-secundaria: {{ cores_tema.secundaria|default:"#6c757d" }};
+            --cor-destaque: {{ cores_tema.destaque|default:"#ffc107" }};
+            --cor-primaria-hover: {{ cores_tema.primaria|default:"#dc3545" }}dd;
+            --cor-sucesso: #198754;
+            --cor-perigo: #dc3545;
+            --cor-info: #0dcaf0;
+            --cor-warning: #ffc107;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container-fluid px-4">
+            <!-- Logo/Nome do Restaurante -->
+            <a class="navbar-brand d-flex align-items-center" href="{% loja_url 'home' %}">
+                {% if restaurante_atual.logo %}
+                    <img src="{{ restaurante_atual.logo.url }}" alt="{{ restaurante_atual.nome }}" height="40" class="me-2">
+                {% endif %}
+                <span class="fw-bold text-primary">{{ restaurante_atual.nome|default:"Menuly" }}</span>
+            </a>
+            
+            <!-- Botão mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <!-- Menu -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% loja_url 'home' %}">
+                            <i class="bi bi-house"></i> Início
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% loja_url 'cardapio' %}">
+                            <i class="bi bi-menu-button-wide"></i> Cardápio
+                        </a>
+                    </li>
+                    {% if categorias_menu %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-grid"></i> Categorias
+                            </a>
+                            <ul class="dropdown-menu">
+                                {% for categoria in categorias_menu %}
+                                    <li>
+                                        <a class="dropdown-item" href="{% loja_url 'categoria' categoria_slug=categoria.slug %}">
+                                            {{ categoria.nome }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% loja_url 'cardapio' %}">
+                                <i class="bi bi-grid"></i> Categorias
+                            </a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% loja_url 'sobre' %}">
+                            <i class="bi bi-info-circle"></i> Sobre
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% loja_url 'contato' %}">
+                            <i class="bi bi-telephone"></i> Contato
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% loja_url 'meus_pedidos' %}">
+                            <i class="bi bi-receipt"></i> Meus Pedidos
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Busca -->
+                <form class="d-flex me-2" method="GET" action="{% loja_url 'buscar' %}">
+                    <div class="input-group">
+                        <input class="form-control form-control-sm" type="search" name="q" placeholder="Buscar..." value="{{ request.GET.q }}">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Carrinho -->
+                <a href="{% loja_url 'carrinho' %}" class="btn btn-primary position-relative me-2">
+                    <i class="bi bi-cart3"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                          id="carrinho-badge" style="display: none;">
+                        0
+                    </span>
+                </a>
+                
+                <!-- Usuário -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person"></i>
+                        {% if user.is_authenticated %}
+                            {{ user.first_name|default:user.username }}
+                        {% else %}
+                            Entrar
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if user.is_authenticated %}
+                            <li><a class="dropdown-item" href="{% loja_url 'perfil' %}">
+                                <i class="bi bi-person-gear"></i> Meu Perfil
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% loja_url 'meus_pedidos' %}">>
+                                <i class="bi bi-bag-check"></i> Meus Pedidos
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'admin:logout' %}">
+                                <i class="bi bi-box-arrow-right"></i> Sair
+                            </a></li>
+                        {% else %}
+                            <li><a class="dropdown-item" href="{% url 'admin:login' %}">
+                                <i class="bi bi-box-arrow-in-right"></i> Entrar
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin:login' %}">
+                                <i class="bi bi-person-plus"></i> Criar Conta
+                            </a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Banner de Status do Restaurante -->
+    {% if restaurante_atual and not restaurante_atual.esta_aberto %}
+        <div class="alert alert-warning text-center mb-0" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Restaurante fechado no momento.</strong> 
+            {% if restaurante_atual.status == 'manutencao' %}
+                Em manutenção. Voltamos em breve!
+            {% else %}
+                Verifique nossos horários de funcionamento.
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <!-- Mensagens do Sistema -->
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Conteúdo Principal -->
+    <main class="{% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light mt-5">
+        <div class="container py-5">
+            <div class="row">
+                <!-- Informações do Restaurante -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <h5 class="text-primary mb-3">{{ restaurante_atual.nome|default:"Menuly Delivery" }}</h5>
+                    {% if restaurante_atual %}
+                        <p class="mb-2">{{ restaurante_atual.descricao|truncatewords:20 }}</p>
+                        {% if restaurante_atual.slogan %}
+                            <p class="fst-italic text-muted">{{ restaurante_atual.slogan }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                
+                <!-- Contato -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6 class="text-primary mb-3">Contato</h6>
+                    {% if restaurante_atual %}
+                        <p class="mb-2">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ restaurante_atual.logradouro }}, {{ restaurante_atual.numero }}<br>
+                            {{ restaurante_atual.bairro }} - {{ restaurante_atual.cidade }}/{{ restaurante_atual.estado }}
+                        </p>
+                        <p class="mb-2">
+                            <i class="bi bi-telephone"></i>
+                            <a href="tel:{{ restaurante_atual.telefone }}" class="text-light text-decoration-none">
+                                {{ restaurante_atual.telefone }}
+                            </a>
+                        </p>
+                        {% if restaurante_atual.whatsapp %}
+                            <p class="mb-2">
+                                <i class="bi bi-whatsapp"></i>
+                                <a href="https://wa.me/{{ restaurante_atual.whatsapp }}" class="text-light text-decoration-none" target="_blank">
+                                    WhatsApp
+                                </a>
+                            </p>
+                        {% endif %}
+                        <p class="mb-2">
+                            <i class="bi bi-envelope"></i>
+                            <a href="mailto:{{ restaurante_atual.email }}" class="text-light text-decoration-none">
+                                {{ restaurante_atual.email }}
+                            </a>
+                        </p>
+                    {% endif %}
+                </div>
+                
+                <!-- Links Úteis -->
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="text-primary mb-3">Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% loja_url 'home' %}" class="text-light text-decoration-none">Início</a></li>
+                        <li><a href="{% loja_url 'cardapio' %}" class="text-light text-decoration-none">Cardápio</a></li>
+                        <li><a href="{% loja_url 'sobre' %}" class="text-light text-decoration-none">Sobre</a></li>
+                        <li><a href="{% loja_url 'contato' %}" class="text-light text-decoration-none">Contato</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Horário de Funcionamento -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6 class="text-primary mb-3">Horário de Funcionamento</h6>
+                    {% if restaurante_atual.horarios.exists %}
+                        {% for horario in restaurante_atual.horarios.all %}
+                            <p class="mb-1 small">
+                                <strong>{{ horario.get_dia_semana_display }}:</strong>
+                                {{ horario.hora_abertura|time:"H:i" }} às {{ horario.hora_fechamento|time:"H:i" }}
+                            </p>
+                        {% endfor %}
+                    {% else %}
+                        <p class="mb-2">
+                            <strong>Segunda a Domingo:</strong><br>
+                            18:00 às 23:00
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; {% now "Y" %} {{ restaurante_atual.nome|default:"Menuly Delivery" }}. Todos os direitos reservados.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0 small text-muted">
+                        Powered by <a href="#" class="text-primary text-decoration-none">Menuly</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <!-- Bootstrap 5.3 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JavaScript Customizado -->
+    <script src="{% static 'js/carrinho-novo.js' %}"></script>
+    
+    <!-- Debug Script -->
+    <script>
+        console.log('🔧 Base template script carregado');
+        
+        // Aguardar carregar e testar
+        setTimeout(() => {
+            console.log('🔍 Verificando funções globais:');
+            console.log('- adicionarAoCarrinho:', typeof window.adicionarAoCarrinho);
+            console.log('- atualizarContadorCarrinho:', typeof window.atualizarContadorCarrinho);
+            console.log('- mostrarToast:', typeof window.mostrarToast);
+            console.log('- carrinho:', window.carrinho);
+        }, 500);
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- WhatsApp Flutuante (se configurado) -->
+    {% if restaurante_atual.whatsapp %}
+        <a href="https://wa.me/{{ restaurante_atual.whatsapp }}" 
+           class="btn btn-success rounded-circle position-fixed whatsapp-float" 
+           target="_blank"
+           style="bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1000;"
+           title="Fale conosco no WhatsApp">
+            <i class="bi bi-whatsapp fs-4"></i>
+        </a>
+    {% endif %}
+    
+</body>
+</html>
