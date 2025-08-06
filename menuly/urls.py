@@ -2,7 +2,10 @@
 Sistema Multi-Site de Delivery - URLs principais
 
 Estrutura de URLs:
-- / -> Loja (Frontend para clientes)
+- / -> Landing page do Menuly
+- /sobre/ -> Página sobre o Menuly
+- /contato/ -> Página de contato do Menuly
+- /<slug:restaurante_slug>/ -> Páginas da loja (cardápio, etc.)
 - /admin-loja/ -> Painel do lojista
 - /superadmin/ -> Painel global
 - /admin/ -> Django Admin
@@ -11,22 +14,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from core.views import LandingView, SobreView, ContatoView
 
 urlpatterns = [
     # Django Admin
     path("admin/", admin.site.urls),
-    
-    # Loja - Frontend para clientes (estrutura hierárquica)
-    path("<slug:restaurante_slug>/", include("loja.urls", namespace="loja_hierarquica")),
-    
-    # Loja - Frontend para clientes (raiz para compatibilidade)
-    path("", include("loja.urls")),
-    
-    # Admin da Loja - Painel do lojista (prioridade 2)
+
+    # Páginas institucionais do Menuly
+    path("", LandingView.as_view(), name="landing_page"),
+    path("sobre/", SobreView.as_view(), name="sobre_menuly"),
+    path("contato/", ContatoView.as_view(), name="contato_menuly"),
+
+    # Admin da Loja - Painel do lojista
     path("admin-loja/", include("admin_loja.urls")),
     
-    # Superadmin - Painel global (prioridade 3)
+    # Superadmin - Painel global
     path("superadmin/", include("superadmin.urls")),
+
+    # Loja - Frontend para clientes (estrutura hierárquica)
+    # Esta deve ser a ÚLTIMA das URLs principais para não capturar as outras.
+    path("<slug:restaurante_slug>/", include("loja.urls")),
 ]
 
 # Servir arquivos de media em desenvolvimento

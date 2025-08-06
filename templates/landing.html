@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Bem-vindo ao Menuly{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-4 fw-bold">Bem-vindo ao Menuly</h1>
+            <p class="lead text-muted">Sua solução completa de cardápio e delivery online.</p>
+            <hr class="my-4">
+            <p>Escolha um de nossos restaurantes parceiros abaixo para começar.</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        {% if restaurantes %}
+            {% for restaurante in restaurantes %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    {% if restaurante.logo %}
+                        <img src="{{ restaurante.logo.url }}" class="card-img-top" alt="Logo {{ restaurante.nome }}" style="max-height: 200px; object-fit: contain; padding: 1rem;">
+                    {% endif %}
+                    <div class="card-body text-center d-flex flex-column">
+                        <h5 class="card-title">{{ restaurante.nome }}</h5>
+                        <p class="card-text text-muted">{{ restaurante.descricao|truncatewords:15 }}</p>
+                        <a href="{% url 'loja:home' restaurante_slug=restaurante.slug %}" class="btn btn-primary mt-auto">Ver Cardápio</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center">
+                <p>Nenhum restaurante disponível no momento.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <p>É um administrador?</p>
+            <a href="{{ admin_url }}" class="btn btn-secondary">Acessar o Painel</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

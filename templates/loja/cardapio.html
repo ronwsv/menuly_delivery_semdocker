@@ -52,15 +52,15 @@
     </div>
     
     <!-- Navegação por Categorias -->
-    {% if categorias_menu %}
+    {% if categorias_cardapio %}
     <div class="row mb-4">
         <div class="col">
             <div class="d-flex flex-wrap justify-content-center gap-2">
-                <a href="{% loja_url 'cardapio' %}" class="btn btn-outline-primary btn-sm">
+                <a href="#cardapio-completo" class="btn btn-primary btn-sm">
                     <i class="bi bi-grid"></i> Todas
                 </a>
-                {% for categoria in categorias_menu %}
-                    <a href="{% loja_url 'categoria' categoria_slug=categoria.slug %}" class="btn btn-outline-primary btn-sm">
+                {% for categoria in categorias_cardapio %}
+                    <a href="#categoria-{{ categoria.slug }}" class="btn btn-outline-primary btn-sm">
                         {{ categoria.nome }}
                     </a>
                 {% endfor %}
@@ -70,6 +70,7 @@
     {% endif %}
     
     <!-- Cardápio por Categorias -->
+    <div id="cardapio-completo">
     {% for categoria in categorias_cardapio %}
         <div class="cardapio-categoria mb-5" id="categoria-{{ categoria.slug }}">
             <!-- Header da Categoria -->
@@ -167,10 +168,7 @@
                                             
                                             {% if produto.disponivel %}
                                                 <button class="btn btn-adicionar-carrinho btn-sm" 
-                                                        data-produto-id="{{ produto.id }}"
-                                                        data-categoria="{{ categoria.slug }}"
-                                                        data-nome="{{ produto.nome }}"
-                                                        data-preco="{% if produto.tem_promocao %}{{ produto.preco_promocional }}{% else %}{{ produto.preco }}{% endif %}">
+                                                        data-produto-id="{{ produto.id }}">
                                                     <i class="bi bi-cart-plus"></i> Adicionar
                                                 </button>
                                             {% else %}
@@ -203,6 +201,7 @@
             </a>
         </div>
     {% endfor %}
+    </div>
     
     <!-- Botão Voltar ao Topo -->
     <button id="btnVoltarTopo" class="btn btn-primary position-fixed" 

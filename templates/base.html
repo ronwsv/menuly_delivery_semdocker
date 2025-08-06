@@ -95,7 +95,7 @@
                             <i class="bi bi-menu-button-wide"></i> Cardápio
                         </a>
                     </li>
-                    {% if categorias_menu %}
+                    {% comment %} {% if categorias_menu %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid"></i> Categorias
@@ -116,7 +116,7 @@
                                 <i class="bi bi-grid"></i> Categorias
                             </a>
                         </li>
-                    {% endif %}
+                    {% endif %} {% endcomment %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% loja_url 'sobre' %}">
                             <i class="bi bi-info-circle"></i> Sobre

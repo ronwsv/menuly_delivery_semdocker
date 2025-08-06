@@ -22,31 +22,32 @@ class BaseLojaView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Obter restaurante pelo slug da URL ou primeiro ativo como fallback
+        # Obter restaurante EXCLUSIVAMENTE pelo slug da URL.
+        # Não deve haver fallback. Uma página de loja SEMPRE precisa de um restaurante.
         restaurante_slug = kwargs.get('restaurante_slug')
-        if restaurante_slug:
-            restaurante = Restaurante.objects.filter(slug=restaurante_slug, status='ativo').first()
-        else:
-            # Fallback para manter compatibilidade
-            restaurante = Restaurante.objects.filter(status='ativo').first()
+        if not restaurante_slug:
+            # Se nenhum slug for fornecido, não há restaurante para mostrar.
+            # Isso força a estrutura de URL correta.
+            raise Http404("Restaurante não encontrado.")
+
+        restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
             
         context['restaurante'] = restaurante
         context['restaurante_atual'] = restaurante  # Para compatibilidade com templates
         
-        if restaurante:
-            # Categorias para o menu, com produtos pré-carregados para eficiência
-            context['categorias_menu'] = restaurante.categorias.filter(ativo=True).prefetch_related(
-                Prefetch('produtos', queryset=Produto.objects.filter(disponivel=True).order_by('ordem', 'nome'))
-            ).order_by('ordem', 'nome')
-            
-            # Produtos em destaque
-            context['produtos_destaque'] = restaurante.produtos.filter(
-                destaque=True, 
-                disponivel=True
-            ).select_related('categoria')[:6]
-            
-            # Informações do carrinho
-            context['carrinho_count'] = self.get_carrinho_count()
+        # Categorias para o menu, com produtos pré-carregados para eficiência
+        context['categorias_menu'] = restaurante.categorias.filter(ativo=True).prefetch_related(
+            Prefetch('produtos', queryset=Produto.objects.filter(disponivel=True).order_by('ordem', 'nome'))
+        ).order_by('ordem', 'nome')
+        
+        # Produtos em destaque
+        context['produtos_destaque'] = restaurante.produtos.filter(
+            destaque=True, 
+            disponivel=True
+        ).select_related('categoria')[:6]
+        
+        # Informações do carrinho
+        context['carrinho_count'] = self.get_carrinho_count()
         
         return context
     
@@ -104,18 +105,23 @@ class CardapioView(BaseLojaView):
 
         # As categorias já foram carregadas na BaseLojaView com prefetch_related.
         # Apenas pegamos esses dados e preparamos para o template e JS.
+        # O prefetch_related em BaseLojaView já garante que os produtos de cada
+        # categoria sejam carregados de forma otimizada.
         categorias = context.get('categorias_menu', [])
         context['categorias_cardapio'] = categorias
         
         if categorias:
             # Preparar dados de TODOS os produtos para JavaScript (carrinho)
             produtos_js = {}
+            todos_produtos = []
             for categoria in categorias:
                 # Usar .all() aqui é eficiente por causa do prefetch_related na view base
-                for produto in categoria.produtos.all():
+                produtos_da_categoria = categoria.produtos.all()
+                todos_produtos.extend(produtos_da_categoria)
+                for produto in produtos_da_categoria:
                     preco_final = produto.preco_promocional if produto.tem_promocao else produto.preco
                     produtos_js[str(produto.id)] = {
-                        'id': produto.id,
+                        'id': str(produto.id),
                         'nome': produto.nome,
                         'preco': float(preco_final),
                         'categoria': categoria.slug,
@@ -123,8 +129,8 @@ class CardapioView(BaseLojaView):
                         'disponivel': produto.disponivel
                     }
             
-            context['produtos_js'] = produtos_js
-            print(f"🍕 CardapioView (Otimizada): {len(categorias)} categorias, {len(produtos_js)} produtos para JS")
+            context['produtos_js'] = json.dumps(produtos_js)
+            print(f"🍕 CardapioView (Otimizada): {len(categorias)} categorias, {len(todos_produtos)} produtos no total.")
 
         return context
 
