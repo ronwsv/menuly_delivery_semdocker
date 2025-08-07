@@ -235,9 +235,54 @@ class CarrinhoView(BaseLojaView):
             carrinho = request.session.get('carrinho', {})
             carrinho_count = sum(item['quantidade'] for item in carrinho.values())
             
+            # Buscar detalhes dos produtos e preparar lista de itens
+            itens_carrinho = []
+            total_valor = 0
+            
+            for item_key, item in carrinho.items():
+                try:
+                    produto_id = item['produto_id']
+                    produto = Produto.objects.get(id=produto_id)
+                    subtotal = item['preco'] * item['quantidade']
+                    total_valor += subtotal
+                    
+                    itens_carrinho.append({
+                        'produto_id': produto_id,
+                        'nome': produto.nome,
+                        'categoria': produto.categoria.nome if produto.categoria else '',
+                        'quantidade': item['quantidade'],
+                        'preco_unitario': item['preco'],
+                        'preco_total': subtotal,
+                        'personalizacoes': item.get('personalizacoes', []),
+                        'observacoes': item.get('observacoes', ''),
+                        'item_key': item_key,
+                    })
+                except Produto.DoesNotExist:
+                    continue
+            
+            # Dados do restaurante
+            restaurante_data = None
+            if hasattr(self, 'get_context_data'):
+                context = super().get_context_data(**kwargs)
+                restaurante = context.get('restaurante')
+                if restaurante:
+                    endereco_completo = f"{restaurante.logradouro}, {restaurante.numero}"
+                    if restaurante.complemento:
+                        endereco_completo += f", {restaurante.complemento}"
+                    endereco_completo += f" - {restaurante.bairro}, {restaurante.cidade}/{restaurante.estado}"
+                    
+                    restaurante_data = {
+                        'nome': restaurante.nome,
+                        'endereco': endereco_completo,
+                        'slug': restaurante.slug
+                    }
+            
             return JsonResponse({
                 'carrinho_count': carrinho_count,
-                'total_items': len(carrinho)
+                'total_items': len(carrinho),
+                'items': itens_carrinho,
+                'total': total_valor,
+                'restaurante': restaurante_data
             })
         
         # Caso contrário, renderizar template normal
@@ -953,3 +998,120 @@ class AcessarPedidosView(BaseLojaView):
             messages.warning(request, 'Nenhum cliente encontrado com este número de celular.')
             
         return self.render_to_response(context)
+
+
+class RemoverItemCarrinhoView(View):
+    """Remover item específico do carrinho via AJAX"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            produto_id = data.get('produto_id')
+            
+            if not produto_id:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'ID do produto não fornecido'
+                }, status=400)
+            
+            carrinho = request.session.get('carrinho', {})
+            
+            # Procurar e remover item com o produto_id
+            items_removidos = 0
+            for item_key in list(carrinho.keys()):
+                if carrinho[item_key]['produto_id'] == str(produto_id):
+                    del carrinho[item_key]
+                    items_removidos += 1
+            
+            if items_removidos > 0:
+                request.session['carrinho'] = carrinho
+                request.session.modified = True
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Item removido do carrinho'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Item não encontrado no carrinho'
+                }, status=404)
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao remover item: {str(e)}'
+            }, status=500)
+
+
+class AlterarQuantidadeCarrinhoView(View):
+    """Alterar quantidade de item no carrinho via AJAX"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            produto_id = data.get('produto_id')
+            delta = int(data.get('delta', 0))
+            
+            if not produto_id or delta == 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Dados inválidos'
+                }, status=400)
+            
+            carrinho = request.session.get('carrinho', {})
+            
+            # Procurar item no carrinho
+            item_encontrado = False
+            for item_key in carrinho.keys():
+                if carrinho[item_key]['produto_id'] == str(produto_id):
+                    nova_quantidade = carrinho[item_key]['quantidade'] + delta
+                    
+                    if nova_quantidade <= 0:
+                        # Remover item se quantidade for 0 ou menor
+                        del carrinho[item_key]
+                    else:
+                        carrinho[item_key]['quantidade'] = nova_quantidade
+                    
+                    item_encontrado = True
+                    break
+            
+            if item_encontrado:
+                request.session['carrinho'] = carrinho
+                request.session.modified = True
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Quantidade atualizada'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Item não encontrado no carrinho'
+                }, status=404)
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao alterar quantidade: {str(e)}'
+            }, status=500)
+
+
+class LimparCarrinhoAjaxView(View):
+    """Limpar todo o carrinho via AJAX"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            request.session['carrinho'] = {}
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Carrinho limpo com sucesso'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao limpar carrinho: {str(e)}'
+            }, status=500)

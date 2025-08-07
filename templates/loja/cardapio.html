@@ -579,8 +579,12 @@ function adicionarAoCarrinhoCardapio(produtoId) {
         if (data.success) {
             console.log('✅ Produto adicionado com sucesso via AJAX');
             
-            // Atualizar contador
-            updateCarrinhoCounter();
+            // Atualizar contador usando função global se disponível
+            if (typeof window.atualizarContadorCarrinho === 'function') {
+                window.atualizarContadorCarrinho();
+            } else {
+                updateCarrinhoCounter();
+            }
             
             // Mostrar notificação
             showToast(data.message || produto.nome + ' adicionado ao carrinho!', 'success');

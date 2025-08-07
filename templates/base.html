@@ -145,13 +145,13 @@
                 </form>
                 
                 <!-- Carrinho -->
-                <a href="{% loja_url 'carrinho' %}" class="btn btn-primary position-relative me-2">
+                <button class="btn btn-primary position-relative me-2" id="btn-abrir-carrinho" type="button">
                     <i class="bi bi-cart3"></i>
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
                           id="carrinho-badge" style="display: none;">
                         0
                     </span>
-                </a>
+                </button>
                 
                 <!-- Usuário -->
                 <div class="dropdown">
@@ -333,6 +333,61 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+    
+    <!-- Sidebar do Carrinho -->
+    <div id="carrinho-sidebar" class="offcanvas offcanvas-end" tabindex="-1" style="width: 400px;">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title">
+                <i class="bi bi-cart3 me-2"></i>Seu Carrinho
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <!-- Cabeçalho com info do restaurante -->
+            <div class="p-3 bg-light border-bottom" id="carrinho-header" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-shop text-primary me-2"></i>
+                    <div>
+                        <h6 class="mb-0" id="carrinho-restaurante-nome"></h6>
+                        <small class="text-muted" id="carrinho-restaurante-endereco"></small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de itens -->
+            <div class="flex-grow-1" id="carrinho-items">
+                <div class="p-4 text-center text-muted" id="carrinho-vazio">
+                    <i class="bi bi-cart-x fs-1 mb-3 d-block"></i>
+                    <h6>Seu carrinho está vazio</h6>
+                    <p class="small mb-0">Adicione produtos para continuar</p>
+                </div>
+            </div>
+            
+            <!-- Footer com total e botões -->
+            <div class="border-top bg-white p-3" id="carrinho-footer" style="display: none;">
+                <div class="row align-items-center mb-3">
+                    <div class="col">
+                        <span class="fw-bold">Total:</span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="h5 mb-0 text-primary fw-bold" id="carrinho-total">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" id="btn-finalizar-pedido">
+                        <i class="bi bi-credit-card me-2"></i>Finalizar Pedido
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="btn-limpar-carrinho">
+                        <i class="bi bi-trash me-2"></i>Limpar Carrinho
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlay escuro -->
+    <div id="carrinho-overlay" class="position-fixed top-0 start-0 w-100 h-100 bg-dark" 
+         style="opacity: 0.5; z-index: 1040; display: none;"></div>
     
     <!-- WhatsApp Flutuante (se configurado) -->
     {% if restaurante_atual.whatsapp %}

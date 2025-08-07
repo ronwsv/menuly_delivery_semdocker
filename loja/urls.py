@@ -19,7 +19,9 @@ urlpatterns = [
     path('carrinho/', views.CarrinhoView.as_view(), name='carrinho'),
     path('carrinho/adicionar/', views.AdicionarCarrinhoView.as_view(), name='adicionar_carrinho'),
     path('carrinho/remover/<str:item_id>/', views.RemoverCarrinhoView.as_view(), name='remover_carrinho'),
-    path('carrinho/limpar/', views.LimparCarrinhoView.as_view(), name='limpar_carrinho'),
+    path('carrinho/remover/', views.RemoverItemCarrinhoView.as_view(), name='remover_item_carrinho'),
+    path('carrinho/alterar-quantidade/', views.AlterarQuantidadeCarrinhoView.as_view(), name='alterar_quantidade_carrinho'),
+    path('carrinho/limpar/', views.LimparCarrinhoAjaxView.as_view(), name='limpar_carrinho'),
     
     # Checkout
     path('checkout/', views.CheckoutView.as_view(), name='checkout'),
