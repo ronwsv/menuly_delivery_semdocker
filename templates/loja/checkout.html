@@ -199,7 +199,7 @@
                                     <i class="bi bi-x"></i>
                                 </button>
                             </div>
-                            <div class="loading-cep">
+                            <div class="loading-cep" style="display: none;">
                                 <small class="text-muted">
                                     <i class="bi bi-hourglass-split"></i> Buscando CEP...
                                 </small>
@@ -365,13 +365,490 @@
 
 {% block extra_scripts %}
 <script>
+console.log('🔧 [DEBUG] Script do checkout iniciado');
+
+// Teste direto na página
+window.testarCEPDireto = function() {
+    console.log('🧪 [TESTE] Testando CEP direto...');
+    
+    const cepInput = document.getElementById('cep');
+    const loadingEl = document.querySelector('.loading-cep');
+    const errorEl = document.querySelector('.cep-error');
+    
+    console.log('Elements:', { cepInput: !!cepInput, loadingEl: !!loadingEl, errorEl: !!errorEl });
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    
+    fetch('https://viacep.com.br/ws/01310100/json/')
+        .then(response => response.json())
+        .then(data => {
+            console.log('✅ API Response:', data);
+            if (loadingEl) loadingEl.style.display = 'none';
+            
+            if (!data.erro) {
+                const logradouro = document.getElementById('logradouro');
+                const bairro = document.getElementById('bairro');
+                const cidade = document.getElementById('cidade');
+                const estado = document.getElementById('estado');
+                
+                if (logradouro) logradouro.value = data.logradouro || '';
+                if (bairro) bairro.value = data.bairro || '';
+                if (cidade) cidade.value = data.localidade || '';
+                if (estado) estado.value = data.uf || '';
+                
+                if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado: ' + data.logradouro + '</span>';
+                
+                console.log('✅ Campos preenchidos!');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (errorEl) errorEl.textContent = 'Erro: ' + error.message;
+        });
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Máscaras e controles
+    console.log('🚀 [INIT] DOM carregado, inicializando checkout...');
+    
+    const buscarBtn = document.getElementById('buscar-cep');
+    const cepInput = document.getElementById('cep');
+    
+    console.log('Botão buscar:', !!buscarBtn);
+    console.log('Campo CEP:', !!cepInput);
+    
+    if (buscarBtn && cepInput) {
+        buscarBtn.addEventListener('click', function() {
+            console.log('🔴 [CLICK] Botão clicado!');
+            const cep = cepInput.value.replace(/\D/g, '');
+            console.log('CEP:', cep);
+            
+            if (cep.length === 8) {
+                testarCEPDireto();
+            } else {
+                console.warn('CEP inválido');
+            }
+        });
+        console.log('✅ Event listener adicionado');
+    } else {
+        console.error('❌ Elementos não encontrados!');
+    }
+});
+    
+    // Verificar se os elementos existem
     const celularInput = document.getElementById('celular');
     const cepInput = document.getElementById('cep');
     const buscarBtn = document.getElementById('buscar-cep');
     const cancelarBtn = document.getElementById('cancelar-cep');
-    let abortController = null;
+    const loadingEl = document.querySelector('.loading-cep');
+    const errorEl = document.querySelector('.cep-error');
+    
+    console.log('📋 [INIT] Elementos encontrados:');
+    console.log('  - celularInput:', !!celularInput);
+    console.log('  - cepInput:', !!cepInput);
+    console.log('  - buscarBtn:', !!buscarBtn);
+    console.log('  - cancelarBtn:', !!cancelarBtn);
+    console.log('  - loadingEl:', !!loadingEl);
+    console.log('  - errorEl:', !!errorEl);
+    
+    // Ocultar loading inicialmente
+    if (loadingEl) {
+        loadingEl.style.display = 'none';
+    }
+    
+    // Função de busca CEP
+    function buscarCEP(cep) {
+        console.log('🔍 [CEP] === INICIANDO BUSCA ===');
+        console.log('🔍 [CEP] CEP recebido:', cep);
+        console.log('🔍 [CEP] Tipo do CEP:', typeof cep);
+        console.log('🔍 [CEP] Length:', cep.length);
+        
+        const loadingEl = document.querySelector('.loading-cep');
+        const errorEl = document.querySelector('.cep-error');
+        
+        console.log('🔍 [CEP] Loading element encontrado:', !!loadingEl);
+        console.log('🔍 [CEP] Error element encontrado:', !!errorEl);
+        
+        if (loadingEl) {
+            console.log('🔍 [CEP] Exibindo loading...');
+            loadingEl.style.display = 'block';
+            loadingEl.style.visibility = 'visible';
+            console.log('✅ [CEP] Loading exibido - display:', loadingEl.style.display);
+        } else {
+            console.error('❌ [CEP] Loading element não encontrado!');
+        }
+        
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.innerHTML = '';
+        }
+        
+        // Validação básica
+        if (!cep || cep.length !== 8) {
+            console.error('❌ [CEP] CEP inválido:', cep);
+            if (errorEl) errorEl.textContent = 'CEP deve ter 8 dígitos';
+            if (loadingEl) loadingEl.style.display = 'none';
+            return;
+        }
+        
+        console.log('📡 [CEP] Fazendo requisição para ViaCEP...');
+        const url = `https://viacep.com.br/ws/${cep}/json/`;
+        console.log('📡 [CEP] URL:', url);
+        
+        // Fazer requisição com timeout manual
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('⏰ [CEP] Timeout atingido - cancelando requisição');
+            controller.abort();
+        }, 10000);
+        
+        fetch(url, {
+            signal: controller.signal,
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            clearTimeout(timeoutId);
+            console.log('� [CEP] Response recebida');
+            console.log('📨 [CEP] Status:', response.status);
+            console.log('📨 [CEP] StatusText:', response.statusText);
+            console.log('📨 [CEP] OK:', response.ok);
+            console.log('📨 [CEP] Headers:', [...response.headers.entries()]);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📦 [CEP] === DADOS RECEBIDOS ===');
+            console.log('📦 [CEP] Data completa:', data);
+            console.log('📦 [CEP] Tipo:', typeof data);
+            console.log('📦 [CEP] Erro na resposta:', data.erro);
+            
+            // Ocultar loading
+            if (loadingEl) {
+                console.log('🔍 [CEP] Ocultando loading...');
+                loadingEl.style.display = 'none';
+                console.log('✅ [CEP] Loading ocultado');
+            }
+            
+            if (data.erro) {
+                console.warn('⚠️ [CEP] CEP não encontrado na base ViaCEP');
+                if (errorEl) {
+                    errorEl.textContent = 'CEP não encontrado';
+                    errorEl.style.color = 'red';
+                }
+                return;
+            }
+            
+            console.log('✅ [CEP] CEP encontrado! Preenchendo campos...');
+            
+            // Preencher campos
+            const campos = {
+                'logradouro': data.logradouro || '',
+                'bairro': data.bairro || '',
+                'cidade': data.localidade || '',
+                'estado': data.uf || ''
+            };
+            
+            console.log('📝 [CEP] Campos a preencher:', campos);
+            
+            Object.keys(campos).forEach(campoId => {
+                const elemento = document.getElementById(campoId);
+                console.log(`📝 [CEP] Campo ${campoId}:`, !!elemento, '- Valor:', campos[campoId]);
+                if (elemento) {
+                    elemento.value = campos[campoId];
+                    console.log(`✅ [CEP] Campo ${campoId} preenchido com:`, elemento.value);
+                } else {
+                    console.error(`❌ [CEP] Campo ${campoId} não encontrado!`);
+                }
+            });
+            
+            if (errorEl) {
+                errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado com sucesso!</span>';
+                errorEl.style.color = 'green';
+                setTimeout(() => {
+                    errorEl.textContent = '';
+                }, 4000);
+            }
+            
+            // Foco no número
+            const numeroEl = document.getElementById('numero');
+            if (numeroEl) {
+                numeroEl.focus();
+                console.log('✅ [CEP] Foco movido para campo número');
+            }
+            
+            console.log('✅ [CEP] === BUSCA CONCLUÍDA COM SUCESSO ===');
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            console.error('❌ [CEP] === ERRO NA BUSCA ===');
+            console.error('❌ [CEP] Erro completo:', error);
+            console.error('❌ [CEP] Message:', error.message);
+            console.error('❌ [CEP] Name:', error.name);
+            console.error('❌ [CEP] Stack:', error.stack);
+            
+            // Ocultar loading
+            if (loadingEl) {
+                console.log('🔍 [CEP] Ocultando loading após erro...');
+                loadingEl.style.display = 'none';
+            }
+            
+            if (errorEl) {
+                errorEl.textContent = `Erro ao buscar CEP: ${error.message}`;
+                errorEl.style.color = 'red';
+            }
+            
+            console.log('❌ [CEP] === FIM DO ERRO ===');
+        });
+    }
+    
+    // Event listener para o botão buscar
+    if (buscarBtn) {
+        buscarBtn.addEventListener('click', function() {
+            console.log('🔴 [EVENT] Botão buscar clicado');
+            
+            if (!cepInput) {
+                console.error('❌ [EVENT] Campo CEP não encontrado');
+                return;
+            }
+            
+            const cep = cepInput.value.replace(/\D/g, '');
+            console.log('📝 [EVENT] CEP extraído:', cep, 'length:', cep.length);
+            
+            if (cep.length !== 8) {
+                console.warn('⚠️ [EVENT] CEP inválido');
+                if (errorEl) errorEl.textContent = 'CEP deve ter 8 dígitos';
+                return;
+            }
+            
+            buscarCEP(cep);
+        });
+        console.log('✅ [INIT] Event listener do botão buscar adicionado');
+    } else {
+        console.error('❌ [INIT] Botão buscar não encontrado!');
+    }
+    
+    // Máscara para celular
+    if (celularInput) {
+        celularInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                e.target.value = value;
+            }
+        });
+    }
+    
+    // Máscara para CEP
+    if (cepInput) {
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 8) {
+                value = value.replace(/(\d{5})(\d{3})/, '$1-$2');
+                e.target.value = value;
+            }
+        });
+        
+        // Auto buscar quando sair do campo
+        cepInput.addEventListener('blur', function() {
+            const cep = this.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                console.log('🔍 [EVENT] Auto buscar CEP no blur:', cep);
+                buscarCEP(cep);
+            }
+        });
+    }
+    
+    // Controle da taxa de entrega
+    const tipoEntregaInputs = document.querySelectorAll('input[name="tipo_entrega"]');
+    const enderecoSection = document.getElementById('endereco-section');
+    const taxaValue = document.getElementById('taxa-value');
+    const totalFinal = document.getElementById('total-final');
+    
+    const subtotal = {{ total_carrinho|default:0 }};
+    const taxaEntrega = {{ restaurante.taxa_entrega|default:0 }};
+    
+    function atualizarTotais() {
+        const tipoSelecionado = document.querySelector('input[name="tipo_entrega"]:checked');
+        if (!tipoSelecionado) return;
+        
+        if (tipoSelecionado.value === 'delivery') {
+            if (enderecoSection) enderecoSection.style.display = 'block';
+            if (taxaValue) taxaValue.textContent = 'R$ ' + taxaEntrega.toFixed(2);
+            if (totalFinal) totalFinal.textContent = 'R$ ' + (subtotal + taxaEntrega).toFixed(2);
+            
+            // Tornar campos de endereço obrigatórios
+            const campos = ['cep', 'logradouro', 'numero', 'bairro', 'cidade'];
+            campos.forEach(campo => {
+                const el = document.getElementById(campo);
+                if (el) el.required = true;
+            });
+        } else {
+            if (enderecoSection) enderecoSection.style.display = 'none';
+            if (taxaValue) taxaValue.textContent = 'R$ 0,00';
+            if (totalFinal) totalFinal.textContent = 'R$ ' + subtotal.toFixed(2);
+            
+            // Remover obrigatoriedade dos campos de endereço
+            const campos = ['cep', 'logradouro', 'numero', 'bairro', 'cidade'];
+            campos.forEach(campo => {
+                const el = document.getElementById(campo);
+                if (el) el.required = false;
+            });
+        }
+    }
+    
+    tipoEntregaInputs.forEach(input => {
+        input.addEventListener('change', atualizarTotais);
+    });
+    
+    // Inicializar
+    atualizarTotais();
+    
+    // Controle do campo de troco
+    const formasPagamento = document.querySelectorAll('input[name="forma_pagamento"]');
+    const trocoSection = document.getElementById('troco-section');
+    
+    function mostrarTroco() {
+        const formaSelecionada = document.querySelector('input[name="forma_pagamento"]:checked');
+        if (trocoSection && formaSelecionada) {
+            trocoSection.style.display = formaSelecionada.value === 'dinheiro' ? 'block' : 'none';
+        }
+    }
+    
+    formasPagamento.forEach(input => {
+        input.addEventListener('change', mostrarTroco);
+    });
+    
+    // Inicializar
+    mostrarTroco();
+    
+    // Validação do formulário
+    const checkoutForm = document.getElementById('checkout-form');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked');
+            
+            if (tipoEntrega && tipoEntrega.value === 'delivery') {
+                const cep = document.getElementById('cep').value.replace(/\D/g, '');
+                if (cep.length !== 8) {
+                    e.preventDefault();
+                    alert('Por favor, informe um CEP válido');
+                    document.getElementById('cep').focus();
+                    return;
+                }
+            }
+            
+            const formaPagamento = document.querySelector('input[name="forma_pagamento"]:checked');
+            if (formaPagamento && formaPagamento.value === 'dinheiro') {
+                const trocoParaInput = document.getElementById('troco_para');
+                if (trocoParaInput) {
+                    const trocoValue = parseFloat(trocoParaInput.value) || 0;
+                    const total = tipoEntrega && tipoEntrega.value === 'delivery' ? subtotal + taxaEntrega : subtotal;
+                    
+                    if (trocoValue > 0 && trocoValue < total) {
+                        e.preventDefault();
+                        alert('O valor do troco deve ser maior que o total do pedido');
+                        trocoParaInput.focus();
+                        return;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Função de teste global
+    window.testarCEP = function() {
+        console.log('🧪 [TEST] === TESTE MANUAL DE CEP ===');
+        buscarCEP('01310100');
+    };
+    
+    // Testar clique direto no botão
+    window.testarBotaoCEP = function() {
+        console.log('🧪 [TEST-BOTAO] === TESTE DIRETO DO BOTÃO ===');
+        const cepInput = document.getElementById('cep');
+        const buscarBtn = document.getElementById('buscar-cep');
+        
+        if (cepInput) {
+            cepInput.value = '01310-100';
+            console.log('🧪 [TEST-BOTAO] CEP preenchido:', cepInput.value);
+        }
+        
+        if (buscarBtn) {
+            console.log('🧪 [TEST-BOTAO] Clicando no botão...');
+            buscarBtn.click();
+        } else {
+            console.error('🧪 [TEST-BOTAO] Botão não encontrado!');
+        }
+    };
+    
+    // Função de teste mais simples para debug
+    window.testarCEPSimples = function() {
+        console.log('🧪 [TEST-SIMPLES] === TESTE DIRETO ===');
+        
+        const loadingEl = document.querySelector('.loading-cep');
+        const errorEl = document.querySelector('.cep-error');
+        
+        console.log('🧪 [TEST-SIMPLES] Loading element:', loadingEl);
+        console.log('🧪 [TEST-SIMPLES] Error element:', errorEl);
+        
+        if (loadingEl) {
+            loadingEl.style.display = 'block';
+            console.log('🧪 [TEST-SIMPLES] Loading exibido');
+        }
+        
+        fetch('https://viacep.com.br/ws/01310100/json/')
+            .then(response => {
+                console.log('🧪 [TEST-SIMPLES] Response:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('🧪 [TEST-SIMPLES] Data:', data);
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ Teste OK: ' + data.logradouro + '</span>';
+            })
+            .catch(error => {
+                console.error('🧪 [TEST-SIMPLES] Erro:', error);
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (errorEl) errorEl.textContent = 'Erro: ' + error.message;
+            });
+    };
+    
+    // Função para verificar se há conflitos com outros scripts
+    window.verificarConflitos = function() {
+        console.log('🔍 [DEBUG] === VERIFICAÇÃO DE CONFLITOS ===');
+        console.log('🔍 [DEBUG] fetch disponível:', typeof fetch);
+        console.log('🔍 [DEBUG] Promise disponível:', typeof Promise);
+        console.log('🔍 [DEBUG] AbortController disponível:', typeof AbortController);
+        console.log('🔍 [DEBUG] setTimeout disponível:', typeof setTimeout);
+        console.log('🔍 [DEBUG] clearTimeout disponível:', typeof clearTimeout);
+        console.log('🔍 [DEBUG] console disponível:', typeof console);
+        console.log('🔍 [DEBUG] document disponível:', typeof document);
+        console.log('🔍 [DEBUG] window disponível:', typeof window);
+        
+        // Verificar elementos DOM
+        console.log('🔍 [DEBUG] === VERIFICAÇÃO DOM ===');
+        console.log('🔍 [DEBUG] CEP input:', !!document.getElementById('cep'));
+        console.log('🔍 [DEBUG] Loading div:', !!document.querySelector('.loading-cep'));
+        console.log('🔍 [DEBUG] Error div:', !!document.querySelector('.cep-error'));
+        console.log('🔍 [DEBUG] Buscar button:', !!document.getElementById('buscar-cep'));
+        
+        // Verificar se há outros event listeners
+        const cepInput = document.getElementById('cep');
+        if (cepInput) {
+            console.log('🔍 [DEBUG] CEP input events:', cepInput);
+        }
+    };
+    
+    console.log('✅ [INIT] Checkout inicializado com sucesso!');
+    console.log('💡 [INFO] Digite testarCEP() no console para testar');
+});
+</script>
     
     // Máscara para celular
     celularInput.addEventListener('input', function(e) {
@@ -391,169 +868,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Buscar CEP
-    function buscarCEP(cep) {
-        const loadingEl = document.querySelector('.loading-cep');
-        const errorEl = document.querySelector('.cep-error');
-        
-        console.log('🔍 Buscando CEP:', cep);
-        
-        // Mostrar loading e botão cancelar
-        loadingEl.style.display = 'block';
-        errorEl.textContent = '';
-        buscarBtn.classList.add('d-none');
-        cancelarBtn.classList.remove('d-none');
-        
-        // Validar CEP antes de buscar
-        if (cep.length !== 8 || !/^\d{8}$/.test(cep)) {
-            resetarBusca();
-            errorEl.textContent = 'CEP deve ter 8 dígitos';
-            return;
-        }
-        
-        // Criar controller para cancelamento
-        abortController = new AbortController();
-        
-        // Tentar ViaCEP primeiro
-        buscarViaCEP(cep)
-            .catch(error => {
-                console.log('⚠️ ViaCEP falhou, tentando API alternativa:', error.message);
-                return buscarCEPAlternativo(cep);
-            })
-            .then(data => {
-                if (data) {
-                    preencherEndereco(data);
-                    errorEl.innerHTML = '<span class="text-success">✅ CEP encontrado</span>';
-                    setTimeout(() => {
-                        errorEl.textContent = '';
-                    }, 2000);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Erro em todas as APIs de CEP:', error);
-                errorEl.textContent = 'Erro ao buscar CEP. Tente novamente.';
-            })
-            .finally(() => {
-                resetarBusca();
-            });
-    }
-    
-    function buscarViaCEP(cep) {
-        return new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-                reject(new Error('Timeout ViaCEP'));
-            }, 8000);
-            
-            fetch(`https://viacep.com.br/ws/${cep}/json/`, {
-                signal: abortController.signal
-            })
-            .then(response => {
-                clearTimeout(timeoutId);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.erro) {
-                    reject(new Error('CEP não encontrado na ViaCEP'));
-                } else {
-                    resolve(data);
-                }
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                reject(error);
-            });
-        });
-    }
-    
-    function buscarCEPAlternativo(cep) {
-        return new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-                reject(new Error('Timeout API alternativa'));
-            }, 8000);
-            
-            fetch(`https://ws.apicep.com/cep/${cep}.json`, {
-                signal: abortController.signal
-            })
-            .then(response => {
-                clearTimeout(timeoutId);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 400) {
-                    reject(new Error('CEP não encontrado na API alternativa'));
-                } else {
-                    // Converter formato da API alternativa para formato ViaCEP
-                    resolve({
-                        logradouro: data.address || '',
-                        bairro: data.district || '',
-                        localidade: data.city || '',
-                        uf: data.state || ''
-                    });
-                }
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                reject(error);
-            });
-        });
-    }
-    
-    function preencherEndereco(data) {
-        document.getElementById('logradouro').value = data.logradouro || '';
-        document.getElementById('bairro').value = data.bairro || '';
-        document.getElementById('cidade').value = data.localidade || '';
-        document.getElementById('estado').value = data.uf || '';
-        
-        // Foco no número
-        document.getElementById('numero').focus();
-    }
-    
-    function resetarBusca() {
-        document.querySelector('.loading-cep').style.display = 'none';
-        buscarBtn.classList.remove('d-none');
-        cancelarBtn.classList.add('d-none');
-        abortController = null;
-    }
-    
-    function cancelarBusca() {
-        if (abortController) {
-            abortController.abort();
-        }
-        resetarBusca();
-        document.querySelector('.cep-error').textContent = 'Busca cancelada';
-    }
-    
-    // Buscar CEP ao clicar no botão
-    document.getElementById('buscar-cep').addEventListener('click', function() {
-        const cep = cepInput.value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            buscarCEP(cep);
-        }
-    });
-    
-    // Cancelar busca CEP
-    document.getElementById('cancelar-cep').addEventListener('click', function() {
-        cancelarBusca();
-    });
-    
-    // Buscar CEP ao sair do campo
-    cepInput.addEventListener('blur', function() {
-        const cep = this.value.replace(/\D/g, '');
-        if (cep.length === 8) {
-            buscarCEP(cep);
-        }
-    });
-    
     // Controle da taxa de entrega
     const tipoEntregaInputs = document.querySelectorAll('input[name="tipo_entrega"]');
     const enderecoSection = document.getElementById('endereco-section');
-    const taxaRow = document.getElementById('taxa-entrega-row');
     const taxaValue = document.getElementById('taxa-value');
     const totalFinal = document.getElementById('total-final');
     
@@ -561,30 +878,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const taxaEntrega = {{ restaurante.taxa_entrega|default:0 }};
     
     function atualizarTotais() {
-        const tipoSelecionado = document.querySelector('input[name="tipo_entrega"]:checked').value;
+        const tipoSelecionado = document.querySelector('input[name="tipo_entrega"]:checked');
+        if (!tipoSelecionado) return;
         
-        if (tipoSelecionado === 'delivery') {
-            enderecoSection.style.display = 'block';
-            taxaValue.textContent = 'R$ ' + taxaEntrega.toFixed(2);
-            totalFinal.textContent = 'R$ ' + (subtotal + taxaEntrega).toFixed(2);
+        if (tipoSelecionado.value === 'delivery') {
+            if (enderecoSection) enderecoSection.style.display = 'block';
+            if (taxaValue) taxaValue.textContent = 'R$ ' + taxaEntrega.toFixed(2);
+            if (totalFinal) totalFinal.textContent = 'R$ ' + (subtotal + taxaEntrega).toFixed(2);
             
             // Tornar campos de endereço obrigatórios
-            document.getElementById('cep').required = true;
-            document.getElementById('logradouro').required = true;
-            document.getElementById('numero').required = true;
-            document.getElementById('bairro').required = true;
-            document.getElementById('cidade').required = true;
+            const campos = ['cep', 'logradouro', 'numero', 'bairro', 'cidade'];
+            campos.forEach(campo => {
+                const el = document.getElementById(campo);
+                if (el) el.required = true;
+            });
         } else {
-            enderecoSection.style.display = 'none';
-            taxaValue.textContent = 'R$ 0,00';
-            totalFinal.textContent = 'R$ ' + subtotal.toFixed(2);
+            if (enderecoSection) enderecoSection.style.display = 'none';
+            if (taxaValue) taxaValue.textContent = 'R$ 0,00';
+            if (totalFinal) totalFinal.textContent = 'R$ ' + subtotal.toFixed(2);
             
             // Remover obrigatoriedade dos campos de endereço
-            document.getElementById('cep').required = false;
-            document.getElementById('logradouro').required = false;
-            document.getElementById('numero').required = false;
-            document.getElementById('bairro').required = false;
-            document.getElementById('cidade').required = false;
+            const campos = ['cep', 'logradouro', 'numero', 'bairro', 'cidade'];
+            campos.forEach(campo => {
+                const el = document.getElementById(campo);
+                if (el) el.required = false;
+            });
         }
     }
     
@@ -600,8 +918,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const trocoSection = document.getElementById('troco-section');
     
     function mostrarTroco() {
-        const formaSelecionada = document.querySelector('input[name="forma_pagamento"]:checked').value;
-        trocoSection.style.display = formaSelecionada === 'dinheiro' ? 'block' : 'none';
+        const formaSelecionada = document.querySelector('input[name="forma_pagamento"]:checked');
+        if (trocoSection && formaSelecionada) {
+            trocoSection.style.display = formaSelecionada.value === 'dinheiro' ? 'block' : 'none';
+        }
     }
     
     formasPagamento.forEach(input => {
@@ -612,33 +932,38 @@ document.addEventListener('DOMContentLoaded', function() {
     mostrarTroco();
     
     // Validação do formulário
-    document.getElementById('checkout-form').addEventListener('submit', function(e) {
-        const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked').value;
-        
-        if (tipoEntrega === 'delivery') {
-            const cep = document.getElementById('cep').value.replace(/\D/g, '');
-            if (cep.length !== 8) {
-                e.preventDefault();
-                alert('Por favor, informe um CEP válido');
-                document.getElementById('cep').focus();
-                return;
-            }
-        }
-        
-        const formaPagamento = document.querySelector('input[name="forma_pagamento"]:checked').value;
-        if (formaPagamento === 'dinheiro') {
-            const trocoParaInput = document.getElementById('troco_para');
-            const trocoValue = parseFloat(trocoParaInput.value) || 0;
-            const total = tipoEntrega === 'delivery' ? subtotal + taxaEntrega : subtotal;
+    const checkoutForm = document.getElementById('checkout-form');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked');
             
-            if (trocoValue > 0 && trocoValue < total) {
-                e.preventDefault();
-                alert('O valor do troco deve ser maior que o total do pedido');
-                trocoParaInput.focus();
-                return;
+            if (tipoEntrega && tipoEntrega.value === 'delivery') {
+                const cep = document.getElementById('cep').value.replace(/\D/g, '');
+                if (cep.length !== 8) {
+                    e.preventDefault();
+                    alert('Por favor, informe um CEP válido');
+                    document.getElementById('cep').focus();
+                    return;
+                }
             }
-        }
-    });
+            
+            const formaPagamento = document.querySelector('input[name="forma_pagamento"]:checked');
+            if (formaPagamento && formaPagamento.value === 'dinheiro') {
+                const trocoParaInput = document.getElementById('troco_para');
+                if (trocoParaInput) {
+                    const trocoValue = parseFloat(trocoParaInput.value) || 0;
+                    const total = tipoEntrega && tipoEntrega.value === 'delivery' ? subtotal + taxaEntrega : subtotal;
+                    
+                    if (trocoValue > 0 && trocoValue < total) {
+                        e.preventDefault();
+                        alert('O valor do troco deve ser maior que o total do pedido');
+                        trocoParaInput.focus();
+                        return;
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
