@@ -582,9 +582,13 @@ class CheckoutView(BaseLojaView):
             total_pedido = Decimal('0.0')
             for produto_id_key, item_data in carrinho.items():
                 try:
-                    # Correção: O produto_id_key já é o ID (UUID) correto vindo do carrinho_json.
-                    # A conversão para int(produto_id_key.split('_')[0]) estava causando o erro.
-                    produto = Produto.objects.get(id=produto_id_key)
+                    # Extrair o UUID do produto da chave (formato: uuid_hash)
+                    if '_' in produto_id_key:
+                        produto_id = produto_id_key.split('_')[0]
+                    else:
+                        produto_id = produto_id_key
+                    
+                    produto = Produto.objects.get(id=produto_id)
                     
                     # Garantir que os cálculos são feitos com Decimal
                     preco_unitario = Decimal(str(item_data.get('preco', '0')))
@@ -725,25 +729,50 @@ class AcompanharPedidoView(BaseLojaView):
         return context
 
 
-class MeusPedidosView(LoginRequiredMixin, BaseLojaView):
-    """Página de pedidos do usuário logado"""
+class MeusPedidosView(BaseLojaView):
+    """Página de pedidos do usuário - permite busca por celular ou usuário logado"""
     template_name = 'loja/meus_pedidos.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Buscar pedidos do usuário logado no restaurante atual
-        pedidos = Pedido.objects.filter(
-            cliente=self.request.user,
-            restaurante=context['restaurante']
-        ).exclude(status='carrinho').order_by('-created_at')
+        pedidos = Pedido.objects.none()
+        celular_busca = None
+        
+        # Se usuário logado, buscar seus pedidos
+        if self.request.user.is_authenticated:
+            pedidos = Pedido.objects.filter(
+                cliente=self.request.user,
+                restaurante=context['restaurante']
+            ).exclude(status='carrinho').order_by('-created_at')
+        
+        # Se foi feita busca por celular
+        celular_busca = self.request.GET.get('celular', '').strip()
+        if celular_busca:
+            # Limpar celular (remover caracteres especiais)
+            celular_limpo = ''.join(filter(str.isdigit, celular_busca))
+            
+            pedidos_celular = Pedido.objects.filter(
+                cliente_celular__icontains=celular_limpo,
+                restaurante=context['restaurante']
+            ).exclude(status='carrinho').order_by('-created_at')
+            
+            # Se usuário logado e buscou seu próprio celular, combinar resultados
+            if self.request.user.is_authenticated:
+                pedidos = pedidos.union(pedidos_celular).order_by('-created_at')
+            else:
+                pedidos = pedidos_celular
         
         # Paginação
         paginator = Paginator(pedidos, 10)
         page_number = self.request.GET.get('page')
         pedidos_paginated = paginator.get_page(page_number)
         
-        context['pedidos'] = pedidos_paginated
+        context.update({
+            'pedidos': pedidos_paginated,
+            'celular_busca': celular_busca,
+            'total_pedidos': pedidos.count() if pedidos else 0
+        })
         
         return context
 

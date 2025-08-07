@@ -25,7 +25,7 @@ urlpatterns = [
     
     # Checkout
     path('checkout/', views.CheckoutView.as_view(), name='checkout'),
-    path('checkout/confirmar/', views.ConfirmarPedidoView.as_view(), name='confirmar_pedido'),
+    path('confirmacao-pedido/', views.ConfirmarPedidoView.as_view(), name='confirmacao_pedido'),
     
     # Pedidos
     path('pedido/<uuid:pedido_id>/', views.DetalhesPedidoView.as_view(), name='detalhes_pedido'),

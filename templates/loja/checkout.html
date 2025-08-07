@@ -1,0 +1,527 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - {{ restaurante.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .checkout-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .checkout-section {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+    
+    .item-carrinho {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .item-carrinho:last-child {
+        border-bottom: none;
+    }
+    
+    .item-info h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .item-preco {
+        font-weight: 600;
+        color: #e74c3c;
+        font-size: 1.1rem;
+    }
+    
+    .total-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    
+    .total-section .row {
+        margin-bottom: 10px;
+    }
+    
+    .total-final {
+        font-size: 1.4rem;
+        font-weight: 700;
+        border-top: 2px solid rgba(255,255,255,0.3);
+        padding-top: 15px;
+        margin-top: 15px;
+    }
+    
+    .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .btn-finalizar {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-finalizar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    }
+    
+    .loading-cep {
+        display: none;
+    }
+    
+    .cep-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .checkout-container {
+            padding: 10px;
+        }
+        
+        .item-carrinho {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container">
+    <div class="row">
+        <!-- Coluna esquerda - Formulário -->
+        <div class="col-lg-8">
+            <form method="post" id="checkout-form">
+                {% csrf_token %}
+                
+                <!-- Dados Pessoais -->
+                <div class="checkout-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-person-circle me-2"></i>
+                        Dados Pessoais
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome completo *</label>
+                            <input type="text" class="form-control" name="nome" id="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="celular" class="form-label">Celular *</label>
+                            <input type="tel" class="form-control" name="celular" id="celular" 
+                                   placeholder="(11) 99999-9999" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <input type="email" class="form-control" name="email" id="email" 
+                                   placeholder="seu@email.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tipo de Entrega -->
+                <div class="checkout-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-truck me-2"></i>
+                        Tipo de Entrega
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_entrega" 
+                                       id="delivery" value="delivery" checked>
+                                <label class="form-check-label" for="delivery">
+                                    <strong>Delivery</strong><br>
+                                    <small class="text-muted">Taxa: R$ {{ restaurante.taxa_entrega|floatformat:2 }}</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_entrega" 
+                                       id="retirada" value="retirada">
+                                <label class="form-check-label" for="retirada">
+                                    <strong>Retirada no Local</strong><br>
+                                    <small class="text-muted">Sem taxa de entrega</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Endereço de Entrega -->
+                <div class="checkout-section" id="endereco-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-geo-alt me-2"></i>
+                        Endereço de Entrega
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="cep" class="form-label">CEP *</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="cep" id="cep" 
+                                       placeholder="00000-000" maxlength="9">
+                                <button class="btn btn-outline-secondary" type="button" id="buscar-cep">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="loading-cep">
+                                <small class="text-muted">
+                                    <i class="bi bi-hourglass-split"></i> Buscando CEP...
+                                </small>
+                            </div>
+                            <div class="cep-error"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="logradouro" class="form-label">Rua/Avenida *</label>
+                            <input type="text" class="form-control" name="logradouro" id="logradouro" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="numero" class="form-label">Número *</label>
+                            <input type="text" class="form-control" name="numero" id="numero" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="complemento" class="form-label">Complemento</label>
+                            <input type="text" class="form-control" name="complemento" id="complemento" 
+                                   placeholder="Apto, sala, etc.">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="bairro" class="form-label">Bairro *</label>
+                            <input type="text" class="form-control" name="bairro" id="bairro" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="cidade" class="form-label">Cidade *</label>
+                            <input type="text" class="form-control" name="cidade" id="cidade" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ponto_referencia" class="form-label">Ponto de Referência</label>
+                            <input type="text" class="form-control" name="ponto_referencia" id="ponto_referencia" 
+                                   placeholder="Ex: próximo ao posto de gasolina">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="estado" class="form-label">Estado</label>
+                            <input type="text" class="form-control" name="estado" id="estado" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forma de Pagamento -->
+                <div class="checkout-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-credit-card me-2"></i>
+                        Forma de Pagamento
+                    </h3>
+                    
+                    <div class="row">
+                        {% for value, label in formas_pagamento %}
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="forma_pagamento" 
+                                       id="{{ value }}" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ value }}">
+                                    {{ label }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Campo para troco (só aparece se dinheiro for selecionado) -->
+                    <div id="troco-section" style="display: none;">
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label for="troco_para" class="form-label">Troco para quanto?</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" step="0.01" class="form-control" 
+                                           name="troco_para" id="troco_para" placeholder="0,00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="checkout-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-chat-text me-2"></i>
+                        Observações
+                    </h3>
+                    
+                    <div class="mb-3">
+                        <textarea class="form-control" name="observacoes" id="observacoes" 
+                                  rows="3" placeholder="Observações adicionais para o seu pedido..."></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Coluna direita - Resumo do Pedido -->
+        <div class="col-lg-4">
+            <div class="checkout-section">
+                <h3 class="section-title">
+                    <i class="bi bi-cart-check me-2"></i>
+                    Resumo do Pedido
+                </h3>
+                
+                {% if itens_carrinho %}
+                    {% for item in itens_carrinho %}
+                    <div class="item-carrinho">
+                        <div class="item-info">
+                            <h6>{{ item.produto.nome }}</h6>
+                            <small class="text-muted">
+                                {{ item.quantidade }}x R$ {{ item.preco|floatformat:2 }}
+                            </small>
+                            {% if item.personalizacoes %}
+                                <div class="mt-1">
+                                    {% for perso in item.personalizacoes %}
+                                        <small class="badge bg-light text-dark me-1">{{ perso.nome }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if item.observacoes %}
+                                <div class="mt-1">
+                                    <small class="text-muted fst-italic">{{ item.observacoes }}</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="item-preco">
+                            R$ {{ item.subtotal|floatformat:2 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-cart-x display-1 text-muted"></i>
+                        <p class="text-muted mt-3">Seu carrinho está vazio</p>
+                        <a href="{% url 'loja:cardapio' restaurante.slug %}" class="btn btn-primary">
+                            Ver Cardápio
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if itens_carrinho %}
+                <div class="total-section mt-4">
+                    <div class="row">
+                        <div class="col-8">Subtotal:</div>
+                        <div class="col-4 text-end">R$ {{ total_carrinho|floatformat:2 }}</div>
+                    </div>
+                    <div class="row" id="taxa-entrega-row">
+                        <div class="col-8">Taxa de entrega:</div>
+                        <div class="col-4 text-end" id="taxa-value">R$ {{ taxa_entrega|floatformat:2 }}</div>
+                    </div>
+                    <div class="row total-final">
+                        <div class="col-8">Total:</div>
+                        <div class="col-4 text-end" id="total-final">R$ {{ total_final|floatformat:2 }}</div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" form="checkout-form" class="btn btn-finalizar btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Finalizar Pedido
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscaras
+    const celularInput = document.getElementById('celular');
+    const cepInput = document.getElementById('cep');
+    
+    // Máscara para celular
+    celularInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+            value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            e.target.value = value;
+        }
+    });
+    
+    // Máscara para CEP
+    cepInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 8) {
+            value = value.replace(/(\d{5})(\d{3})/, '$1-$2');
+            e.target.value = value;
+        }
+    });
+    
+    // Buscar CEP
+    function buscarCEP(cep) {
+        const loadingEl = document.querySelector('.loading-cep');
+        const errorEl = document.querySelector('.cep-error');
+        
+        loadingEl.style.display = 'block';
+        errorEl.textContent = '';
+        
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(response => response.json())
+            .then(data => {
+                loadingEl.style.display = 'none';
+                
+                if (data.erro) {
+                    errorEl.textContent = 'CEP não encontrado';
+                    return;
+                }
+                
+                document.getElementById('logradouro').value = data.logradouro || '';
+                document.getElementById('bairro').value = data.bairro || '';
+                document.getElementById('cidade').value = data.localidade || '';
+                document.getElementById('estado').value = data.uf || '';
+                
+                // Foco no número
+                document.getElementById('numero').focus();
+            })
+            .catch(error => {
+                loadingEl.style.display = 'none';
+                errorEl.textContent = 'Erro ao buscar CEP';
+            });
+    }
+    
+    // Buscar CEP ao clicar no botão
+    document.getElementById('buscar-cep').addEventListener('click', function() {
+        const cep = cepInput.value.replace(/\D/g, '');
+        if (cep.length === 8) {
+            buscarCEP(cep);
+        }
+    });
+    
+    // Buscar CEP ao sair do campo
+    cepInput.addEventListener('blur', function() {
+        const cep = this.value.replace(/\D/g, '');
+        if (cep.length === 8) {
+            buscarCEP(cep);
+        }
+    });
+    
+    // Controle da taxa de entrega
+    const tipoEntregaInputs = document.querySelectorAll('input[name="tipo_entrega"]');
+    const enderecoSection = document.getElementById('endereco-section');
+    const taxaRow = document.getElementById('taxa-entrega-row');
+    const taxaValue = document.getElementById('taxa-value');
+    const totalFinal = document.getElementById('total-final');
+    
+    const subtotal = {{ total_carrinho|default:0 }};
+    const taxaEntrega = {{ restaurante.taxa_entrega|default:0 }};
+    
+    function atualizarTotais() {
+        const tipoSelecionado = document.querySelector('input[name="tipo_entrega"]:checked').value;
+        
+        if (tipoSelecionado === 'delivery') {
+            enderecoSection.style.display = 'block';
+            taxaValue.textContent = 'R$ ' + taxaEntrega.toFixed(2);
+            totalFinal.textContent = 'R$ ' + (subtotal + taxaEntrega).toFixed(2);
+            
+            // Tornar campos de endereço obrigatórios
+            document.getElementById('cep').required = true;
+            document.getElementById('logradouro').required = true;
+            document.getElementById('numero').required = true;
+            document.getElementById('bairro').required = true;
+            document.getElementById('cidade').required = true;
+        } else {
+            enderecoSection.style.display = 'none';
+            taxaValue.textContent = 'R$ 0,00';
+            totalFinal.textContent = 'R$ ' + subtotal.toFixed(2);
+            
+            // Remover obrigatoriedade dos campos de endereço
+            document.getElementById('cep').required = false;
+            document.getElementById('logradouro').required = false;
+            document.getElementById('numero').required = false;
+            document.getElementById('bairro').required = false;
+            document.getElementById('cidade').required = false;
+        }
+    }
+    
+    tipoEntregaInputs.forEach(input => {
+        input.addEventListener('change', atualizarTotais);
+    });
+    
+    // Inicializar
+    atualizarTotais();
+    
+    // Controle do campo de troco
+    const formasPagamento = document.querySelectorAll('input[name="forma_pagamento"]');
+    const trocoSection = document.getElementById('troco-section');
+    
+    function mostrarTroco() {
+        const formaSelecionada = document.querySelector('input[name="forma_pagamento"]:checked').value;
+        trocoSection.style.display = formaSelecionada === 'dinheiro' ? 'block' : 'none';
+    }
+    
+    formasPagamento.forEach(input => {
+        input.addEventListener('change', mostrarTroco);
+    });
+    
+    // Inicializar
+    mostrarTroco();
+    
+    // Validação do formulário
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked').value;
+        
+        if (tipoEntrega === 'delivery') {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            if (cep.length !== 8) {
+                e.preventDefault();
+                alert('Por favor, informe um CEP válido');
+                document.getElementById('cep').focus();
+                return;
+            }
+        }
+        
+        const formaPagamento = document.querySelector('input[name="forma_pagamento"]:checked').value;
+        if (formaPagamento === 'dinheiro') {
+            const trocoParaInput = document.getElementById('troco_para');
+            const trocoValue = parseFloat(trocoParaInput.value) || 0;
+            const total = tipoEntrega === 'delivery' ? subtotal + taxaEntrega : subtotal;
+            
+            if (trocoValue > 0 && trocoValue < total) {
+                e.preventDefault();
+                alert('O valor do troco deve ser maior que o total do pedido');
+                trocoParaInput.focus();
+                return;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

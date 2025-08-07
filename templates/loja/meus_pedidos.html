@@ -1,7 +1,157 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Meus Pedidos - {{ restaurante.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .pedidos-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .search-section {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .pedido-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .pedido-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .pedido-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .pedido-numero {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .pedido-data {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+    
+    .status-novo {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    
+    .status-preparando {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+    
+    .status-a_caminho {
+        background: #e8f5e8;
+        color: #2e7d32;
+    }
+    
+    .status-entregue {
+        background: #e8f5e8;
+        color: #1b5e20;
+    }
+    
+    .status-cancelado {
+        background: #ffebee;
+        color: #c62828;
+    }
+    
+    .pedido-total {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #e74c3c;
+    }
+    
+    .item-pedido {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .item-pedido:last-child {
+        border-bottom: none;
+    }
+    
+    .item-info h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .item-quantidade {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .item-preco {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .pedidos-container {
+            padding: 10px;
+        }
+        
+        .pedido-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .item-pedido {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
