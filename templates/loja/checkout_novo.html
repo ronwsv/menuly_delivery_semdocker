@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - {{ restaurante.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .checkout-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .checkout-section {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .loading-cep {
+        display: none;
+        color: #007bff;
+    }
+    
+    .cep-error {
+        color: #dc3545;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Teste CEP -->
+            <div class="checkout-section">
+                <h5>Teste de CEP</h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="cep" class="form-label">CEP</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cep" 
+                               name="cep" 
+                               placeholder="00000-000" 
+                               maxlength="9">
+                        <div class="loading-cep">🔄 Buscando CEP...</div>
+                        <div class="cep-error"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" id="buscar-cep" class="btn btn-primary d-block">
+                            Buscar CEP
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <label for="logradouro" class="form-label">Logradouro</label>
+                        <input type="text" class="form-control" id="logradouro" name="logradouro" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="numero" class="form-label">Número</label>
+                        <input type="text" class="form-control" id="numero" name="numero">
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label for="bairro" class="form-label">Bairro</label>
+                        <input type="text" class="form-control" id="bairro" name="bairro" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="cidade" class="form-label">Cidade</label>
+                        <input type="text" class="form-control" id="cidade" name="cidade" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="estado" class="form-label">Estado</label>
+                        <input type="text" class="form-control" id="estado" name="estado" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+console.log('🔧 [DEBUG] Script do checkout iniciado');
+
+// Teste direto na página
+window.testarCEPDireto = function() {
+    console.log('🧪 [TESTE] Testando CEP direto...');
+    
+    const cepInput = document.getElementById('cep');
+    const loadingEl = document.querySelector('.loading-cep');
+    const errorEl = document.querySelector('.cep-error');
+    
+    console.log('Elements:', { cepInput: !!cepInput, loadingEl: !!loadingEl, errorEl: !!errorEl });
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.innerHTML = '';
+    
+    fetch('https://viacep.com.br/ws/01310100/json/')
+        .then(response => response.json())
+        .then(data => {
+            console.log('✅ API Response:', data);
+            if (loadingEl) loadingEl.style.display = 'none';
+            
+            if (!data.erro) {
+                const logradouro = document.getElementById('logradouro');
+                const bairro = document.getElementById('bairro');
+                const cidade = document.getElementById('cidade');
+                const estado = document.getElementById('estado');
+                
+                if (logradouro) logradouro.value = data.logradouro || '';
+                if (bairro) bairro.value = data.bairro || '';
+                if (cidade) cidade.value = data.localidade || '';
+                if (estado) estado.value = data.uf || '';
+                
+                if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado: ' + data.logradouro + '</span>';
+                
+                console.log('✅ Campos preenchidos!');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (errorEl) errorEl.textContent = 'Erro: ' + error.message;
+        });
+};
+
+function buscarCEP() {
+    console.log('🔍 [CEP] Função buscarCEP chamada');
+    
+    const cepInput = document.getElementById('cep');
+    const loadingEl = document.querySelector('.loading-cep');
+    const errorEl = document.querySelector('.cep-error');
+    
+    if (!cepInput) {
+        console.error('❌ Campo CEP não encontrado');
+        return;
+    }
+    
+    const cep = cepInput.value.replace(/\D/g, '');
+    console.log('CEP limpo:', cep);
+    
+    if (cep.length !== 8) {
+        console.warn('CEP inválido');
+        if (errorEl) errorEl.textContent = 'Digite um CEP válido com 8 dígitos';
+        return;
+    }
+    
+    // Mostrar loading
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.innerHTML = '';
+    
+    console.log('🌐 Fazendo requisição para ViaCEP...');
+    
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => {
+            console.log('📡 Response recebido:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('📦 Dados recebidos:', data);
+            
+            if (loadingEl) loadingEl.style.display = 'none';
+            
+            if (data.erro) {
+                console.error('❌ CEP não encontrado');
+                if (errorEl) errorEl.textContent = 'CEP não encontrado';
+                return;
+            }
+            
+            // Preencher campos
+            const logradouro = document.getElementById('logradouro');
+            const bairro = document.getElementById('bairro');
+            const cidade = document.getElementById('cidade');
+            const estado = document.getElementById('estado');
+            
+            if (logradouro) logradouro.value = data.logradouro || '';
+            if (bairro) bairro.value = data.bairro || '';
+            if (cidade) cidade.value = data.localidade || '';
+            if (estado) estado.value = data.uf || '';
+            
+            if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado com sucesso!</span>';
+            
+            console.log('✅ Campos preenchidos com sucesso!');
+        })
+        .catch(error => {
+            console.error('❌ Erro na requisição:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (errorEl) errorEl.textContent = 'Erro ao buscar CEP: ' + error.message;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 [INIT] DOM carregado, inicializando checkout...');
+    
+    const buscarBtn = document.getElementById('buscar-cep');
+    const cepInput = document.getElementById('cep');
+    
+    console.log('Botão buscar:', !!buscarBtn);
+    console.log('Campo CEP:', !!cepInput);
+    
+    if (buscarBtn) {
+        buscarBtn.addEventListener('click', function() {
+            console.log('🔴 [CLICK] Botão clicado!');
+            buscarCEP();
+        });
+        console.log('✅ Event listener adicionado ao botão');
+    } else {
+        console.error('❌ Botão buscar não encontrado!');
+    }
+    
+    if (cepInput) {
+        // Máscara para CEP
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 5) {
+                value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+        
+        // Buscar automaticamente quando terminar de digitar
+        cepInput.addEventListener('blur', function() {
+            const cep = this.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                console.log('🔍 [AUTO] Buscando CEP automaticamente:', cep);
+                buscarCEP();
+            }
+        });
+        
+        console.log('✅ Event listeners adicionados ao campo CEP');
+    } else {
+        console.error('❌ Campo CEP não encontrado!');
+    }
+    
+    console.log('✅ [INIT] Checkout inicializado com sucesso!');
+    console.log('💡 [INFO] Digite testarCEPDireto() no console para testar');
+});
+</script>
+{% endblock %}
