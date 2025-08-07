@@ -447,15 +447,48 @@ const taxaEntrega = parseFloat('{{ restaurante.taxa_entrega|default:0 }}') || 0;
 // Função para carregar dados do carrinho
 function carregarCarrinho() {
     try {
-        const carrinho = JSON.parse(localStorage.getItem('menuly_carrinho') || '[]');
-        carrinhoData = carrinho;
-        console.log('📦 Carrinho carregado:', carrinho);
+        console.log('🛒 Carregando carrinho via API...');
         
-        // Atualizar resumo
-        atualizarResumo();
+        // Extrair slug do restaurante da URL
+        const currentPath = window.location.pathname;
+        const slugMatch = currentPath.match(/^\/([^\/]+)\//);
         
-        // Preencher campo hidden para envio
-        document.getElementById('carrinho_json').value = JSON.stringify(carrinho);
+        if (!slugMatch) {
+            console.warn('⚠️ Não foi possível identificar o restaurante');
+            carrinhoData = [];
+            atualizarResumo();
+            return;
+        }
+        
+        const restauranteSlug = slugMatch[1];
+        
+        fetch('/' + restauranteSlug + '/carrinho/', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Erro na resposta: ' + response.status);
+        })
+        .then(data => {
+            console.log('📦 Dados do carrinho recebidos:', data);
+            carrinhoData = data.items || [];
+            
+            // Atualizar resumo
+            atualizarResumo();
+            
+            // Preencher campo hidden para envio
+            document.getElementById('carrinho_json').value = JSON.stringify(carrinhoData);
+        })
+        .catch(error => {
+            console.error('❌ Erro ao carregar carrinho:', error);
+            carrinhoData = [];
+            atualizarResumo();
+        });
         
     } catch (error) {
         console.error('❌ Erro ao carregar carrinho:', error);
@@ -474,22 +507,33 @@ function atualizarResumo() {
     let html = '';
     let total = 0;
     
-    carrinhoData.forEach(item => {
-        const subtotalItem = item.preco * item.quantidade;
-        total += subtotalItem;
-        
-        html += `
-            <div class="item-carrinho">
-                <div class="item-info">
-                    <h6>${item.nome}</h6>
-                    <small class="text-muted">${item.quantidade}x R$ ${item.preco.toFixed(2).replace('.', ',')}</small>
-                </div>
-                <div class="item-preco">
-                    R$ ${subtotalItem.toFixed(2).replace('.', ',')}
-                </div>
+    if (carrinhoData.length === 0) {
+        html = `
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-cart-x fs-1 mb-3 d-block"></i>
+                <h6>Carrinho vazio</h6>
+                <p class="small mb-0">Adicione produtos para continuar</p>
             </div>
         `;
-    });
+    } else {
+        carrinhoData.forEach(item => {
+            // Usar preco_total do Django ou calcular se necessário
+            const subtotalItem = item.preco_total || (item.preco_unitario * item.quantidade);
+            total += subtotalItem;
+            
+            html += `
+                <div class="item-carrinho d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div class="item-info">
+                        <h6 class="mb-1">${item.nome}</h6>
+                        <small class="text-muted">${item.quantidade}x R$ ${(item.preco_unitario || item.preco || 0).toFixed(2).replace('.', ',')}</small>
+                    </div>
+                    <div class="item-preco fw-bold">
+                        R$ ${subtotalItem.toFixed(2).replace('.', ',')}
+                    </div>
+                </div>
+            `;
+        });
+    }
     
     resumoItens.innerHTML = html;
     
@@ -502,6 +546,8 @@ function atualizarResumo() {
     
     if (taxaEl) taxaEl.textContent = `R$ ${taxa.toFixed(2).replace('.', ',')}`;
     if (totalEl) totalEl.textContent = `R$ ${(total + taxa).toFixed(2).replace('.', ',')}`;
+    
+    console.log('💰 Resumo atualizado - Itens:', carrinhoData.length, 'Total:', total);
 }
 
 // Função para controlar exibição do endereço
@@ -634,7 +680,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const trocoInput = document.getElementById('troco_para');
                 if (trocoInput && trocoInput.value) {
                     const trocoValue = parseFloat(trocoInput.value) || 0;
-                    const totalPedido = carrinhoData.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+                    // Usar preco_total ou calcular baseado na estrutura do Django
+                    const totalPedido = carrinhoData.reduce((acc, item) => {
+                        return acc + (item.preco_total || (item.preco_unitario || item.preco || 0) * item.quantidade);
+                    }, 0);
                     const taxa = tipoEntrega && tipoEntrega.value === 'delivery' ? taxaEntrega : 0;
                     const total = totalPedido + taxa;
                     
@@ -647,8 +696,89 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // Gerar código único do pedido
+            gerarCodigoPedido();
+            
             console.log('✅ Formulário validado, enviando...');
+            
+            // Após envio bem-sucedido, limpar carrinho
+            // (será chamado quando a página for redirecionada ou recarregada)
         });
+    }
+    
+    // Função para gerar código único do pedido
+    function gerarCodigoPedido() {
+        const restauranteNome = '{{ restaurante.nome }}';
+        const initials = restauranteNome.split(' ')
+            .map(word => word.charAt(0).toUpperCase())
+            .join('')
+            .substring(0, 2); // Pegar apenas as 2 primeiras letras
+        
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const codigo = `${initials}${randomNum}${timestamp.toString().slice(-3)}#`;
+        
+        // Adicionar ao formulário se houver campo para isso
+        let codigoInput = document.getElementById('codigo_pedido');
+        if (!codigoInput) {
+            codigoInput = document.createElement('input');
+            codigoInput.type = 'hidden';
+            codigoInput.name = 'codigo_pedido';
+            codigoInput.id = 'codigo_pedido';
+            checkoutForm.appendChild(codigoInput);
+        }
+        
+        codigoInput.value = codigo;
+        console.log('🎫 Código do pedido gerado:', codigo);
+    }
+    
+    // Função para limpar carrinho após pedido
+    function limparCarrinhoAposPedido() {
+        const currentPath = window.location.pathname;
+        const slugMatch = currentPath.match(/^\/([^\/]+)\//);
+        
+        if (!slugMatch) return;
+        
+        const restauranteSlug = slugMatch[1];
+        
+        fetch('/' + restauranteSlug + '/carrinho/limpar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('🧹 Carrinho limpo após pedido');
+                carrinhoData = [];
+                atualizarResumo();
+                // Atualizar contador de carrinho se existe
+                if (window.atualizarContadorCarrinho) {
+                    window.atualizarContadorCarrinho();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('⚠️ Erro ao limpar carrinho:', error);
+        });
+    }
+    
+    // Função para obter cookie CSRF (mesma do carrinho-novo.js)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
     
     console.log('✅ [INIT] Checkout inicializado com sucesso!');
