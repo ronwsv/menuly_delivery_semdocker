@@ -195,6 +195,9 @@
                                 <button class="btn btn-outline-secondary" type="button" id="buscar-cep">
                                     <i class="bi bi-search"></i>
                                 </button>
+                                <button class="btn btn-outline-danger d-none" type="button" id="cancelar-cep">
+                                    <i class="bi bi-x"></i>
+                                </button>
                             </div>
                             <div class="loading-cep">
                                 <small class="text-muted">
@@ -363,9 +366,12 @@
 {% block extra_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Máscaras
+    // Máscaras e controles
     const celularInput = document.getElementById('celular');
     const cepInput = document.getElementById('cep');
+    const buscarBtn = document.getElementById('buscar-cep');
+    const cancelarBtn = document.getElementById('cancelar-cep');
+    let abortController = null;
     
     // Máscara para celular
     celularInput.addEventListener('input', function(e) {
@@ -390,31 +396,137 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingEl = document.querySelector('.loading-cep');
         const errorEl = document.querySelector('.cep-error');
         
+        console.log('🔍 Buscando CEP:', cep);
+        
+        // Mostrar loading e botão cancelar
         loadingEl.style.display = 'block';
         errorEl.textContent = '';
+        buscarBtn.classList.add('d-none');
+        cancelarBtn.classList.remove('d-none');
         
-        fetch(`https://viacep.com.br/ws/${cep}/json/`)
-            .then(response => response.json())
+        // Validar CEP antes de buscar
+        if (cep.length !== 8 || !/^\d{8}$/.test(cep)) {
+            resetarBusca();
+            errorEl.textContent = 'CEP deve ter 8 dígitos';
+            return;
+        }
+        
+        // Criar controller para cancelamento
+        abortController = new AbortController();
+        
+        // Tentar ViaCEP primeiro
+        buscarViaCEP(cep)
+            .catch(error => {
+                console.log('⚠️ ViaCEP falhou, tentando API alternativa:', error.message);
+                return buscarCEPAlternativo(cep);
+            })
             .then(data => {
-                loadingEl.style.display = 'none';
-                
-                if (data.erro) {
-                    errorEl.textContent = 'CEP não encontrado';
-                    return;
+                if (data) {
+                    preencherEndereco(data);
+                    errorEl.innerHTML = '<span class="text-success">✅ CEP encontrado</span>';
+                    setTimeout(() => {
+                        errorEl.textContent = '';
+                    }, 2000);
                 }
-                
-                document.getElementById('logradouro').value = data.logradouro || '';
-                document.getElementById('bairro').value = data.bairro || '';
-                document.getElementById('cidade').value = data.localidade || '';
-                document.getElementById('estado').value = data.uf || '';
-                
-                // Foco no número
-                document.getElementById('numero').focus();
             })
             .catch(error => {
-                loadingEl.style.display = 'none';
-                errorEl.textContent = 'Erro ao buscar CEP';
+                console.error('❌ Erro em todas as APIs de CEP:', error);
+                errorEl.textContent = 'Erro ao buscar CEP. Tente novamente.';
+            })
+            .finally(() => {
+                resetarBusca();
             });
+    }
+    
+    function buscarViaCEP(cep) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Timeout ViaCEP'));
+            }, 8000);
+            
+            fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+                signal: abortController.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.erro) {
+                    reject(new Error('CEP não encontrado na ViaCEP'));
+                } else {
+                    resolve(data);
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                reject(error);
+            });
+        });
+    }
+    
+    function buscarCEPAlternativo(cep) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Timeout API alternativa'));
+            }, 8000);
+            
+            fetch(`https://ws.apicep.com/cep/${cep}.json`, {
+                signal: abortController.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 400) {
+                    reject(new Error('CEP não encontrado na API alternativa'));
+                } else {
+                    // Converter formato da API alternativa para formato ViaCEP
+                    resolve({
+                        logradouro: data.address || '',
+                        bairro: data.district || '',
+                        localidade: data.city || '',
+                        uf: data.state || ''
+                    });
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                reject(error);
+            });
+        });
+    }
+    
+    function preencherEndereco(data) {
+        document.getElementById('logradouro').value = data.logradouro || '';
+        document.getElementById('bairro').value = data.bairro || '';
+        document.getElementById('cidade').value = data.localidade || '';
+        document.getElementById('estado').value = data.uf || '';
+        
+        // Foco no número
+        document.getElementById('numero').focus();
+    }
+    
+    function resetarBusca() {
+        document.querySelector('.loading-cep').style.display = 'none';
+        buscarBtn.classList.remove('d-none');
+        cancelarBtn.classList.add('d-none');
+        abortController = null;
+    }
+    
+    function cancelarBusca() {
+        if (abortController) {
+            abortController.abort();
+        }
+        resetarBusca();
+        document.querySelector('.cep-error').textContent = 'Busca cancelada';
     }
     
     // Buscar CEP ao clicar no botão
@@ -423,6 +535,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cep.length === 8) {
             buscarCEP(cep);
         }
+    });
+    
+    // Cancelar busca CEP
+    document.getElementById('cancelar-cep').addEventListener('click', function() {
+        cancelarBusca();
     });
     
     // Buscar CEP ao sair do campo
