@@ -229,6 +229,20 @@ class CarrinhoView(BaseLojaView):
     """Página do carrinho"""
     template_name = 'loja/carrinho.html'
     
+    def get(self, request, *args, **kwargs):
+        # Se for requisição AJAX, retornar JSON
+        if request.headers.get('Accept') == 'application/json':
+            carrinho = request.session.get('carrinho', {})
+            carrinho_count = sum(item['quantidade'] for item in carrinho.values())
+            
+            return JsonResponse({
+                'carrinho_count': carrinho_count,
+                'total_items': len(carrinho)
+            })
+        
+        # Caso contrário, renderizar template normal
+        return super().get(request, *args, **kwargs)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         carrinho = self.request.session.get('carrinho', {})
@@ -236,8 +250,9 @@ class CarrinhoView(BaseLojaView):
         itens_carrinho = []
         total = 0
         
-        for produto_id, item in carrinho.items():
+        for item_key, item in carrinho.items():
             try:
+                produto_id = item['produto_id']
                 produto = Produto.objects.get(id=produto_id)
                 subtotal = item['preco'] * item['quantidade']
                 total += subtotal
@@ -249,12 +264,14 @@ class CarrinhoView(BaseLojaView):
                     'subtotal': subtotal,
                     'personalizacoes': item.get('personalizacoes', []),
                     'observacoes': item.get('observacoes', ''),
+                    'item_key': item_key,
                 })
             except Produto.DoesNotExist:
                 continue
         
         context['itens_carrinho'] = itens_carrinho
         context['total_carrinho'] = total
+        context['carrinho_count'] = sum(item['quantidade'] for item in carrinho.values())
         
         return context
 
@@ -262,20 +279,28 @@ class CarrinhoView(BaseLojaView):
 class AdicionarCarrinhoView(View):
     """Adicionar produto ao carrinho via AJAX"""
     
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         try:
+            print(f"🛒 POST recebido para adicionar carrinho: {request.body}")
+            
             data = json.loads(request.body)
             produto_id = data.get('produto_id')
             quantidade = int(data.get('quantidade', 1))
             personalizacoes = data.get('personalizacoes', [])
             observacoes = data.get('observacoes', '')
             
+            print(f"📦 Dados recebidos: produto_id={produto_id}, quantidade={quantidade}")
+            
+            # Buscar o produto sem restrição de restaurante primeiro
             produto = get_object_or_404(Produto, id=produto_id, disponivel=True)
+            print(f"✅ Produto encontrado: {produto.nome} - R$ {produto.preco_final}")
             
             # Calcular preço com personalizações
             preco_base = produto.preco_final
             preco_adicional = sum(float(p.get('preco', 0)) for p in personalizacoes)
             preco_total = preco_base + preco_adicional
+            
+            print(f"💰 Preços: base={preco_base}, adicional={preco_adicional}, total={preco_total}")
             
             # Obter carrinho da sessão
             carrinho = request.session.get('carrinho', {})
@@ -285,6 +310,7 @@ class AdicionarCarrinhoView(View):
             
             if item_key in carrinho:
                 carrinho[item_key]['quantidade'] += quantidade
+                print(f"📦 Quantidade atualizada para produto existente: {carrinho[item_key]['quantidade']}")
             else:
                 carrinho[item_key] = {
                     'produto_id': str(produto_id),
@@ -293,12 +319,15 @@ class AdicionarCarrinhoView(View):
                     'personalizacoes': personalizacoes,
                     'observacoes': observacoes,
                 }
+                print(f"🆕 Novo item adicionado ao carrinho: {item_key}")
             
             request.session['carrinho'] = carrinho
             request.session.modified = True
             
             # Calcular novo total do carrinho
             carrinho_count = sum(item['quantidade'] for item in carrinho.values())
+            
+            print(f"🛒 Carrinho atualizado: {carrinho_count} itens")
             
             return JsonResponse({
                 'success': True,
@@ -307,6 +336,10 @@ class AdicionarCarrinhoView(View):
             })
             
         except Exception as e:
+            print(f"❌ Erro na AdicionarCarrinhoView: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
             return JsonResponse({
                 'success': False,
                 'message': f'Erro ao adicionar produto: {str(e)}'

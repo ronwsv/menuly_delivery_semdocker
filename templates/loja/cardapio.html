@@ -168,7 +168,10 @@
                                             
                                             {% if produto.disponivel %}
                                                 <button class="btn btn-adicionar-carrinho btn-sm" 
-                                                        data-produto-id="{{ produto.id }}">
+                                                        data-produto-id="{{ produto.id }}"
+                                                        data-nome="{{ produto.nome }}"
+                                                        data-preco="{{ produto.preco_final }}"
+                                                        data-categoria="{{ categoria.nome }}">
                                                     <i class="bi bi-cart-plus"></i> Adicionar
                                                 </button>
                                             {% else %}
@@ -344,6 +347,72 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Token CSRF para AJAX -->
+{% csrf_token %}
+
+<!-- Script de teste direto -->
+<script>
+console.log('🔧 Script inline carregado');
+
+// Função simples de teste
+function testarAdicionar(produtoId) {
+    console.log('🛒 Teste adicionar produto:', produtoId);
+    
+    var csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    var csrfToken = csrfElement ? csrfElement.value : 'NO_CSRF';
+    
+    console.log('🔑 CSRF Token:', csrfToken);
+    
+    fetch('/pizzaria-roma/carrinho/adicionar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            produto_id: produtoId,
+            quantidade: 1,
+            personalizacoes: [],
+            observacoes: ''
+        })
+    })
+    .then(function(response) {
+        console.log('📡 Resposta recebida:', response.status);
+        return response.json();
+    })
+    .then(function(data) {
+        console.log('✅ Dados:', data);
+        alert(data.message || 'Teste OK');
+    })
+    .catch(function(error) {
+        console.error('❌ Erro:', error);
+        alert('Erro: ' + error.message);
+    });
+}
+
+// Configurar eventos simples
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 DOM carregado - configurando teste');
+    
+    var botoes = document.querySelectorAll('.btn-adicionar-carrinho');
+    console.log('🔍 Encontrados', botoes.length, 'botões');
+    
+    for (var i = 0; i < botoes.length; i++) {
+        var botao = botoes[i];
+        var produtoId = botao.getAttribute('data-produto-id');
+        
+        console.log('🆔 Produto ID:', produtoId);
+        
+        botao.addEventListener('click', function(e) {
+            e.preventDefault();
+            var id = this.getAttribute('data-produto-id');
+            console.log('👆 Clique no produto:', id);
+            testarAdicionar(id);
+        });
+    }
+});
+</script>
+
 <script>
 // Dados dos produtos do Django para JavaScript
 window.produtosDjango = window.produtosDjango || {};
@@ -366,16 +435,27 @@ document.addEventListener('DOMContentLoaded', function() {
 function coletarProdutosDaPagina() {
     console.log('📦 Coletando produtos da página...');
     
-    document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
-        const produtoId = botao.getAttribute('data-produto-id');
-        const nome = botao.getAttribute('data-nome');
-        const preco = parseFloat(botao.getAttribute('data-preco')) || 0;
-        const categoria = botao.getAttribute('data-categoria');
+    var botoes = document.querySelectorAll('.btn-adicionar-carrinho');
+    console.log('🔍 Encontrados', botoes.length, 'botões de adicionar');
+    
+    for (var i = 0; i < botoes.length; i++) {
+        var botao = botoes[i];
+        var produtoId = botao.getAttribute('data-produto-id');
+        var nome = botao.getAttribute('data-nome');
+        var preco = parseFloat(botao.getAttribute('data-preco')) || 0;
+        var categoria = botao.getAttribute('data-categoria');
+        
+        console.log('📦 Dados do botão:', {
+            produtoId: produtoId,
+            nome: nome,
+            preco: preco,
+            categoria: categoria
+        });
         
         if (produtoId && nome) {
-            const card = botao.closest('.cardapio-produto-card');
-            const img = card?.querySelector('img');
-            const imagem = img?.src || '/static/img/placeholder.jpg';
+            var card = botao.closest('.cardapio-produto-card');
+            var img = card ? card.querySelector('img') : null;
+            var imagem = img ? img.src : '/static/img/placeholder.jpg';
             
             window.produtosDjango[produtoId] = {
                 id: parseInt(produtoId),
@@ -387,131 +467,192 @@ function coletarProdutosDaPagina() {
             };
             
             console.log('📦 Produto coletado:', { id: produtoId, nome: nome, preco: preco });
+        } else {
+            console.warn('⚠️ Botão sem dados necessários:', botao);
         }
-    });
+    }
     
     console.log('✅ Total de produtos coletados:', Object.keys(window.produtosDjango).length);
+    console.log('📋 Produtos disponíveis:', window.produtosDjango);
 }
 
 // Configurar eventos do carrinho
 function configurarEventosCarrinho() {
     console.log('🛒 Configurando eventos do carrinho...');
     
-    document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
+    var botoes = document.querySelectorAll('.btn-adicionar-carrinho');
+    for (var i = 0; i < botoes.length; i++) {
+        var botao = botoes[i];
         botao.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            const produtoId = this.getAttribute('data-produto-id');
+            var produtoId = this.getAttribute('data-produto-id');
             console.log('🛒 Clique no produto:', produtoId);
             
             // Efeito visual no botão
-            const botaoOriginal = this.innerHTML;
-            this.classList.add('loading');
-            this.innerHTML = '<i class="bi bi-hourglass-split"></i> Adicionando...';
+            var botaoOriginal = this.innerHTML;
+            var botaoAtual = this;
+            botaoAtual.classList.add('loading');
+            botaoAtual.innerHTML = '<i class="bi bi-hourglass-split"></i> Adicionando...';
             
             // Adicionar ao carrinho
-            setTimeout(() => {
-                if (adicionarAoCarrinhoCardapio(produtoId)) {
-                    // Sucesso
-                    this.innerHTML = '<i class="bi bi-check-circle"></i> Adicionado!';
-                    this.classList.remove('loading');
-                    this.classList.add('success');
-                    
-                    // Voltar ao normal
-                    setTimeout(() => {
-                        this.innerHTML = botaoOriginal;
-                        this.classList.remove('success');
-                    }, 2000);
-                } else {
-                    // Erro
-                    this.innerHTML = '<i class="bi bi-exclamation-circle"></i> Erro';
-                    this.classList.remove('loading');
-                    this.classList.add('error');
-                    
-                    setTimeout(() => {
-                        this.innerHTML = botaoOriginal;
-                        this.classList.remove('error');
-                    }, 2000);
-                }
+            setTimeout(function() {
+                adicionarAoCarrinhoCardapio(produtoId).then(function(sucesso) {
+                    if (sucesso) {
+                        // Sucesso
+                        botaoAtual.innerHTML = '<i class="bi bi-check-circle"></i> Adicionado!';
+                        botaoAtual.classList.remove('loading');
+                        botaoAtual.classList.add('success');
+                        
+                        // Voltar ao normal
+                        setTimeout(function() {
+                            botaoAtual.innerHTML = botaoOriginal;
+                            botaoAtual.classList.remove('success');
+                        }, 2000);
+                    } else {
+                        // Erro
+                        botaoAtual.innerHTML = '<i class="bi bi-exclamation-circle"></i> Erro';
+                        botaoAtual.classList.remove('loading');
+                        botaoAtual.classList.add('error');
+                        
+                        setTimeout(function() {
+                            botaoAtual.innerHTML = botaoOriginal;
+                            botaoAtual.classList.remove('error');
+                        }, 2000);
+                    }
+                });
             }, 500);
         });
-    });
+    }
     
-    console.log('✅ Configurados', document.querySelectorAll('.btn-adicionar-carrinho').length, 'botões do carrinho');
+    console.log('✅ Configurados', botoes.length, 'botões do carrinho');
 }
 
-// Função para adicionar ao carrinho
+// Função para adicionar ao carrinho via AJAX
 function adicionarAoCarrinhoCardapio(produtoId) {
-    console.log('🛒 Tentando adicionar produto:', produtoId);
+    console.log('🛒 Tentando adicionar produto via AJAX:', produtoId);
     
     const produto = window.produtosDjango[produtoId];
     
     if (!produto) {
         console.error('❌ Produto não encontrado:', produtoId);
         console.log('📋 Produtos disponíveis:', Object.keys(window.produtosDjango));
-        alert('Produto não encontrado!');
-        return false;
+        showToast('Produto não encontrado!', 'error');
+        return Promise.resolve(false);
     }
     
     console.log('✅ Produto encontrado:', produto);
     
-    // Inicializar carrinho
-    if (!window.carrinho) {
-        window.carrinho = JSON.parse(localStorage.getItem('carrinho_menuly') || '[]');
-    }
-    
-    // Verificar se já existe
-    const itemExistente = window.carrinho.find(item => String(item.id) === String(produto.id));
-    
-    if (itemExistente) {
-        itemExistente.quantidade += 1;
-        console.log('📦 Quantidade atualizada:', itemExistente);
+    // Obter CSRF token
+    var csrfToken = null;
+    var csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfElement) {
+        csrfToken = csrfElement.value;
     } else {
-        const novoItem = {
-            id: produto.id,
-            nome: produto.nome,
-            preco: produto.preco,
-            quantidade: 1,
-            categoria: produto.categoria,
-            imagem: produto.imagem,
-            observacoes: ''
-        };
-        
-        window.carrinho.push(novoItem);
-        console.log('🆕 Novo item adicionado:', novoItem);
+        var metaElement = document.querySelector('meta[name="csrf-token"]');
+        if (metaElement) {
+            csrfToken = metaElement.getAttribute('content');
+        } else {
+            csrfToken = getCookie('csrftoken');
+        }
     }
     
-    // Salvar no localStorage
-    localStorage.setItem('carrinho_menuly', JSON.stringify(window.carrinho));
-    
-    // Atualizar contador
-    updateCarrinhoCounter();
-    
-    // Mostrar notificação
-    showToast(`${produto.nome} adicionado ao carrinho!`, 'success');
-    
-    return true;
+    // Fazer requisição AJAX
+    return fetch('/pizzaria-roma/carrinho/adicionar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            produto_id: produtoId,
+            quantidade: 1,
+            personalizacoes: [],
+            observacoes: ''
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            console.log('✅ Produto adicionado com sucesso via AJAX');
+            
+            // Atualizar contador
+            updateCarrinhoCounter();
+            
+            // Mostrar notificação
+            showToast(data.message || produto.nome + ' adicionado ao carrinho!', 'success');
+            
+            return true;
+        } else {
+            console.error('❌ Erro na resposta:', data.message);
+            showToast(data.message || 'Erro ao adicionar produto', 'error');
+            return false;
+        }
+    })
+    .catch(function(error) {
+        console.error('❌ Erro na requisição AJAX:', error);
+        showToast('Erro de conexão ao adicionar produto', 'error');
+        return false;
+    });
+}
+
+// Função para obter CSRF token dos cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 // Atualizar contador do carrinho
 function updateCarrinhoCounter() {
-    if (typeof window.atualizarContadorCarrinho === 'function') {
-        window.atualizarContadorCarrinho();
-        return;
-    }
-    
-    const total = window.carrinho.reduce((sum, item) => sum + item.quantidade, 0);
-    const badges = document.querySelectorAll('#carrinho-badge, .carrinho-count, .cart-count');
-    
-    badges.forEach(badge => {
-        if (badge) {
-            badge.textContent = total;
-            badge.style.display = total > 0 ? 'inline' : 'none';
+    // Tentar carregar contador do servidor
+    fetch('/pizzaria-roma/carrinho/', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(function(response) {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Erro na resposta: ' + response.status);
+        }
+    })
+    .then(function(data) {
+        var total = data.carrinho_count || 0;
+        
+        var badges = document.querySelectorAll('#carrinho-badge, .carrinho-count, .cart-count');
+        for (var i = 0; i < badges.length; i++) {
+            var badge = badges[i];
+            if (badge) {
+                badge.textContent = total;
+                badge.style.display = total > 0 ? 'inline' : 'none';
+            }
+        }
+        
+        console.log('🔢 Contador atualizado via servidor:', total);
+    })
+    .catch(function(error) {
+        console.warn('⚠️ Erro ao carregar contador:', error);
+        
+        // Fallback: usar função global se disponível
+        if (typeof window.atualizarContadorCarrinho === 'function') {
+            window.atualizarContadorCarrinho();
         }
     });
-    
-    console.log('🔢 Contador atualizado:', total);
 }
 
 // Notificação toast
@@ -540,7 +681,7 @@ function showToast(message, type = 'info') {
 // Outras funcionalidades
 function configurarOutroEventos() {
     // Botão voltar ao topo
-    const btnTopo = document.getElementById('btnVoltarTopo');
+    var btnTopo = document.getElementById('btnVoltarTopo');
     if (btnTopo) {
         window.addEventListener('scroll', function() {
             if (window.scrollY > 300) {
