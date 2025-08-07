@@ -482,7 +482,9 @@ function carregarCarrinho() {
             atualizarResumo();
             
             // Preencher campo hidden para envio
-            document.getElementById('carrinho_json').value = JSON.stringify(carrinhoData);
+            const carrinhoJson = JSON.stringify(carrinhoData);
+            document.getElementById('carrinho_json').value = carrinhoJson;
+            console.log('📦 Campo carrinho_json preenchido:', carrinhoJson);
         })
         .catch(error => {
             console.error('❌ Erro ao carregar carrinho:', error);
@@ -662,6 +664,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Verificar se carrinho_json foi preenchido
+            const carrinhoJsonField = document.getElementById('carrinho_json');
+            const carrinhoJsonValue = carrinhoJsonField.value;
+            console.log('🔍 Verificando carrinho_json antes do envio:', carrinhoJsonValue);
+            
+            if (!carrinhoJsonValue || carrinhoJsonValue === '[]') {
+                e.preventDefault();
+                alert('Erro: dados do carrinho não foram carregados. Recarregue a página e tente novamente.');
+                return;
+            }
+            
             // Validar CEP se delivery
             const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked');
             if (tipoEntrega && tipoEntrega.value === 'delivery') {
@@ -696,40 +709,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Gerar código único do pedido
-            gerarCodigoPedido();
+            // Gerar código único do pedido será feito no backend Django
             
             console.log('✅ Formulário validado, enviando...');
             
             // Após envio bem-sucedido, limpar carrinho
             // (será chamado quando a página for redirecionada ou recarregada)
         });
-    }
-    
-    // Função para gerar código único do pedido
-    function gerarCodigoPedido() {
-        const restauranteNome = '{{ restaurante.nome }}';
-        const initials = restauranteNome.split(' ')
-            .map(word => word.charAt(0).toUpperCase())
-            .join('')
-            .substring(0, 2); // Pegar apenas as 2 primeiras letras
-        
-        const timestamp = Date.now();
-        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        const codigo = `${initials}${randomNum}${timestamp.toString().slice(-3)}#`;
-        
-        // Adicionar ao formulário se houver campo para isso
-        let codigoInput = document.getElementById('codigo_pedido');
-        if (!codigoInput) {
-            codigoInput = document.createElement('input');
-            codigoInput.type = 'hidden';
-            codigoInput.name = 'codigo_pedido';
-            codigoInput.id = 'codigo_pedido';
-            checkoutForm.appendChild(codigoInput);
-        }
-        
-        codigoInput.value = codigo;
-        console.log('🎫 Código do pedido gerado:', codigo);
     }
     
     // Função para limpar carrinho após pedido

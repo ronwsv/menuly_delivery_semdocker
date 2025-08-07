@@ -8,6 +8,7 @@ from django.http import JsonResponse, Http404
 from django.contrib.auth.mixins import LoginRequiredMixin
 import json
 import requests
+import traceback
 from decimal import Decimal, InvalidOperation
 
 from core.models import (
@@ -394,7 +395,7 @@ class AdicionarCarrinhoView(View):
 class RemoverCarrinhoView(View):
     """Remover item do carrinho"""
     
-    def post(self, request, item_id):
+    def post(self, request, restaurante_slug, item_id):
         carrinho = request.session.get('carrinho', {})
         
         if item_id in carrinho:
@@ -403,17 +404,17 @@ class RemoverCarrinhoView(View):
             request.session.modified = True
             messages.success(request, 'Item removido do carrinho!')
         
-        return redirect('loja:carrinho')
+        return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
 
 
 class LimparCarrinhoView(View):
     """Limpar todo o carrinho"""
     
-    def post(self, request):
+    def post(self, request, restaurante_slug):
         request.session['carrinho'] = {}
         request.session.modified = True
         messages.success(request, 'Carrinho limpo!')
-        return redirect('loja:carrinho')
+        return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
 
 
 class CheckoutView(BaseLojaView):
@@ -483,45 +484,68 @@ class CheckoutView(BaseLojaView):
 
     def post(self, request, *args, **kwargs):
         """Processa o pedido do checkout."""
+        print(f"🛒 POST recebido no checkout: {request.POST}")
+        
         data = request.POST
         carrinho_json = data.get('carrinho_json')
         carrinho = {}
 
         if carrinho_json:
+            print(f"📦 carrinho_json recebido: {carrinho_json}")
             try:
                 carrinho_lista = json.loads(carrinho_json)
+                print(f"📋 carrinho_lista decodificada: {carrinho_lista}")
+                
+                # Debug: mostrar estrutura do primeiro item
+                if carrinho_lista:
+                    primeiro_item = carrinho_lista[0]
+                    print(f"🔍 Estrutura do primeiro item: {primeiro_item}")
+                    print(f"🔍 Chaves disponíveis: {list(primeiro_item.keys())}")
+                
                 carrinho_temp = {}
-                for item in carrinho_lista:
-                    item_key = f"{item['id']}"
+                for i, item in enumerate(carrinho_lista):
+                    print(f"📦 Processando item {i+1}: {item}")
+                    
+                    # Usar produto_id que vem da API Django, não 'id'
+                    produto_id = item.get('produto_id') or item.get('id')
+                    if not produto_id:
+                        print(f"⚠️ Item sem produto_id: {item}")
+                        continue
+                        
+                    item_key = f"{produto_id}"
                     carrinho_temp[item_key] = {
-                        'produto_id': item['id'],
-                        'nome': item['nome'],
-                        'preco': Decimal(str(item.get('preco', '0'))),
-                        'quantidade': int(item['quantidade']),
+                        'produto_id': produto_id,
+                        'nome': item.get('nome', ''),
+                        'preco': Decimal(str(item.get('preco_unitario', item.get('preco', '0')))),
+                        'quantidade': int(item.get('quantidade', 1)),
                         'observacoes': item.get('observacoes', ''),
                         'personalizacoes': item.get('personalizacoes', [])
                     }
                 carrinho = carrinho_temp
+                print(f"✅ Carrinho processado: {len(carrinho)} itens")
             except (json.JSONDecodeError, InvalidOperation):
                 messages.error(request, "Ocorreu um erro ao processar os itens do seu carrinho (JSON inválido). Por favor, tente novamente.")
-                return redirect('loja:carrinho')
+                return redirect('loja:carrinho', restaurante_slug=kwargs.get('restaurante_slug'))
             except (ValueError, TypeError, KeyError) as e:
                 messages.error(request, f"Um item no seu carrinho está com dados inválidos: {e}. Por favor, verifique os itens no carrinho.")
-                return redirect('loja:carrinho')
+                return redirect('loja:carrinho', restaurante_slug=kwargs.get('restaurante_slug'))
 
         if not carrinho:
             carrinho = request.session.get('carrinho', {})
 
         try:
-            restaurante = self.get_context_data().get('restaurante')
-
-            if not restaurante:
-                messages.error(request, 'Restaurante não disponível no momento.')
-                return redirect('loja:checkout')
+            # Obter restaurante diretamente pelos kwargs, não via get_context_data
+            restaurante_slug = kwargs.get('restaurante_slug')
+            if not restaurante_slug:
+                messages.error(request, 'Restaurante não identificado.')
+                return redirect('landing_page')
+                
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+            print(f"🏪 Restaurante encontrado: {restaurante.nome}")
 
             if not carrinho:
                 messages.error(request, 'Seu carrinho está vazio.')
-                return redirect('loja:carrinho')
+                return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
 
             tipo_entrega = data.get('tipo_entrega')
             taxa_entrega = 0
@@ -647,14 +671,14 @@ class CheckoutView(BaseLojaView):
 
             messages.success(request, 'Pedido realizado com sucesso!')
             request.session['ultimo_pedido_id'] = str(pedido.id) 
-            return redirect('loja:confirmacao_pedido')
+            return redirect('loja:confirmacao_pedido', restaurante_slug=kwargs.get('restaurante_slug'))
 
         except Exception as e:
             import traceback
             traceback.print_exc()
             error_message = f'Ocorreu um erro inesperado ao finalizar seu pedido. Detalhe: {type(e).__name__}: {e}'
             messages.error(request, error_message)
-            return redirect('loja:checkout')
+            return redirect('loja:checkout', restaurante_slug=kwargs.get('restaurante_slug'))
 
 
 class ConfirmarPedidoView(BaseLojaView):

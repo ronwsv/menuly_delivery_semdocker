@@ -408,13 +408,18 @@ class Pedido(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.numero:
-            # Gerar número sequencial do pedido
+            # Gerar número com iniciais do restaurante + número sequencial
+            initials = ''.join([word[0].upper() for word in self.restaurante.nome.split()[:2]])
             ultimo_numero = Pedido.objects.filter(
                 restaurante=self.restaurante
             ).exclude(
                 status='carrinho'
             ).count() + 1
-            self.numero = f"{ultimo_numero:06d}"
+            
+            # Formato: XX000001# (iniciais + 6 dígitos + #)
+            import time
+            timestamp_suffix = str(int(time.time()))[-3:]  # últimos 3 dígitos do timestamp
+            self.numero = f"{initials}{ultimo_numero:03d}{timestamp_suffix}#"
         super().save(*args, **kwargs)
 
     def __str__(self):
