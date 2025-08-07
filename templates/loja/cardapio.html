@@ -389,28 +389,6 @@ function testarAdicionar(produtoId) {
         alert('Erro: ' + error.message);
     });
 }
-
-// Configurar eventos simples
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 DOM carregado - configurando teste');
-    
-    var botoes = document.querySelectorAll('.btn-adicionar-carrinho');
-    console.log('🔍 Encontrados', botoes.length, 'botões');
-    
-    for (var i = 0; i < botoes.length; i++) {
-        var botao = botoes[i];
-        var produtoId = botao.getAttribute('data-produto-id');
-        
-        console.log('🆔 Produto ID:', produtoId);
-        
-        botao.addEventListener('click', function(e) {
-            e.preventDefault();
-            var id = this.getAttribute('data-produto-id');
-            console.log('👆 Clique no produto:', id);
-            testarAdicionar(id);
-        });
-    }
-});
 </script>
 
 <script>

@@ -129,11 +129,15 @@ const Utils = {
 // ====================== GERENCIAMENTO DO CARRINHO ======================
 const Carrinho = {
     itens: new Map(),
+    eventsBound: false, // Flag para evitar múltiplos event listeners
     
     init() {
         this.loadFromStorage();
         this.updateUI();
-        this.bindEvents();
+        if (!this.eventsBound) {
+            this.bindEvents();
+            this.eventsBound = true;
+        }
     },
     
     // Carregar carrinho do localStorage
@@ -390,10 +394,17 @@ const Carrinho = {
     
     // Manipular clique no botão adicionar
     async handleAdicionarClick(btn, produtoId) {
+        // Verificar se o botão já está processando
+        if (btn.disabled || btn.classList.contains('processing')) {
+            console.log('🚫 Produto já está sendo processado:', produtoId);
+            return;
+        }
+        
         const originalText = btn.innerHTML;
         
-        // Desabilitar botão
+        // Marcar como processando e desabilitar botão
         btn.disabled = true;
+        btn.classList.add('processing');
         btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Adicionando...';
         
         try {
@@ -406,7 +417,7 @@ const Carrinho = {
                 
                 setTimeout(() => {
                     btn.innerHTML = originalText;
-                    btn.classList.remove('btn-success');
+                    btn.classList.remove('btn-success', 'processing');
                     btn.classList.add('btn-primary');
                     btn.disabled = false;
                 }, 2000);
@@ -420,7 +431,7 @@ const Carrinho = {
             
             setTimeout(() => {
                 btn.innerHTML = originalText;
-                btn.classList.remove('btn-danger');
+                btn.classList.remove('btn-danger', 'processing');
                 btn.classList.add('btn-primary');
                 btn.disabled = false;
             }, 2000);
