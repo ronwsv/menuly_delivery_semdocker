@@ -429,8 +429,14 @@ class CheckoutView(BaseLojaView):
         itens_carrinho = []
         total = 0
         
-        for produto_id, item in carrinho.items():
+        for produto_id_key, item in carrinho.items():
             try:
+                # Extrair o UUID do produto da chave (formato: uuid_hash)
+                if '_' in produto_id_key:
+                    produto_id = produto_id_key.split('_')[0]
+                else:
+                    produto_id = produto_id_key
+                    
                 produto = Produto.objects.get(id=produto_id)
                 subtotal = item['preco'] * item['quantidade']
                 total += subtotal
