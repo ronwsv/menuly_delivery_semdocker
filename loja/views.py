@@ -555,7 +555,7 @@ class CheckoutView(BaseLojaView):
                 taxa_entrega = restaurante.taxa_entrega
 
             # Lógica para encontrar ou criar o cliente
-            cliente_celular = data.get('celular', '').strip()
+            cliente_celular = ''.join(filter(str.isdigit, data.get('celular', '').strip()))
             cliente_instance = None
 
             if request.user.is_authenticated:
@@ -811,10 +811,9 @@ class MeusPedidosView(BaseLojaView):
         # Se foi feita busca por celular
         celular_busca = self.request.GET.get('celular', '').strip()
         if celular_busca:
-            # Limpar celular (remover caracteres especiais)
             celular_limpo = ''.join(filter(str.isdigit, celular_busca))
             pedidos_celular = Pedido.objects.filter(
-                cliente_celular__icontains=celular_limpo,
+                cliente_celular=celular_limpo,
                 restaurante=context['restaurante']
             ).exclude(status='carrinho').order_by('-created_at')
             # Se usuário logado e buscou seu próprio celular, combinar resultados
