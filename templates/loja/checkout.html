@@ -593,6 +593,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Carregar dados do carrinho
     carregarCarrinho();
     
+    // Se após 2 segundos o carrinho ainda estiver vazio, tentar novamente
+    setTimeout(() => {
+        if (carrinhoData.length === 0) {
+            console.log('⚠️ Carrinho ainda vazio após 2s, tentando recarregar...');
+            carregarCarrinho();
+        }
+    }, 2000);
+    
     // Buscar CEP
     const buscarBtn = document.getElementById('buscar-cep');
     const cepInput = document.getElementById('cep');

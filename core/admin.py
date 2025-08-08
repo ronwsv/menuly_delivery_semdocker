@@ -117,7 +117,7 @@ class ItemPedidoInline(admin.TabularInline):
 class HistoricoStatusInline(admin.TabularInline):
     model = HistoricoStatusPedido
     extra = 0
-    readonly_fields = ('data_mudanca',)
+    readonly_fields = ('timestamp',)
 
 
 @admin.register(Pedido)

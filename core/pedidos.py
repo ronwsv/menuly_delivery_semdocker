@@ -188,17 +188,17 @@ class HistoricoStatusPedido(models.Model):
     """Histórico de mudanças de status do pedido"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='historico_status')
-    status_anterior = models.CharField(max_length=20, choices=Pedido.STATUS_CHOICES, blank=True)
+    status_anterior = models.CharField(max_length=20, choices=Pedido.STATUS_CHOICES, blank=True, null=True)
     status_novo = models.CharField(max_length=20, choices=Pedido.STATUS_CHOICES)
     usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
     observacoes = models.TextField(blank=True)
-    data_mudanca = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'historico_status_pedido'
         verbose_name = 'Histórico de Status'
         verbose_name_plural = 'Histórico de Status'
-        ordering = ['-data_mudanca']
+        ordering = ['timestamp']
 
     def __str__(self):
         return f"Pedido #{self.pedido.numero} - {self.status_anterior} → {self.status_novo}"

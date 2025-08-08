@@ -532,6 +532,7 @@ class CheckoutView(BaseLojaView):
 
         if not carrinho:
             carrinho = request.session.get('carrinho', {})
+            print(f"🔄 Usando carrinho da sessão: {len(carrinho)} itens")
 
         try:
             # Obter restaurante diretamente pelos kwargs, não via get_context_data
@@ -563,7 +564,7 @@ class CheckoutView(BaseLojaView):
                 usuario, created = Usuario.objects.get_or_create(
                     celular=cliente_celular,
                     defaults={
-                        'nome': data.get('nome', ''),
+                        'first_name': data.get('nome', ''),
                         'email': data.get('email', ''),
                         'is_active': True,
                         # Define uma senha inutilizável para cadastros automáticos
@@ -573,9 +574,9 @@ class CheckoutView(BaseLojaView):
                 cliente_instance = usuario
                 if not created:
                     # Se o usuário já existia, atualiza o nome se necessário
-                    if data.get('nome') and usuario.nome != data.get('nome'):
-                        usuario.nome = data.get('nome')
-                        usuario.save(update_fields=['nome'])
+                    if data.get('nome') and usuario.first_name != data.get('nome'):
+                        usuario.first_name = data.get('nome')
+                        usuario.save(update_fields=['first_name'])
 
             pedido = Pedido.objects.create(
                 restaurante=restaurante,
