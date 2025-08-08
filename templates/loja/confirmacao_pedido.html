@@ -3,530 +3,111 @@
 
 {% block title %}Pedido Confirmado - {{ restaurante.nome }}{% endblock %}
 
-{% block extra_css %}
-<style>
-    body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .confirmacao-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 40px 20px;
-    }
-
-    .success-header {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 30px;
-        padding: 60px 40px;
-        text-align: center;
-        margin-bottom: 40px;
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .success-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 8px;
-        background: linear-gradient(90deg, #00c851, #00ff88, #00c851);
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 0.8; }
-        50% { opacity: 1; }
-    }
-
-    .success-icon {
-        font-size: 5rem;
-        color: #00c851;
-        margin-bottom: 30px;
-        animation: bounceIn 1s ease-out;
-    }
-
-    @keyframes bounceIn {
-        0% { transform: scale(0); opacity: 0; }
-        60% { transform: scale(1.2); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-
-    .pedido-numero {
-        font-size: 3rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 30px 0;
-        letter-spacing: 3px;
-        text-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .status-badge {
-        background: linear-gradient(135deg, #00c851, #00ff88);
-        color: white;
-        padding: 12px 30px;
-        border-radius: 50px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        display: inline-block;
-        margin-top: 20px;
-        box-shadow: 0 10px 25px rgba(0, 200, 81, 0.3);
-    }
-
-    .info-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 30px;
-        margin: 40px 0;
-    }
-
-    .info-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 25px;
-        padding: 40px;
-        border-left: 6px solid;
-        transition: all 0.4s ease;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-
-    .info-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-    }
-
-    .info-card.cliente { border-left-color: #667eea; }
-    .info-card.entrega { border-left-color: #00c851; }
-    .info-card.pagamento { border-left-color: #ff6b35; }
-
-    .card-title {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 25px;
-    }
-
-    .card-title i {
-        font-size: 1.8rem;
-    }
-
-    .card-content p {
-        margin-bottom: 15px;
-        font-size: 1.1rem;
-        line-height: 1.6;
-        color: #34495e;
-    }
-
-    .card-content strong {
-        color: #2c3e50;
-        font-weight: 600;
-    }
-
-    .items-section {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(15px);
-        border-radius: 30px;
-        padding: 50px;
-        margin: 40px 0;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    }
-
-    .section-title {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        font-size: 2rem;
-        font-weight: 800;
-        color: #2c3e50;
-        margin-bottom: 40px;
-        padding-bottom: 20px;
-        border-bottom: 3px solid #667eea;
-    }
-
-    .section-title i {
-        font-size: 2.2rem;
-        color: #667eea;
-    }
-
-    .item-card {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 25px;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-        border-radius: 20px;
-        margin-bottom: 20px;
-        border-left: 5px solid #667eea;
-        transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    }
-
-    .item-card:hover {
-        transform: translateX(10px);
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    .item-info h5 {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 8px;
-    }
-
-    .item-categoria {
-        color: #667eea;
-        font-size: 1rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .item-preco {
-        text-align: right;
-    }
-
-    .quantidade-badge {
-        background: #667eea;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 25px;
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-        display: inline-block;
-    }
-
-    .preco-item {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #2c3e50;
-    }
-
-    .total-section {
-        background: linear-gradient(135deg, #00c851, #00ff88);
-        border-radius: 25px;
-        padding: 40px;
-        text-align: center;
-        margin: 40px 0;
-        color: white;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0, 200, 81, 0.3);
-    }
-
-    .total-section::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 15px,
-            rgba(255, 255, 255, 0.1) 15px,
-            rgba(255, 255, 255, 0.1) 30px
-        );
-        animation: moveStripes 25s linear infinite;
-    }
-
-    @keyframes moveStripes {
-        0% { transform: translateX(-60px); }
-        100% { transform: translateX(60px); }
-    }
-
-    .total-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .total-valor {
-        font-size: 3.5rem;
-        font-weight: 900;
-        margin: 20px 0;
-        text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        position: relative;
-        z-index: 1;
-    }
-
-    .total-subtitle {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        position: relative;
-        z-index: 1;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 30px;
-        justify-content: center;
-        margin: 50px 0;
-        flex-wrap: wrap;
-    }
-
-    .btn-action {
-        padding: 20px 40px;
-        border-radius: 60px;
-        font-weight: 700;
-        font-size: 1.1rem;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        transition: all 0.4s ease;
-        position: relative;
-        overflow: hidden;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 25px 50px rgba(102, 126, 234, 0.6);
-        color: white;
-        text-decoration: none;
-    }
-
-    .btn-secondary {
-        background: rgba(255, 255, 255, 0.9);
-        color: #667eea;
-        border: 3px solid #667eea;
-        backdrop-filter: blur(10px);
-    }
-
-    .btn-secondary:hover {
-        background: #667eea;
-        color: white;
-        transform: translateY(-5px);
-        text-decoration: none;
-        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-    }
-
-    .footer-info {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 25px;
-        padding: 40px;
-        text-align: center;
-        color: white;
-        margin-top: 50px;
-    }
-
-    .footer-info p {
-        font-size: 1.1rem;
-        margin-bottom: 15px;
-        line-height: 1.6;
-    }
-
-    .whatsapp-link {
-        color: #25d366;
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-
-    .whatsapp-link:hover {
-        color: #128c7e;
-        text-decoration: underline;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .confirmacao-container {
-            padding: 20px 15px;
-        }
-
-        .success-header {
-            padding: 40px 25px;
-        }
-
-        .pedido-numero {
-            font-size: 2.2rem;
-        }
-
-        .info-cards {
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        .items-section {
-            padding: 30px 25px;
-        }
-
-        .action-buttons {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .btn-action {
-            width: 100%;
-            max-width: 350px;
-        }
-
-        .total-valor {
-            font-size: 2.5rem;
-        }
-
-        .item-card {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-        }
-
-        .item-preco {
-            text-align: left;
-            width: 100%;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="confirmacao-container">
-    {% if pedido %}
-    
-    <!-- Cabeçalho de Sucesso -->
-    <div class="success-header">
-        <i class="bi bi-check-circle-fill success-icon"></i>
-        <h1>🎉 Pedido Confirmado!</h1>
-        <p class="lead">Seu pedido foi recebido e está sendo preparado com carinho</p>
-        <div class="pedido-numero">#{{ pedido.numero }}</div>
-        <div class="status-badge">{{ pedido.status|title }}</div>
-    </div>
-
-    <!-- Cards de Informações -->
-    <div class="info-cards">
-        <div class="info-card cliente">
-            <div class="card-title">
-                <i class="bi bi-person-fill"></i>
-                <span>Dados do Cliente</span>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle-fill text-success display-3 mb-3"></i>
+                    <h1 class="fw-bold text-success">Pedido Confirmado!</h1>
+                    <p class="lead mb-2">Seu pedido foi recebido e está sendo preparado</p>
+                    <div class="h4 fw-bold text-primary mb-2">Nº do Pedido: <span class="fw-bolder">#{{ pedido.numero }}</span></div>
+                    <span class="badge bg-success fs-6 mb-3">{{ pedido.status|title }}</span>
+                </div>
             </div>
-            <div class="card-content">
-                <p><strong>Nome:</strong> {{ pedido.usuario.first_name }}</p>
-                <p><strong>Email:</strong> {{ pedido.usuario.email }}</p>
-                <p><strong>Celular:</strong> {{ pedido.celular }}</p>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary mb-3"><i class="bi bi-person-circle me-2"></i>Dados do Cliente</h5>
+                            <p class="mb-1"><strong>Nome:</strong> {{ pedido.usuario.first_name|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ pedido.usuario.email|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Celular:</strong> {{ pedido.celular|default:'Não informado' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Entrega</h5>
+                            <p class="mb-1"><strong>Tipo:</strong> {{ pedido.tipo_entrega|title|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Endereço:</strong><br>
+                                {% if pedido.endereco %}
+                                    {{ pedido.endereco.logradouro|default:'Não informado' }}, {{ pedido.endereco.numero|default:'S/N' }}<br>
+                                    {% if pedido.endereco.complemento %}{{ pedido.endereco.complemento }}<br>{% endif %}
+                                    {{ pedido.endereco.bairro|default:'Não informado' }} - {{ pedido.endereco.cidade|default:'Não informado' }}/{{ pedido.endereco.estado|default:'--' }}<br>
+                                    CEP: {{ pedido.endereco.cep|default:'Não informado' }}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary mb-3"><i class="bi bi-credit-card-2-front-fill me-2"></i>Pagamento</h5>
+                            <p class="mb-1"><strong>Forma:</strong> {{ pedido.forma_pagamento|title|default:'Não informado' }}</p>
+                            {% if pedido.troco_para %}
+                                <p class="mb-1"><strong>Troco para:</strong> R$ {{ pedido.troco_para }}</p>
+                            {% elif pedido.forma_pagamento == 'dinheiro' %}
+                                <p class="mb-1"><strong>Troco para:</strong> Não informado</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-5 border-0 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title text-primary mb-4"><i class="bi bi-basket-fill me-2"></i>Itens do Pedido ({{ pedido.items.count }} item{{ pedido.items.count|pluralize }})</h4>
+                    {% if pedido.items.all %}
+                        {% for item in pedido.items.all %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                            <div>
+                                <div class="fw-bold">{{ item.produto.nome|default:'Produto removido' }}</div>
+                                <div class="text-muted small">{{ item.produto.categoria.nome|default:'Sem categoria' }}</div>
+                                {% if item.observacoes %}
+                                <div class="text-muted small">Obs: {{ item.observacoes }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary me-2">{{ item.quantidade|default:'1' }}x</span>
+                                <span class="fw-bold text-success">R$ {{ item.preco_total|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">Nenhum item encontrado neste pedido.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h4 mb-2">Total do Pedido</div>
+                    <div class="display-5 fw-bold text-success mb-2">R$ {{ pedido.valor_total|floatformat:2 }}</div>
+                    <div class="text-muted">Valor total incluindo todas as taxas</div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                <a href="{% url 'loja:meus_pedidos' restaurante_slug=restaurante.slug %}" class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-list-ul me-2"></i>Meus Pedidos
+                </a>
+                <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn btn-outline-primary btn-lg px-4">
+                    <i class="bi bi-arrow-left me-2"></i>Continuar Comprando
+                </a>
+            </div>
+
+            <div class="text-center text-muted mt-5">
+                <p class="mb-1"><i class="bi bi-clock me-2"></i>Tempo estimado de entrega: 30-45 minutos</p>
+                <p class="mb-0"><i class="bi bi-whatsapp me-2"></i>Dúvidas? <a href="https://wa.me/5511999999999" class="text-success fw-bold" target="_blank">WhatsApp do {{ restaurante.nome }}</a></p>
             </div>
         </div>
-
-        <div class="info-card entrega">
-            <div class="card-title">
-                <i class="bi bi-geo-alt-fill"></i>
-                <span>Entrega</span>
-            </div>
-            <div class="card-content">
-                <p><strong>Tipo:</strong> {{ pedido.tipo_entrega|title }}</p>
-                {% if pedido.endereco %}
-                <p><strong>Endereço:</strong><br>
-                    {{ pedido.endereco.logradouro }}, {{ pedido.endereco.numero }}<br>
-                    {% if pedido.endereco.complemento %}{{ pedido.endereco.complemento }}<br>{% endif %}
-                    {{ pedido.endereco.bairro }} - {{ pedido.endereco.cidade }}/{{ pedido.endereco.estado }}<br>
-                    CEP: {{ pedido.endereco.cep }}
-                </p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="info-card pagamento">
-            <div class="card-title">
-                <i class="bi bi-credit-card-fill"></i>
-                <span>Pagamento</span>
-            </div>
-            <div class="card-content">
-                <p><strong>Forma:</strong> {{ pedido.forma_pagamento|title }}</p>
-                {% if pedido.troco_para %}
-                <p><strong>Troco para:</strong> R$ {{ pedido.troco_para }}</p>
-                {% endif %}
-            </div>
-        </div>
     </div>
-
-    <!-- Seção de Itens -->
-    <div class="items-section">
-        <div class="section-title">
-            <i class="bi bi-basket-fill"></i>
-            <span>Itens do Pedido ({{ pedido.items.count }} item{{ pedido.items.count|pluralize }})</span>
-        </div>
-        
-        {% for item in pedido.items.all %}
-        <div class="item-card">
-            <div class="item-info">
-                <h5>{{ item.produto.nome }}</h5>
-                <div class="item-categoria">{{ item.produto.categoria.nome }}</div>
-                {% if item.observacoes %}
-                <small class="text-muted">Obs: {{ item.observacoes }}</small>
-                {% endif %}
-            </div>
-            <div class="item-preco">
-                <div class="quantidade-badge">{{ item.quantidade }}x</div>
-                <div class="preco-item">R$ {{ item.preco_total|floatformat:2 }}</div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Total do Pedido -->
-    <div class="total-section">
-        <div class="total-title">Total do Pedido</div>
-        <div class="total-valor">R$ {{ pedido.valor_total|floatformat:2 }}</div>
-        <div class="total-subtitle">Valor total incluindo todas as taxas</div>
-    </div>
-
-    <!-- Botões de Ação -->
-    <div class="action-buttons">
-        <a href="{% url 'loja:meus_pedidos' restaurante_slug=restaurante.slug %}" class="btn-action btn-primary">
-            <i class="bi bi-list-ul"></i> Meus Pedidos
-        </a>
-        <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn-action btn-secondary">
-            <i class="bi bi-arrow-left"></i> Continuar Comprando
-        </a>
-    </div>
-
-    <!-- Informações de Rodapé -->
-    <div class="footer-info">
-        <p><i class="bi bi-clock"></i> <strong>Tempo estimado de entrega:</strong> 30-45 minutos</p>
-        <p><i class="bi bi-whatsapp"></i> <strong>Dúvidas?</strong> Entre em contato: 
-            <a href="https://wa.me/5511999999999" class="whatsapp-link" target="_blank">
-                WhatsApp do {{ restaurante.nome }}
-            </a>
-        </p>
-        <p><i class="bi bi-heart-fill"></i> Obrigado por escolher o {{ restaurante.nome }}!</p>
-    </div>
-
-    {% else %}
-    <div class="success-header">
-        <i class="bi bi-exclamation-triangle-fill" style="color: #ff6b35;"></i>
-        <h2>Pedido não encontrado</h2>
-        <p>Não foi possível localizar os dados do seu pedido.</p>
-        <div class="action-buttons" style="margin-top: 30px;">
-            <a href="{% url 'loja:cardapio' restaurante_slug=restaurante.slug %}" class="btn-action btn-primary">
-                Voltar ao Cardápio
-            </a>
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
