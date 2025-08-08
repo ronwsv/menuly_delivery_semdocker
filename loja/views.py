@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView
 from django.contrib import messages
+from django.db import models
 from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 from django.http import JsonResponse, Http404
@@ -560,23 +561,43 @@ class CheckoutView(BaseLojaView):
             if request.user.is_authenticated:
                 cliente_instance = request.user
             elif cliente_celular:
-                # Tenta encontrar um usuário pelo celular
-                usuario, created = Usuario.objects.get_or_create(
-                    celular=cliente_celular,
-                    defaults={
-                        'first_name': data.get('nome', ''),
-                        'email': data.get('email', ''),
-                        'is_active': True,
-                        # Define uma senha inutilizável para cadastros automáticos
-                        'password': '!' 
-                    }
-                )
-                cliente_instance = usuario
-                if not created:
-                    # Se o usuário já existia, atualiza o nome se necessário
-                    if data.get('nome') and usuario.first_name != data.get('nome'):
-                        usuario.first_name = data.get('nome')
+                # Busca por celular ou email
+                usuario = None
+                email = data.get('email', '').strip()
+                nome = data.get('nome', '').strip()
+                try:
+                    if email:
+                        usuario = Usuario.objects.filter(email=email).first()
+                    if not usuario:
+                        usuario = Usuario.objects.filter(celular=cliente_celular).first()
+                except Exception:
+                    usuario = None
+
+                if usuario:
+                    # Atualiza nome se necessário
+                    if nome and usuario.first_name != nome:
+                        usuario.first_name = nome
                         usuario.save(update_fields=['first_name'])
+                    cliente_instance = usuario
+                else:
+                    # Gera username único
+                    base_username = email.split('@')[0] if email else cliente_celular.replace('+','').replace('-','').replace('(','').replace(')','').replace(' ','')
+                    username = base_username
+                    from core.models import Usuario
+                    i = 1
+                    while Usuario.objects.filter(username=username).exists():
+                        username = f"{base_username}{i}"
+                        i += 1
+                    usuario = Usuario.objects.create(
+                        username=username,
+                        first_name=nome,
+                        email=email,
+                        celular=cliente_celular,
+                        is_active=True,
+                    )
+                    usuario.set_unusable_password()
+                    usuario.save()
+                    cliente_instance = usuario
 
             pedido = Pedido.objects.create(
                 restaurante=restaurante,
@@ -786,23 +807,24 @@ class MeusPedidosView(BaseLojaView):
                 cliente=self.request.user,
                 restaurante=context['restaurante']
             ).exclude(status='carrinho').order_by('-created_at')
-        
+
         # Se foi feita busca por celular
         celular_busca = self.request.GET.get('celular', '').strip()
         if celular_busca:
             # Limpar celular (remover caracteres especiais)
             celular_limpo = ''.join(filter(str.isdigit, celular_busca))
-            
             pedidos_celular = Pedido.objects.filter(
                 cliente_celular__icontains=celular_limpo,
                 restaurante=context['restaurante']
             ).exclude(status='carrinho').order_by('-created_at')
-            
             # Se usuário logado e buscou seu próprio celular, combinar resultados
             if self.request.user.is_authenticated:
                 pedidos = pedidos.union(pedidos_celular).order_by('-created_at')
             else:
                 pedidos = pedidos_celular
+        # Se não está logado e não buscou manualmente, não mostra nenhum pedido
+        elif not self.request.user.is_authenticated:
+            pedidos = Pedido.objects.none()
         
         # Paginação
         paginator = Paginator(pedidos, 10)
