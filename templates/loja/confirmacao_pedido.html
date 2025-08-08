@@ -22,9 +22,9 @@
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title text-primary mb-3"><i class="bi bi-person-circle me-2"></i>Dados do Cliente</h5>
-                            <p class="mb-1"><strong>Nome:</strong> {{ pedido.usuario.first_name|default:'Não informado' }}</p>
-                            <p class="mb-1"><strong>Email:</strong> {{ pedido.usuario.email|default:'Não informado' }}</p>
-                            <p class="mb-1"><strong>Celular:</strong> {{ pedido.celular|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Nome:</strong> {{ pedido.cliente_nome|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ pedido.cliente_email|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Celular:</strong> {{ pedido.cliente_celular|default:'Não informado' }}</p>
                         </div>
                     </div>
                 </div>
@@ -32,16 +32,12 @@
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title text-primary mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Entrega</h5>
-                            <p class="mb-1"><strong>Tipo:</strong> {{ pedido.tipo_entrega|title|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Tipo:</strong> {{ pedido.get_tipo_entrega_display|default:'Não informado' }}</p>
                             <p class="mb-1"><strong>Endereço:</strong><br>
-                                {% if pedido.endereco %}
-                                    {{ pedido.endereco.logradouro|default:'Não informado' }}, {{ pedido.endereco.numero|default:'S/N' }}<br>
-                                    {% if pedido.endereco.complemento %}{{ pedido.endereco.complemento }}<br>{% endif %}
-                                    {{ pedido.endereco.bairro|default:'Não informado' }} - {{ pedido.endereco.cidade|default:'Não informado' }}/{{ pedido.endereco.estado|default:'--' }}<br>
-                                    CEP: {{ pedido.endereco.cep|default:'Não informado' }}
-                                {% else %}
-                                    Não informado
-                                {% endif %}
+                                {{ pedido.endereco_logradouro|default:'Não informado' }}, {{ pedido.endereco_numero|default:'S/N' }}<br>
+                                {% if pedido.endereco_complemento %}{{ pedido.endereco_complemento }}<br>{% endif %}
+                                {{ pedido.endereco_bairro|default:'Não informado' }} - {{ pedido.endereco_cidade|default:'Não informado' }}/{{ pedido.endereco_estado|default:'--' }}<br>
+                                CEP: {{ pedido.endereco_cep|default:'Não informado' }}
                             </p>
                         </div>
                     </div>
@@ -50,7 +46,7 @@
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title text-primary mb-3"><i class="bi bi-credit-card-2-front-fill me-2"></i>Pagamento</h5>
-                            <p class="mb-1"><strong>Forma:</strong> {{ pedido.forma_pagamento|title|default:'Não informado' }}</p>
+                            <p class="mb-1"><strong>Forma:</strong> {{ pedido.get_forma_pagamento_display|default:'Não informado' }}</p>
                             {% if pedido.troco_para %}
                                 <p class="mb-1"><strong>Troco para:</strong> R$ {{ pedido.troco_para }}</p>
                             {% elif pedido.forma_pagamento == 'dinheiro' %}
@@ -64,19 +60,19 @@
             <div class="card mt-5 border-0 shadow-sm">
                 <div class="card-body">
                     <h4 class="card-title text-primary mb-4"><i class="bi bi-basket-fill me-2"></i>Itens do Pedido ({{ pedido.items.count }} item{{ pedido.items.count|pluralize }})</h4>
-                    {% if pedido.items.all %}
-                        {% for item in pedido.items.all %}
+                    {% if pedido.itens.all %}
+                        {% for item in pedido.itens.all %}
                         <div class="d-flex justify-content-between align-items-center border-bottom py-3">
                             <div>
-                                <div class="fw-bold">{{ item.produto.nome|default:'Produto removido' }}</div>
-                                <div class="text-muted small">{{ item.produto.categoria.nome|default:'Sem categoria' }}</div>
+                                <div class="fw-bold">{{ item.produto_nome|default:'Produto removido' }}</div>
+                                <div class="text-muted small">Qtd: {{ item.quantidade }}</div>
                                 {% if item.observacoes %}
                                 <div class="text-muted small">Obs: {{ item.observacoes }}</div>
                                 {% endif %}
                             </div>
                             <div class="text-end">
                                 <span class="badge bg-primary me-2">{{ item.quantidade|default:'1' }}x</span>
-                                <span class="fw-bold text-success">R$ {{ item.preco_total|floatformat:2 }}</span>
+                                <span class="fw-bold text-success">R$ {{ item.subtotal|floatformat:2 }}</span>
                             </div>
                         </div>
                         {% endfor %}
