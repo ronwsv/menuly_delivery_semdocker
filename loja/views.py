@@ -701,8 +701,18 @@ class ConfirmarPedidoView(BaseLojaView):
         context = self.get_context_data(**kwargs)
         
         try:
-            pedido = get_object_or_404(Pedido, id=ultimo_pedido_id)
+            # Buscar o pedido com todos os dados relacionados
+            pedido = get_object_or_404(
+                Pedido.objects.select_related('restaurante', 'cliente')
+                .prefetch_related(
+                    'itens__produto', 
+                    'itens__personalizacoes',
+                    'historico_status'
+                ), 
+                id=ultimo_pedido_id
+            )
             context['pedido'] = pedido
+            print(f"✅ Pedido carregado: {pedido.numero} - {pedido.itens.count()} itens")
         except Http404:
             messages.error(self.request, 'Pedido não encontrado.')
             context['pedido'] = None
