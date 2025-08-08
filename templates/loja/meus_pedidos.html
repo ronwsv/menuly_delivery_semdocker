@@ -158,6 +158,7 @@
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <!-- Header -->
+
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="display-6">Meus Pedidos</h1>
@@ -167,6 +168,20 @@
                     <i class="bi bi-plus-circle me-2"></i>Fazer Novo Pedido
                 </a>
             </div>
+
+            <form method="get" class="mb-4" autocomplete="off">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6 col-lg-4">
+                        <label for="celular" class="form-label mb-1">Buscar pedidos pelo celular</label>
+                        <input type="text" name="celular" id="celular" class="form-control" placeholder="Digite seu número de celular" value="{{ celular_busca|default:'' }}" maxlength="15" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </form>
 
             {% if pedidos %}
                 <!-- Lista de pedidos -->
