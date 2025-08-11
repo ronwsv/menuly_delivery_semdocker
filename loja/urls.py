@@ -4,6 +4,10 @@ from . import views
 app_name = 'loja'
 
 urlpatterns = [
+    # Autenticação do cliente
+    path('login/', views.LoginClienteView.as_view(), name='login'),
+    path('logout/', views.LogoutClienteView.as_view(), name='logout'),
+    path('cadastro/', views.CadastroClienteView.as_view(), name='cadastro'),
     # Página inicial da loja
     path('', views.HomeView.as_view(), name='home'),
     

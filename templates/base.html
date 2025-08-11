@@ -168,18 +168,18 @@
                             <li><a class="dropdown-item" href="{% loja_url 'perfil' %}">
                                 <i class="bi bi-person-gear"></i> Meu Perfil
                             </a></li>
-                            <li><a class="dropdown-item" href="{% loja_url 'meus_pedidos' %}">>
+                            <li><a class="dropdown-item" href="{% loja_url 'meus_pedidos' %}">
                                 <i class="bi bi-bag-check"></i> Meus Pedidos
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'admin:logout' %}">
+                            <li><a class="dropdown-item" href="{% loja_url 'logout' %}">
                                 <i class="bi bi-box-arrow-right"></i> Sair
                             </a></li>
                         {% else %}
-                            <li><a class="dropdown-item" href="{% url 'admin:login' %}">
+                            <li><a class="dropdown-item" href="{% loja_url 'login' %}">
                                 <i class="bi bi-box-arrow-in-right"></i> Entrar
                             </a></li>
-                            <li><a class="dropdown-item" href="{% url 'admin:login' %}">
+                            <li><a class="dropdown-item" href="{% loja_url 'cadastro' %}">
                                 <i class="bi bi-person-plus"></i> Criar Conta
                             </a></li>
                         {% endif %}

@@ -1,3 +1,94 @@
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views import View
+from django.contrib.auth import authenticate, login, logout, get_user_model
+
+# --- Autenticação do Cliente ---
+class LoginClienteView(View):
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('loja:home', restaurante_slug=kwargs.get('restaurante_slug'))
+        restaurante_slug = kwargs.get('restaurante_slug')
+        restaurante = None
+        if restaurante_slug:
+            from core.models import Restaurante
+            try:
+                restaurante = Restaurante.objects.get(slug=restaurante_slug)
+            except Restaurante.DoesNotExist:
+                restaurante = None
+        return render(request, 'loja/login.html', {'restaurante': restaurante})
+
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        restaurante_slug = kwargs.get('restaurante_slug')
+        restaurante = None
+        if restaurante_slug:
+            from core.models import Restaurante
+            try:
+                restaurante = Restaurante.objects.get(slug=restaurante_slug)
+            except Restaurante.DoesNotExist:
+                restaurante = None
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('loja:home', restaurante_slug=restaurante_slug)
+        messages.error(request, 'Usuário ou senha inválidos.')
+        return render(request, 'loja/login.html', {'username': username, 'restaurante': restaurante})
+
+class LogoutClienteView(View):
+    def get(self, request, *args, **kwargs):
+        logout(request)
+        return redirect('loja:login', restaurante_slug=kwargs.get('restaurante_slug'))
+
+class CadastroClienteView(View):
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('loja:home', restaurante_slug=kwargs.get('restaurante_slug'))
+        restaurante_slug = kwargs.get('restaurante_slug')
+        restaurante = None
+        if restaurante_slug:
+            from core.models import Restaurante
+            try:
+                restaurante = Restaurante.objects.get(slug=restaurante_slug)
+            except Restaurante.DoesNotExist:
+                restaurante = None
+        return render(request, 'loja/cadastro.html', {'restaurante': restaurante})
+
+    def post(self, request, *args, **kwargs):
+        User = get_user_model()
+        nome = request.POST.get('nome')
+        email = request.POST.get('email')
+        celular = request.POST.get('celular')
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+        restaurante_slug = kwargs.get('restaurante_slug')
+        restaurante = None
+        if restaurante_slug:
+            from core.models import Restaurante
+            try:
+                restaurante = Restaurante.objects.get(slug=restaurante_slug)
+            except Restaurante.DoesNotExist:
+                restaurante = None
+
+        if password != password2:
+            messages.error(request, 'As senhas não coincidem.')
+            return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Já existe uma conta com este e-mail.')
+            return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
+
+        if User.objects.filter(celular=celular).exists():
+            messages.error(request, 'Já existe uma conta com este celular.')
+            return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
+
+        user = User.objects.create_user(username=email, email=email, first_name=nome, celular=celular)
+        user.set_password(password)
+        user.save()
+        login(request, user)
+        return redirect('loja:home', restaurante_slug=restaurante_slug)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView
