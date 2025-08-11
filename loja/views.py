@@ -61,7 +61,7 @@ class CadastroClienteView(View):
         nome = request.POST.get('nome')
         email = request.POST.get('email')
         celular = request.POST.get('celular')
-        password = request.POST.get('password')
+        password = request.POST.get('password1')
         password2 = request.POST.get('password2')
         restaurante_slug = kwargs.get('restaurante_slug')
         restaurante = None
@@ -73,20 +73,27 @@ class CadastroClienteView(View):
                 restaurante = None
 
         if password != password2:
+            from django.contrib import messages
             messages.error(request, 'As senhas não coincidem.')
             return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
 
         if User.objects.filter(email=email).exists():
+            from django.contrib import messages
             messages.error(request, 'Já existe uma conta com este e-mail.')
             return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
 
         if User.objects.filter(celular=celular).exists():
+            from django.contrib import messages
             messages.error(request, 'Já existe uma conta com este celular.')
             return render(request, 'loja/cadastro.html', {**request.POST, 'restaurante': restaurante})
 
         user = User.objects.create_user(username=email, email=email, first_name=nome, celular=celular)
         user.set_password(password)
         user.save()
+        # Vincular cliente ao restaurante
+        if restaurante:
+            from core.models import RestauranteCliente
+            RestauranteCliente.objects.get_or_create(restaurante=restaurante, cliente=user)
         login(request, user)
         return redirect('loja:home', restaurante_slug=restaurante_slug)
 from django.shortcuts import render, redirect, get_object_or_404

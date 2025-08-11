@@ -1,3 +1,14 @@
+# Relacionamento entre Restaurante e Cliente
+class RestauranteCliente(models.Model):
+    restaurante = models.ForeignKey('Restaurante', on_delete=models.CASCADE, related_name='clientes')
+    cliente = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='restaurantes_cliente')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('restaurante', 'cliente')
+        verbose_name = 'Cliente do Restaurante'
+        verbose_name_plural = 'Clientes do Restaurante'
+    def __str__(self):
+        return f"{self.cliente} em {self.restaurante}"
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import RegexValidator
