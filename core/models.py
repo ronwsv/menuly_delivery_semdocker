@@ -1,3 +1,4 @@
+from django.db import models
 # Relacionamento entre Restaurante e Cliente
 class RestauranteCliente(models.Model):
     restaurante = models.ForeignKey('Restaurante', on_delete=models.CASCADE, related_name='clientes')
