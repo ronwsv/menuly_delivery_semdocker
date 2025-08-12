@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Perfil do Cliente{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Meu Perfil</h2>
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Dados Pessoais</h5>
+      <p><strong>Nome:</strong> {{ request.user.get_full_name|default:request.user.username }}</p>
+      <p><strong>Email:</strong> {{ request.user.email }}</p>
+      <p><strong>Celular:</strong> {{ request.user.celular }}</p>
+      <p><strong>Data de Nascimento:</strong> {{ request.user.data_nascimento|date:'d/m/Y' }}</p>
+      <p><strong>CPF:</strong> {{ request.user.cpf }}</p>
+      <a href="#" class="btn btn-outline-primary btn-sm disabled">Editar Dados (em breve)</a>
+    </div>
+  </div>
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Endereços</h5>
+      {% if enderecos %}
+        <ul class="list-group mb-2">
+          {% for endereco in enderecos %}
+            <li class="list-group-item">
+              <strong>{{ endereco.nome }}</strong> - {{ endereco.logradouro }}, {{ endereco.numero }}
+              {% if endereco.complemento %}, {{ endereco.complemento }}{% endif %}
+              - {{ endereco.bairro }}, {{ endereco.cidade }}/{{ endereco.estado }}<br>
+              CEP: {{ endereco.cep }}
+              {% if endereco.principal %}<span class="badge bg-success ms-2">Principal</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Nenhum endereço cadastrado.</p>
+      {% endif %}
+      <a href="#" class="btn btn-outline-primary btn-sm disabled">Adicionar Novo Endereço (em breve)</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
