@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load loja_extras %}
+{% block title %}Adicionar Endereço{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Adicionar Novo Endereço</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="nome" class="form-label">Nome do Endereço</label>
+      <input type="text" class="form-control" id="nome" name="nome" placeholder="Ex: Casa, Trabalho" required>
+    </div>
+    <div class="mb-3">
+      <label for="cep" class="form-label">CEP</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="text" class="form-control" id="cep" name="cep" maxlength="9" required style="max-width:200px;">
+        <span id="cep-loading">Buscando...</span>
+      </div>
+      <div id="cep-error"></div>
+    </div>
+    <div class="mb-3">
+      <label for="logradouro" class="form-label">Logradouro</label>
+      <input type="text" class="form-control" id="logradouro" name="logradouro" required>
+    </div>
+    <div class="mb-3">
+      <label for="numero" class="form-label">Número</label>
+      <input type="text" class="form-control" id="numero" name="numero" required>
+    </div>
+    <div class="mb-3">
+      <label for="complemento" class="form-label">Complemento</label>
+      <input type="text" class="form-control" id="complemento" name="complemento">
+    </div>
+    <div class="mb-3">
+      <label for="bairro" class="form-label">Bairro</label>
+      <input type="text" class="form-control" id="bairro" name="bairro" required>
+    </div>
+    <div class="mb-3">
+      <label for="cidade" class="form-label">Cidade</label>
+      <input type="text" class="form-control" id="cidade" name="cidade" required>
+    </div>
+    <div class="mb-3">
+      <label for="estado" class="form-label">Estado</label>
+      <input type="text" class="form-control" id="estado" name="estado" maxlength="2" required>
+    </div>
+    <div class="mb-3">
+      <label for="ponto_referencia" class="form-label">Ponto de Referência</label>
+      <input type="text" class="form-control" id="ponto_referencia" name="ponto_referencia">
+    </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" value="1" id="principal" name="principal">
+      <label class="form-check-label" for="principal">Definir como principal</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar Endereço</button>
+    <a href="{% loja_url 'perfil' %}" class="btn btn-secondary ms-2">Cancelar</a>
+  </form>
+</div>
+{% endblock %}
+<style>
+#cep-loading { display: none; color: #007bff; font-size: 0.9em; margin-left: 8px; }
+#cep-error { display: none; color: #dc3545; font-size: 0.9em; margin-top: 4px; }
+</style>
+{% block extra_js %}
+<script>
+function buscarCEP(cep) {
+  console.log('[ViaCEP] buscarCEP chamada:', cep);
+  cep = cep.replace(/\D/g, '');
+  if (cep.length !== 8) { console.log('[ViaCEP] CEP inválido:', cep); return; }
+  var loading = document.getElementById('cep-loading');
+  var error = document.getElementById('cep-error');
+  var logradouro = document.getElementById('logradouro');
+  var bairro = document.getElementById('bairro');
+  var cidade = document.getElementById('cidade');
+  var estado = document.getElementById('estado');
+  if (loading) loading.style.display = 'inline-block';
+  if (error) { error.style.display = 'none'; error.textContent = ''; }
+  fetch(`https://viacep.com.br/ws/${cep}/json/`)
+    .then(response => response.json())
+    .then(data => {
+      console.log('[ViaCEP] Resposta:', data);
+      if (!data.erro) {
+        if (logradouro) logradouro.value = data.logradouro || '';
+        if (bairro) bairro.value = data.bairro || '';
+        if (cidade) cidade.value = data.localidade || '';
+        if (estado) estado.value = data.uf || '';
+        if (error) error.style.display = 'none';
+      } else {
+        if (logradouro) logradouro.value = '';
+        if (bairro) bairro.value = '';
+        if (cidade) cidade.value = '';
+        if (estado) estado.value = '';
+        if (error) {
+          error.textContent = 'CEP não encontrado.';
+          error.style.display = 'block';
+        }
+        console.log('[ViaCEP] CEP não encontrado');
+      }
+    })
+    .catch((err) => {
+      if (logradouro) logradouro.value = '';
+      if (bairro) bairro.value = '';
+      if (cidade) cidade.value = '';
+      if (estado) estado.value = '';
+      if (error) {
+        error.textContent = 'Erro ao buscar CEP.';
+        error.style.display = 'block';
+      }
+      console.error('[ViaCEP] Erro ao buscar CEP:', err);
+    })
+    .finally(() => {
+      if (loading) loading.style.display = 'none';
+      console.log('[ViaCEP] Busca finalizada');
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var cepInput = document.getElementById('cep');
+  if (cepInput) {
+    cepInput.addEventListener('input', function(e) {
+      var value = e.target.value.replace(/\D/g, '');
+      if (value.length === 8) buscarCEP(value);
+    });
+    cepInput.addEventListener('blur', function() {
+      buscarCEP(this.value);
+    });
+  }
+});
+</script>
+{% endblock %}

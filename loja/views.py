@@ -1,7 +1,55 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views import View
+from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse
+from django.contrib import messages
+
+# ...existing code...
+
+# View para adicionar endereço do cliente
+class AdicionarEnderecoView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        return render(request, 'loja/endereco_adicionar.html')
+
+    def post(self, request, *args, **kwargs):
+        from core.models import Endereco
+        usuario = request.user
+        nome = request.POST.get('nome')
+        cep = request.POST.get('cep')
+        logradouro = request.POST.get('logradouro')
+        numero = request.POST.get('numero')
+        complemento = request.POST.get('complemento')
+        bairro = request.POST.get('bairro')
+        cidade = request.POST.get('cidade')
+        estado = request.POST.get('estado')
+        ponto_referencia = request.POST.get('ponto_referencia')
+        principal = bool(request.POST.get('principal'))
+
+        if principal:
+            Endereco.objects.filter(usuario=usuario, principal=True).update(principal=False)
+
+        Endereco.objects.create(
+            usuario=usuario,
+            nome=nome,
+            cep=cep,
+            logradouro=logradouro,
+            numero=numero,
+            complemento=complemento,
+            bairro=bairro,
+            cidade=cidade,
+            estado=estado,
+            ponto_referencia=ponto_referencia,
+            principal=principal
+        )
+        messages.success(request, 'Endereço adicionado com sucesso!')
+        return redirect(reverse('loja:perfil', kwargs={'restaurante_slug': kwargs.get('restaurante_slug')}))
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # --- Autenticação do Cliente ---
 class LoginClienteView(View):
@@ -728,6 +776,32 @@ class CheckoutView(BaseLojaView):
                 pedido.endereco_estado = data.get('estado', '')
                 pedido.endereco_cep = data.get('cep', '')
                 pedido.endereco_ponto_referencia = data.get('ponto_referencia', '')
+
+                # Salvar endereço para o cliente logado, se não existir igual
+                if cliente_instance and cliente_instance.is_authenticated:
+                    from core.models import Endereco
+                    endereco_existente = Endereco.objects.filter(
+                        usuario=cliente_instance,
+                        cep=pedido.endereco_cep,
+                        logradouro=pedido.endereco_logradouro,
+                        numero=pedido.endereco_numero
+                    ).first()
+                    if not endereco_existente:
+                        # Tornar todos os outros endereços não principais
+                        Endereco.objects.filter(usuario=cliente_instance, principal=True).update(principal=False)
+                        Endereco.objects.create(
+                            usuario=cliente_instance,
+                            nome='Principal',
+                            cep=pedido.endereco_cep,
+                            logradouro=pedido.endereco_logradouro,
+                            numero=pedido.endereco_numero,
+                            complemento=pedido.endereco_complemento,
+                            bairro=pedido.endereco_bairro,
+                            cidade=pedido.endereco_cidade,
+                            estado=pedido.endereco_estado,
+                            ponto_referencia=pedido.endereco_ponto_referencia,
+                            principal=True
+                        )
 
             total_pedido = Decimal('0.0')
             for produto_id_key, item_data in carrinho.items():

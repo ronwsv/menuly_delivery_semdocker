@@ -39,6 +39,7 @@ urlpatterns = [
     path('meus-pedidos/', views.MeusPedidosView.as_view(), name='meus_pedidos'),
     path('acessar-pedidos/', views.AcessarPedidosView.as_view(), name='acessar_pedidos'),
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
+    path('endereco/adicionar/', views.AdicionarEnderecoView.as_view(), name='endereco_adicionar'),
     
     # Páginas institucionais
     path('sobre/', views.SobreView.as_view(), name='sobre'),

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load loja_extras %}
 {% block title %}Perfil do Cliente{% endblock %}
 {% block content %}
 <div class="container mt-4">
@@ -32,7 +33,7 @@
       {% else %}
         <p>Nenhum endereço cadastrado.</p>
       {% endif %}
-      <a href="#" class="btn btn-outline-primary btn-sm disabled">Adicionar Novo Endereço (em breve)</a>
+  <a href="{% loja_url 'endereco_adicionar' %}" class="btn btn-outline-primary btn-sm">Adicionar Novo Endereço</a>
     </div>
   </div>
 </div>
