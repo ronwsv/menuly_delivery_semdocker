@@ -139,17 +139,17 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="nome" class="form-label">Nome completo *</label>
-                            <input type="text" class="form-control" name="nome" id="nome" required>
+                            <input type="text" class="form-control" name="nome" id="nome" required value="{% if user.is_authenticated %}{{ user.get_full_name|default:user.first_name|default:user.username }}{% endif %}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="celular" class="form-label">Celular *</label>
                             <input type="tel" class="form-control" name="celular" id="celular" 
-                                   placeholder="(11) 99999-9999" required>
+                                   placeholder="(11) 99999-9999" required value="{% if user.is_authenticated %}{{ user.celular }}{% endif %}">
                         </div>
                         <div class="col-12 mb-3">
                             <label for="email" class="form-label">E-mail</label>
                             <input type="email" class="form-control" name="email" id="email" 
-                                   placeholder="seu@email.com">
+                                   placeholder="seu@email.com" value="{% if user.is_authenticated %}{{ user.email }}{% endif %}">
                         </div>
                     </div>
                 </div>
@@ -198,7 +198,7 @@
                             <label for="cep" class="form-label">CEP *</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" name="cep" id="cep" 
-                                       placeholder="00000-000" maxlength="9">
+                                       placeholder="00000-000" maxlength="9" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.cep %}{{ enderecos_usuario.0.cep }}{% endif %}">
                                 <button class="btn btn-outline-secondary" type="button" id="buscar-cep">
                                     <i class="bi bi-search"></i>
                                 </button>
@@ -211,11 +211,11 @@
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label for="logradouro" class="form-label">Logradouro *</label>
-                            <input type="text" class="form-control" name="logradouro" id="logradouro">
+                            <input type="text" class="form-control" name="logradouro" id="logradouro" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.logradouro %}{{ enderecos_usuario.0.logradouro }}{% endif %}">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="numero" class="form-label">Número *</label>
-                            <input type="text" class="form-control" name="numero" id="numero">
+                            <input type="text" class="form-control" name="numero" id="numero" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.numero %}{{ enderecos_usuario.0.numero }}{% endif %}">
                         </div>
                     </div>
                     
@@ -223,22 +223,22 @@
                         <div class="col-md-12 mb-3">
                             <label for="complemento" class="form-label">Complemento</label>
                             <input type="text" class="form-control" name="complemento" id="complemento" 
-                                   placeholder="Apto, sala, etc.">
+                                   placeholder="Apto, sala, etc." value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.complemento %}{{ enderecos_usuario.0.complemento }}{% endif %}">
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="bairro" class="form-label">Bairro *</label>
-                            <input type="text" class="form-control" name="bairro" id="bairro">
+                            <input type="text" class="form-control" name="bairro" id="bairro" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.bairro %}{{ enderecos_usuario.0.bairro }}{% endif %}">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="cidade" class="form-label">Cidade *</label>
-                            <input type="text" class="form-control" name="cidade" id="cidade">
+                            <input type="text" class="form-control" name="cidade" id="cidade" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.cidade %}{{ enderecos_usuario.0.cidade }}{% endif %}">
                         </div>
                         <div class="col-md-2 mb-3">
                             <label for="estado" class="form-label">Estado *</label>
-                            <input type="text" class="form-control" name="estado" id="estado">
+                            <input type="text" class="form-control" name="estado" id="estado" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.estado %}{{ enderecos_usuario.0.estado }}{% endif %}">
                         </div>
                     </div>
                     
@@ -246,7 +246,7 @@
                         <div class="col-md-12 mb-3">
                             <label for="ponto_referencia" class="form-label">Ponto de Referência</label>
                             <input type="text" class="form-control" name="ponto_referencia" id="ponto_referencia" 
-                                   placeholder="Ex: próximo ao posto de gasolina">
+                                   placeholder="Ex: próximo ao posto de gasolina" value="{% if user.is_authenticated and enderecos_usuario and enderecos_usuario.0.ponto_referencia %}{{ enderecos_usuario.0.ponto_referencia }}{% endif %}">
                         </div>
                     </div>
                 </div>
