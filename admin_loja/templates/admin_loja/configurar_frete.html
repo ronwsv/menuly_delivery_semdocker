@@ -1,0 +1,35 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+{% block content %}
+<h2>Configuração de Frete</h2>
+<form method="post" style="max-width:400px;">
+    {% csrf_token %}
+    <div style="margin-bottom:10px;">
+        {{ form.frete_fixo }} <label for="id_frete_fixo"><b>Frete Fixo?</b></label>
+    </div>
+    <div id="div_valor_frete_fixo" style="margin-bottom:10px;">
+        {{ form.valor_frete_fixo.label_tag }} {{ form.valor_frete_fixo }}
+    </div>
+    <div id="div_cep_base" style="margin-bottom:10px;">
+        {{ form.cep_base.label_tag }} {{ form.cep_base }}
+    </div>
+    <div id="div_valor_frete_padrao" style="margin-bottom:10px;">
+        {{ form.valor_frete_padrao.label_tag }} {{ form.valor_frete_padrao }}
+    </div>
+    <div id="div_valor_adicional_km" style="margin-bottom:10px;">
+        {{ form.valor_adicional_km.label_tag }} {{ form.valor_adicional_km }}
+    </div>
+    <button type="submit">Salvar</button>
+</form>
+<script>
+// Esconde/mostra campos conforme o checkbox
+function toggleFreteFields() {
+    var isFixo = document.getElementById('id_frete_fixo').checked;
+    document.getElementById('div_valor_frete_fixo').style.display = isFixo ? '' : 'none';
+    document.getElementById('div_valor_frete_padrao').style.display = isFixo ? 'none' : '';
+    document.getElementById('div_valor_adicional_km').style.display = isFixo ? 'none' : '';
+}
+document.getElementById('id_frete_fixo').addEventListener('change', toggleFreteFields);
+window.onload = toggleFreteFields;
+</script>
+{% if msg %}<div style="color:green;margin-top:10px;">{{ msg }}</div>{% endif %}
+{% endblock %}

@@ -6,6 +6,52 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
 
+# Configuração de frete
+@login_required
+def admin_loja_configurar_frete(request):
+    class FreteForm(forms.Form):
+        frete_fixo = forms.BooleanField(label='Usar Frete Fixo?', required=False)
+        valor_frete_fixo = forms.DecimalField(label='Valor do Frete Fixo', max_digits=7, decimal_places=2, required=False)
+        cep_base = forms.CharField(label='CEP da Loja', max_length=10)
+        valor_frete_padrao = forms.DecimalField(label='Valor do Frete Padrão', max_digits=7, decimal_places=2, required=False)
+        valor_adicional_km = forms.DecimalField(label='Valor Adicional por Km', max_digits=7, decimal_places=2, required=False)
+
+        def clean(self):
+            cleaned_data = super().clean()
+            frete_fixo = cleaned_data.get('frete_fixo')
+            valor_frete_fixo = cleaned_data.get('valor_frete_fixo')
+            valor_frete_padrao = cleaned_data.get('valor_frete_padrao')
+            valor_adicional_km = cleaned_data.get('valor_adicional_km')
+            cep_base = cleaned_data.get('cep_base')
+
+            if not cep_base:
+                self.add_error('cep_base', 'Informe o CEP da Loja.')
+
+            if frete_fixo:
+                if valor_frete_fixo is None:
+                    self.add_error('valor_frete_fixo', 'Informe o valor do frete fixo.')
+            else:
+                if valor_frete_padrao is None:
+                    self.add_error('valor_frete_padrao', 'Informe o valor do frete padrão.')
+                if valor_adicional_km is None:
+                    self.add_error('valor_adicional_km', 'Informe o valor adicional por km.')
+            return cleaned_data
+
+    # Aqui futuramente vamos buscar/salvar as configurações reais do banco
+    if request.method == 'POST':
+        form = FreteForm(request.POST)
+        if form.is_valid():
+            # Aqui você pode salvar as configurações no banco, por enquanto só exibe mensagem
+            msg = 'Configurações salvas com sucesso!'
+            return render(request, 'admin_loja/configurar_frete.html', {'form': form, 'msg': msg})
+        else:
+            # Se inválido, mostra os erros normalmente
+            return render(request, 'admin_loja/configurar_frete.html', {'form': form})
+    else:
+        form = FreteForm()
+    return render(request, 'admin_loja/configurar_frete.html', {'form': form})
+
+
 # Avançar status do pedido
 @login_required
 def admin_loja_avancar_status_pedido(request, pedido_id):
@@ -45,6 +91,12 @@ def admin_loja_login(request):
 def admin_loja_dashboard(request):
     # Aqui futuramente vamos filtrar para mostrar só dados da loja do lojista
     return render(request, 'admin_loja/dashboard.html')
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import TemplateView
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+from django import forms
 
 class DashboardView(TemplateView):
     template_name = 'admin_loja/dashboard.html'
