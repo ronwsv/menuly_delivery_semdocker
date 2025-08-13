@@ -1,3 +1,20 @@
+import requests
+
+def calcular_distancia_entre_ceps(cep_origem, cep_destino, api_url='http://localhost:5000/calcular-frete'):
+    """
+    Consulta a API Flask para calcular a distância entre dois CEPs.
+    Retorna a distância em km (float) ou None em caso de erro.
+    """
+    try:
+        response = requests.post(api_url, json={"cep_origem": cep_origem, "cep_destino": cep_destino})
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('distancia_km')
+        else:
+            return None
+    except Exception as e:
+        print(f"Erro ao consultar API de distância: {e}")
+        return None
 from django.db import models
 # Relacionamento entre Restaurante e Cliente
 class RestauranteCliente(models.Model):
@@ -80,6 +97,11 @@ class Endereco(models.Model):
 
 
 class Restaurante(models.Model):
+    # Configurações de frete
+    frete_fixo = models.BooleanField(default=False, help_text='Usar valor fixo para o frete?')
+    valor_frete_fixo = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    valor_frete_padrao = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    valor_adicional_km = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     """Modelo para restaurantes (lojas)"""
     TIPO_SERVICO_CHOICES = [
         ('delivery', 'Delivery'),
@@ -339,6 +361,22 @@ class ItemPersonalizacao(models.Model):
 # ====================== MODELOS DE PEDIDOS ======================
 
 class Pedido(models.Model):
+    def calcular_frete(self):
+        """Calcula o valor do frete para o pedido, usando a API Flask se necessário."""
+        from .models import calcular_distancia_entre_ceps
+        restaurante = self.restaurante
+        if restaurante.frete_fixo and restaurante.valor_frete_fixo is not None:
+            return restaurante.valor_frete_fixo
+        # Se não for fixo, calcula pelo padrão + adicional por km
+        if restaurante.valor_frete_padrao is not None:
+            valor = restaurante.valor_frete_padrao
+            # Calcular distância entre CEPs usando API Flask
+            if self.endereco_cep and restaurante.cep and restaurante.valor_adicional_km:
+                distancia_km = calcular_distancia_entre_ceps(restaurante.cep, self.endereco_cep)
+                if distancia_km is not None:
+                    valor += restaurante.valor_adicional_km * distancia_km
+            return valor
+        return 0
     """Modelo para pedidos"""
     STATUS_CHOICES = [
         ('carrinho', 'No Carrinho'),

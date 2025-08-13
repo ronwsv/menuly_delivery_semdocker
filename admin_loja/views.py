@@ -38,17 +38,34 @@ def admin_loja_configurar_frete(request):
             return cleaned_data
 
     # Aqui futuramente vamos buscar/salvar as configurações reais do banco
+    from core.models import Restaurante
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    initial = {}
+    if restaurante:
+        initial = {
+            'frete_fixo': restaurante.frete_fixo,
+            'valor_frete_fixo': restaurante.valor_frete_fixo,
+            'cep_base': restaurante.cep,
+            'valor_frete_padrao': restaurante.valor_frete_padrao,
+            'valor_adicional_km': restaurante.valor_adicional_km,
+        }
+
     if request.method == 'POST':
         form = FreteForm(request.POST)
         if form.is_valid():
-            # Aqui você pode salvar as configurações no banco, por enquanto só exibe mensagem
+            if restaurante:
+                restaurante.frete_fixo = form.cleaned_data['frete_fixo']
+                restaurante.valor_frete_fixo = form.cleaned_data['valor_frete_fixo'] if form.cleaned_data['frete_fixo'] else None
+                restaurante.cep = form.cleaned_data['cep_base']
+                restaurante.valor_frete_padrao = form.cleaned_data['valor_frete_padrao'] if not form.cleaned_data['frete_fixo'] else None
+                restaurante.valor_adicional_km = form.cleaned_data['valor_adicional_km'] if not form.cleaned_data['frete_fixo'] else None
+                restaurante.save()
             msg = 'Configurações salvas com sucesso!'
             return render(request, 'admin_loja/configurar_frete.html', {'form': form, 'msg': msg})
         else:
-            # Se inválido, mostra os erros normalmente
             return render(request, 'admin_loja/configurar_frete.html', {'form': form})
     else:
-        form = FreteForm()
+        form = FreteForm(initial=initial)
     return render(request, 'admin_loja/configurar_frete.html', {'form': form})
 
 

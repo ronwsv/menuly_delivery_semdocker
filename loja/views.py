@@ -754,7 +754,7 @@ class CheckoutView(BaseLojaView):
                 tipo_entrega=tipo_entrega,
                 forma_pagamento=data.get('forma_pagamento'),
                 observacoes=data.get('observacoes', ''),
-                taxa_entrega=taxa_entrega,
+                taxa_entrega=0,  # será calculada abaixo
                 status='novo'
             )
 
@@ -766,6 +766,7 @@ class CheckoutView(BaseLojaView):
                     except (ValueError, TypeError):
                         messages.error(request, 'Valor de troco inválido.')
                         return self.get(request, *args, **kwargs)
+
 
             if pedido.tipo_entrega == 'delivery':
                 pedido.endereco_logradouro = data.get('logradouro', '')
@@ -802,6 +803,10 @@ class CheckoutView(BaseLojaView):
                             ponto_referencia=pedido.endereco_ponto_referencia,
                             principal=True
                         )
+
+                # Calcular frete automaticamente após salvar endereço
+                pedido.taxa_entrega = pedido.calcular_frete()
+                pedido.save(update_fields=["taxa_entrega"])
 
             total_pedido = Decimal('0.0')
             for produto_id_key, item_data in carrinho.items():
