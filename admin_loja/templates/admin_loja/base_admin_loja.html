@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Lojista</title>
+    <link rel="stylesheet" href="/static/admin/css/base.css">
+    <style>
+        body { display: flex; min-height: 100vh; margin: 0; }
+        nav { width: 220px; background: #222; color: #fff; padding: 30px 0; min-height: 100vh; }
+        nav ul { list-style: none; padding: 0; }
+        nav li { margin: 20px 0; }
+        nav a { color: #fff; text-decoration: none; font-weight: bold; padding: 10px 30px; display: block; }
+        nav a:hover { background: #444; }
+        main { flex: 1; padding: 40px; background: #f7f7f7; }
+        header { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    {% if request.user.is_authenticated %}
+    <nav>
+        <ul>
+            <li><a href="{% url 'admin_loja:dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'admin_loja:pedidos' %}">Pedidos</a></li>
+            <li><a href="#">Personalizar Loja</a></li>
+            <li><a href="#">Sair</a></li>
+        </ul>
+    </nav>
+    {% endif %}
+    <main>
+        <header>
+            <h1>Painel do Lojista</h1>
+            {% block header %}{% endblock %}
+        </header>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cupom de Produção - Pedido {{ pedido.numero }}</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background: #fff; color: #222; }
+        .cupom {
+            width: 340px;
+            margin: 24px auto;
+            background: #fff;
+            border: 1px dashed #222;
+            padding: 18px 18px 8px 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px #0002;
+        }
+        .cupom h2, .cupom h3 { text-align: center; margin: 0 0 8px 0; }
+        .cupom .linha { border-bottom: 1px dashed #222; margin: 8px 0; }
+        .cupom .senha {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 12px 0 8px 0;
+            font-weight: bold;
+            background: yellow;
+            color: #222;
+            padding: 4px 0;
+            border-radius: 4px;
+            letter-spacing: 2px;
+        }
+        .cupom .imprimir { display: block; margin: 16px auto 0 auto; padding: 8px 24px; font-size: 1em; background: #222; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .cupom .itens td { font-size: 1em; padding: 2px 0; }
+        .cupom .itens th { text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="cupom">
+        <div style="text-align:center;font-size:1.1em;">Cozinha principal</div>
+        <div style="text-align:center;font-size:1em; margin-bottom:6px;">{{ pedido.created_at|date:'d/m/y H:i' }} Pedido Nº: {{ pedido.numero }}</div>
+        <div class="senha">* Cod. Pers./Senha: {{ pedido.numero|slice:'-4:-1' }} *</div>
+        <div style="margin:8px 0;">{{ pedido.cliente_nome }}</div>
+        <table class="itens" style="width:100%;margin-bottom:8px;">
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %} | Cod {{ forloop.counter0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if pedido.observacoes %}<div style="margin-bottom:8px;"><b>Obs:</b> {{ pedido.observacoes }}</div>{% endif %}
+        <div style="margin-bottom:8px;">Atendente do Pedido: {{ pedido.cliente.get_full_name|default:pedido.cliente.username|default:'---' }}</div>
+        <div class="linha"></div>
+    <div style="text-align:center;font-size:0.95em;">Menuly</div>
+        <button class="imprimir" onclick="window.print()">Imprimir</button>
+    </div>
+</body>
+</html>

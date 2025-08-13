@@ -1,0 +1,84 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+{% block content %}
+<h2>Pedidos da Loja</h2>
+<style>
+.kanban-board {
+	display: flex;
+	gap: 18px;
+	overflow-x: auto;
+	margin-top: 18px;
+}
+.kanban-col {
+	background: #f7f7f7;
+	border-radius: 10px;
+	min-width: 260px;
+	flex: 1 1 0;
+	box-shadow: 0 2px 8px #0001;
+	padding: 12px 8px 18px 8px;
+	display: flex;
+	flex-direction: column;
+	max-height: 80vh;
+}
+.kanban-col h3 {
+	text-align: center;
+	font-size: 1.1em;
+	margin-bottom: 10px;
+	color: #333;
+	letter-spacing: 1px;
+}
+.pedido-card {
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 1px 4px #0002;
+	margin-bottom: 12px;
+	padding: 10px 8px 8px 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	border-left: 4px solid #ff6600;
+}
+.pedido-card .numero { font-weight: bold; font-size: 1.1em; }
+.pedido-card .cliente { color: #444; font-size: 1em; }
+.pedido-card .data { color: #888; font-size: 0.95em; }
+.pedido-card .acoes { margin-top: 6px; }
+.pedido-card .acoes form { display: inline; }
+.pedido-card .acoes button { background: #ff6600; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-size: 0.98em; cursor: pointer; margin-right: 4px; }
+.pedido-card .acoes button:hover { background: #e65c00; }
+.pedido-card .cupom-link { font-size: 0.95em; color: #0077cc; text-decoration: underline; margin-left: 2px; }
+.pedido-card .status { font-size: 0.95em; color: #888; }
+</style>
+
+<div class="kanban-board">
+	{% for status, pedidos in pedidos_por_status.items %}
+	<div class="kanban-col">
+		<h3>
+			{% if status == 'novo' %}Novo{% elif status == 'preparo' %}Em Preparo{% elif status == 'pronto' %}Pronto{% elif status == 'entrega' %}Saiu para Entrega{% elif status == 'finalizado' %}Finalizado{% else %}{{ status }}{% endif %}
+		</h3>
+		{% for pedido in pedidos %}
+		<div class="pedido-card">
+			<div class="numero">Pedido {{ pedido.numero }}</div>
+			<div class="cliente">{{ pedido.cliente_nome }}</div>
+			<div class="data">{{ pedido.created_at|date:'d/m/Y H:i' }}</div>
+			<div class="status">{{ pedido.get_status_display }}</div>
+			<div class="acoes">
+				<a class="cupom-link" href="{% url 'admin_loja:cupom_pedido' pedido.id %}" target="_blank">Cupom</a>
+				{% if pedido.status == 'novo' %}
+					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Iniciar Preparo</button></form>
+				{% elif pedido.status == 'preparo' %}
+					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Marcar Pronto</button></form>
+				{% elif pedido.status == 'pronto' %}
+					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Saiu para Entrega</button></form>
+				{% elif pedido.status == 'entrega' %}
+					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Finalizar</button></form>
+				{% elif pedido.status == 'finalizado' %}
+					<span style="color: #888;">Finalizado</span>
+				{% endif %}
+			</div>
+		</div>
+		{% empty %}
+		<div style="color:#aaa;text-align:center;margin-top:18px;">Nenhum pedido</div>
+		{% endfor %}
+	</div>
+	{% endfor %}
+</div>
+{% endblock %}
