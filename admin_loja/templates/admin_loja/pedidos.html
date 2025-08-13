@@ -56,7 +56,7 @@
 		</h3>
 		{% for pedido in pedidos %}
 		<div class="pedido-card">
-			<div class="numero">Pedido {{ pedido.numero }}</div>
+			<div class="numero"><b>{{ pedido.numero }}</b></div>
 			<div class="cliente">{{ pedido.cliente_nome }}</div>
 			<div class="data">{{ pedido.created_at|date:'d/m/Y H:i' }}</div>
 			<div class="status">{{ pedido.get_status_display }}</div>
