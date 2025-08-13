@@ -128,6 +128,7 @@
                 
                 <!-- Input hidden para carrinho -->
                 <input type="hidden" name="carrinho_json" id="carrinho_json">
+                <input type="hidden" id="restaurante_id" value="{{ restaurante.id }}">
                 
                 <!-- Dados Pessoais -->
                 <div class="checkout-section">
@@ -168,7 +169,7 @@
                                        id="delivery" value="delivery" checked>
                                 <label class="form-check-label" for="delivery">
                                     <i class="bi bi-truck me-2"></i>
-                                    Delivery - Taxa: R$ {{ restaurante.taxa_entrega|floatformat:2|default:"0,00" }}
+                                    Delivery - Taxa: <span id="taxa-delivery-label">R$ {{ restaurante.taxa_entrega|floatformat:2|default:"0,00" }}</span>
                                 </label>
                             </div>
                         </div>
@@ -404,39 +405,69 @@ function buscarCEP() {
         })
         .then(data => {
             console.log('📦 Dados recebidos:', data);
-            
             if (loadingEl) loadingEl.style.display = 'none';
-            
             if (data.erro) {
                 console.error('❌ CEP não encontrado');
                 if (errorEl) errorEl.textContent = 'CEP não encontrado';
                 return;
             }
-            
             // Preencher campos
             const logradouro = document.getElementById('logradouro');
             const bairro = document.getElementById('bairro');
             const cidade = document.getElementById('cidade');
             const estado = document.getElementById('estado');
-            
             if (logradouro) logradouro.value = data.logradouro || '';
             if (bairro) bairro.value = data.bairro || '';
             if (cidade) cidade.value = data.localidade || '';
             if (estado) estado.value = data.uf || '';
-            
             if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado com sucesso!</span>';
-            
             // Focar no número
             const numeroInput = document.getElementById('numero');
             if (numeroInput) numeroInput.focus();
-            
             console.log('✅ Campos preenchidos com sucesso!');
+
+            // Chamar AJAX para calcular frete
+            calcularFreteAjax(cep);
         })
         .catch(error => {
             console.error('❌ Erro na requisição:', error);
             if (loadingEl) loadingEl.style.display = 'none';
             if (errorEl) errorEl.textContent = 'Erro ao buscar CEP: ' + error.message;
         });
+
+// Função AJAX para calcular frete
+function calcularFreteAjax(cep_destino) {
+    const restauranteId = document.getElementById('restaurante_id').value;
+    const cep_origem = '{{ restaurante.cep }}';
+    const taxaEl = document.getElementById('taxa-value');
+    const taxaDeliveryLabel = document.getElementById('taxa-delivery-label');
+    const totalEl = document.getElementById('total-final');
+    const subtotalEl = document.getElementById('subtotal-value');
+    let subtotal = 0;
+    if (subtotalEl) {
+        subtotal = parseFloat(subtotalEl.textContent.replace('R$', '').replace(',', '.')) || 0;
+    }
+    fetch('/{{ restaurante.slug }}/calcular-frete/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `cep_origem=${encodeURIComponent(cep_origem)}&cep_destino=${encodeURIComponent(cep_destino)}&restaurante_id=${encodeURIComponent(restauranteId)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.frete !== undefined) {
+            const freteFormatado = `R$ ${parseFloat(data.frete).toFixed(2).replace('.', ',')}`;
+            if (taxaEl) taxaEl.textContent = freteFormatado;
+            if (taxaDeliveryLabel) taxaDeliveryLabel.textContent = freteFormatado;
+            if (totalEl) totalEl.textContent = `R$ ${(subtotal + parseFloat(data.frete)).toFixed(2).replace('.', ',')}`;
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao calcular frete:', error);
+    });
+}
 }
 
 // Variáveis globais

@@ -1,9 +1,12 @@
+
 from django.urls import path
 from . import views
+from . import views_ajax
 
 app_name = 'loja'
 
 urlpatterns = [
+    path('calcular-frete/', views_ajax.calcular_frete_ajax, name='calcular_frete_ajax'),
     # Autenticação do cliente
     path('login/', views.LoginClienteView.as_view(), name='login'),
     path('logout/', views.LogoutClienteView.as_view(), name='logout'),
