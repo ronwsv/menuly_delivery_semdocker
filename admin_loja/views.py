@@ -15,6 +15,7 @@ def admin_loja_configurar_frete(request):
         cep_base = forms.CharField(label='CEP da Loja', max_length=10)
         valor_frete_padrao = forms.DecimalField(label='Valor do Frete Padrão', max_digits=7, decimal_places=2, required=False)
         valor_adicional_km = forms.DecimalField(label='Valor Adicional por Km', max_digits=7, decimal_places=2, required=False)
+        raio_limite_km = forms.DecimalField(label='Raio Máximo de Entrega (km)', max_digits=5, decimal_places=2, required=False, help_text='Deixe em branco para sem limite')
 
         def clean(self):
             cleaned_data = super().clean()
@@ -48,6 +49,7 @@ def admin_loja_configurar_frete(request):
             'cep_base': restaurante.cep,
             'valor_frete_padrao': restaurante.valor_frete_padrao,
             'valor_adicional_km': restaurante.valor_adicional_km,
+            'raio_limite_km': restaurante.raio_limite_km,
         }
 
     if request.method == 'POST':
@@ -59,6 +61,7 @@ def admin_loja_configurar_frete(request):
                 restaurante.cep = form.cleaned_data['cep_base']
                 restaurante.valor_frete_padrao = form.cleaned_data['valor_frete_padrao'] if not form.cleaned_data['frete_fixo'] else None
                 restaurante.valor_adicional_km = form.cleaned_data['valor_adicional_km'] if not form.cleaned_data['frete_fixo'] else None
+                restaurante.raio_limite_km = form.cleaned_data['raio_limite_km']
                 restaurante.save()
             msg = 'Configurações salvas com sucesso!'
             return render(request, 'admin_loja/configurar_frete.html', {'form': form, 'msg': msg})

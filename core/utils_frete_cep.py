@@ -1,14 +1,10 @@
 import requests
 from geopy.distance import geodesic
-import os
-from dotenv import load_dotenv
+from decouple import config
 from threading import Lock
 
-# Carregar variáveis de ambiente do arquivo .env
-load_dotenv()
-
-# Obter chave da API OpenCage do arquivo .env
-OPENCAGE_API_KEY = os.getenv("OPENCAGE_API_KEY")
+# Obter chave da API OpenCage do arquivo .env (usando python-decouple/config)
+OPENCAGE_API_KEY = config("OPENCAGE_API_KEY", default=None)
 
 # Contador thread-safe para requisições à OpenCage
 _opencage_request_count = 0
@@ -53,8 +49,17 @@ def calcular_frete_cep(cep_destino, cep_referencia="08750580", raio_km=5, taxa_b
     :param raio_km: Raio em km para a taxa base (int, padrão: 5).
     :param taxa_base: Valor base do frete (float, padrão: 5).
     :param taxa_km: Valor adicional por km acima do raio (float, padrão: 1).
+    :param raio_limite_km: Raio máximo de entrega (float, opcional). Se informado, bloqueia entregas fora desse raio.
     :return: dict com distancia_km, custo_frete, erro (se houver)
     """
+    import math
+    raio_limite_km = None
+    # Suporte a argumento extra via kwargs para compatibilidade retroativa
+    import inspect
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    if 'raio_limite_km' in values:
+        raio_limite_km = values['raio_limite_km']
     dados_referencia = validar_cep(cep_referencia)
     dados_destino = validar_cep(cep_destino)
     if "erro" in dados_referencia:
@@ -73,6 +78,8 @@ def calcular_frete_cep(cep_destino, cep_referencia="08750580", raio_km=5, taxa_b
     except KeyError:
         return {"erro": "Dados insuficientes para obter coordenadas."}
     distancia_km = geodesic(coord_referencia, coord_destino).km
+    if raio_limite_km is not None and distancia_km > float(raio_limite_km):
+        return {"erro": f"Fora do raio de entrega: {round(distancia_km,2)} km (limite: {raio_limite_km} km)", "distancia_km": round(distancia_km,2)}
     if distancia_km <= raio_km:
         custo = taxa_base
     else:

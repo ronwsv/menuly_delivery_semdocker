@@ -18,6 +18,10 @@
 	<div id="div_valor_adicional_km" style="margin-bottom:10px;">
 		{{ form.valor_adicional_km.label_tag }} {{ form.valor_adicional_km }}
 	</div>
+	<div id="div_raio_limite_km" style="margin-bottom:10px;">
+		{{ form.raio_limite_km.label_tag }} {{ form.raio_limite_km }}
+		{% if form.raio_limite_km.help_text %}<small style="color:gray;">{{ form.raio_limite_km.help_text }}</small>{% endif %}
+	</div>
 	<button type="submit">Salvar</button>
 </form>
 <script>

@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "makemigrations core",
+			"type": "shell",
+			"command": "python manage.py makemigrations core"
+		},
+		{
+			"label": "migrate",
+			"type": "shell",
+			"command": "python manage.py migrate"
+		}
+	]
+}

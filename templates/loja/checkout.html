@@ -124,6 +124,7 @@
         <!-- Coluna esquerda - Formulário -->
         <div class="col-lg-8">
             <form method="post" id="checkout-form">
+                <div id="frete-error-msg" class="cep-error" style="display:none;"></div>
                 {% csrf_token %}
                 
                 <!-- Input hidden para carrinho -->
@@ -169,7 +170,7 @@
                                        id="delivery" value="delivery" checked>
                                 <label class="form-check-label" for="delivery">
                                     <i class="bi bi-truck me-2"></i>
-                                    Delivery - Taxa: <span id="taxa-delivery-label">R$ {{ restaurante.taxa_entrega|floatformat:2|default:"0,00" }}</span>
+                                    Delivery - Taxa: <span id="taxa-delivery-label">R$ 0,00</span>
                                 </label>
                             </div>
                         </div>
@@ -373,31 +374,24 @@ console.log('🔧 [DEBUG] Script do checkout iniciado');
 // Função para buscar CEP
 function buscarCEP() {
     console.log('🔍 [CEP] Função buscarCEP chamada');
-    
     const cepInput = document.getElementById('cep');
     const loadingEl = document.querySelector('.loading-cep');
     const errorEl = document.querySelector('.cep-error');
-    
     if (!cepInput) {
         console.error('❌ Campo CEP não encontrado');
         return;
     }
-    
     const cep = cepInput.value.replace(/\D/g, '');
     console.log('CEP limpo:', cep);
-    
     if (cep.length !== 8) {
         console.warn('CEP inválido');
         if (errorEl) errorEl.textContent = 'Digite um CEP válido com 8 dígitos';
         return;
     }
-    
     // Mostrar loading
     if (loadingEl) loadingEl.style.display = 'block';
     if (errorEl) errorEl.innerHTML = '';
-    
     console.log('🌐 Fazendo requisição para ViaCEP...');
-    
     fetch(`https://viacep.com.br/ws/${cep}/json/`)
         .then(response => {
             console.log('📡 Response recebido:', response.status);
@@ -425,7 +419,6 @@ function buscarCEP() {
             const numeroInput = document.getElementById('numero');
             if (numeroInput) numeroInput.focus();
             console.log('✅ Campos preenchidos com sucesso!');
-
             // Chamar AJAX para calcular frete
             calcularFreteAjax(cep);
         })
@@ -434,8 +427,10 @@ function buscarCEP() {
             if (loadingEl) loadingEl.style.display = 'none';
             if (errorEl) errorEl.textContent = 'Erro ao buscar CEP: ' + error.message;
         });
+}
 
 // Função AJAX para calcular frete
+let freteCalculado = 0;
 function calcularFreteAjax(cep_destino) {
     const restauranteId = document.getElementById('restaurante_id').value;
     const cep_origem = '{{ restaurante.cep }}';
@@ -443,6 +438,7 @@ function calcularFreteAjax(cep_destino) {
     const taxaDeliveryLabel = document.getElementById('taxa-delivery-label');
     const totalEl = document.getElementById('total-final');
     const subtotalEl = document.getElementById('subtotal-value');
+    const freteErrorMsg = document.getElementById('frete-error-msg');
     let subtotal = 0;
     if (subtotalEl) {
         subtotal = parseFloat(subtotalEl.textContent.replace('R$', '').replace(',', '.')) || 0;
@@ -458,16 +454,37 @@ function calcularFreteAjax(cep_destino) {
     .then(response => response.json())
     .then(data => {
         if (data.frete !== undefined) {
-            const freteFormatado = `R$ ${parseFloat(data.frete).toFixed(2).replace('.', ',')}`;
+            freteCalculado = parseFloat(data.frete);
+            const freteFormatado = `R$ ${freteCalculado.toFixed(2).replace('.', ',')}`;
             if (taxaEl) taxaEl.textContent = freteFormatado;
             if (taxaDeliveryLabel) taxaDeliveryLabel.textContent = freteFormatado;
-            if (totalEl) totalEl.textContent = `R$ ${(subtotal + parseFloat(data.frete)).toFixed(2).replace('.', ',')}`;
+            if (totalEl) totalEl.textContent = `R$ ${(subtotal + freteCalculado).toFixed(2).replace('.', ',')}`;
+            if (freteErrorMsg) {
+                freteErrorMsg.style.display = 'none';
+                freteErrorMsg.textContent = '';
+            }
+        } else if (data.erro) {
+            freteCalculado = 0;
+            if (freteErrorMsg) {
+                freteErrorMsg.style.display = 'block';
+                freteErrorMsg.textContent = data.erro;
+            }
+            if (taxaEl) taxaEl.textContent = 'R$ 0,00';
+            if (taxaDeliveryLabel) taxaDeliveryLabel.textContent = 'R$ 0,00';
+            if (totalEl) totalEl.textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
         }
     })
     .catch(error => {
+        freteCalculado = 0;
         console.error('Erro ao calcular frete:', error);
+        if (freteErrorMsg) {
+            freteErrorMsg.style.display = 'block';
+            freteErrorMsg.textContent = 'Erro ao calcular o frete. Tente novamente.';
+        }
+        if (taxaEl) taxaEl.textContent = 'R$ 0,00';
+        if (taxaDeliveryLabel) taxaDeliveryLabel.textContent = 'R$ 0,00';
+        if (totalEl) totalEl.textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
     });
-}
 }
 
 // Variáveis globais
@@ -575,8 +592,10 @@ function atualizarResumo() {
     
     // Taxa de entrega baseada no tipo selecionado
     const tipoDelivery = document.querySelector('input[name="tipo_entrega"]:checked');
-    const taxa = (tipoDelivery && tipoDelivery.value === 'delivery') ? taxaEntrega : 0;
-    
+    let taxa = 0;
+    if (tipoDelivery && tipoDelivery.value === 'delivery') {
+        taxa = freteCalculado;
+    }
     if (taxaEl) taxaEl.textContent = `R$ ${taxa.toFixed(2).replace('.', ',')}`;
     if (totalEl) totalEl.textContent = `R$ ${(total + taxa).toFixed(2).replace('.', ',')}`;
     

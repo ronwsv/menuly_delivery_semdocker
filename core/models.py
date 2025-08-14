@@ -95,6 +95,7 @@ class Restaurante(models.Model):
     valor_frete_fixo = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     valor_frete_padrao = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     valor_adicional_km = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    raio_limite_km = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='Raio máximo de entrega em km')
     """Modelo para restaurantes (lojas)"""
     TIPO_SERVICO_CHOICES = [
         ('delivery', 'Delivery'),
@@ -355,19 +356,25 @@ class ItemPersonalizacao(models.Model):
 
 class Pedido(models.Model):
     def calcular_frete(self):
-        """Calcula o valor do frete para o pedido, usando a API Flask se necessário."""
-        from .models import calcular_distancia_entre_ceps
+        """Calcula o valor do frete para o pedido, usando utilitário local e respeitando o raio limite de entrega."""
+        from core.utils_frete_cep import calcular_frete_cep
         restaurante = self.restaurante
         if restaurante.frete_fixo and restaurante.valor_frete_fixo is not None:
             return restaurante.valor_frete_fixo
-        # Se não for fixo, calcula pelo padrão + adicional por km
         if restaurante.valor_frete_padrao is not None:
             valor = restaurante.valor_frete_padrao
-            # Calcular distância entre CEPs usando API Flask
             if self.endereco_cep and restaurante.cep and restaurante.valor_adicional_km:
-                distancia_km = calcular_distancia_entre_ceps(restaurante.cep, self.endereco_cep)
-                if distancia_km is not None:
-                    valor += restaurante.valor_adicional_km * distancia_km
+                resultado = calcular_frete_cep(
+                    cep_destino=self.endereco_cep,
+                    cep_referencia=restaurante.cep,
+                    taxa_base=float(restaurante.valor_frete_padrao),
+                    taxa_km=float(restaurante.valor_adicional_km),
+                    raio_limite_km=float(restaurante.raio_limite_km) if restaurante.raio_limite_km else None
+                )
+                if resultado and 'erro' in resultado:
+                    raise Exception(resultado['erro'])
+                if resultado and 'custo_frete' in resultado:
+                    return resultado['custo_frete']
             return valor
         return 0
     """Modelo para pedidos"""
