@@ -1,20 +1,13 @@
-import requests
-
 def calcular_distancia_entre_ceps(cep_origem, cep_destino, api_url='http://localhost:5000/calcular-frete'):
     """
-    Consulta a API Flask para calcular a distância entre dois CEPs.
+    Calcula a distância entre dois CEPs usando o utilitário local (OpenCage/ViaCEP).
     Retorna a distância em km (float) ou None em caso de erro.
     """
-    try:
-        response = requests.post(api_url, json={"cep_origem": cep_origem, "cep_destino": cep_destino})
-        if response.status_code == 200:
-            data = response.json()
-            return data.get('distancia_km')
-        else:
-            return None
-    except Exception as e:
-        print(f"Erro ao consultar API de distância: {e}")
-        return None
+    from core.utils_frete_cep import calcular_frete_cep
+    resultado = calcular_frete_cep(cep_destino=cep_destino, cep_referencia=cep_origem)
+    if resultado and 'distancia_km' in resultado:
+        return resultado['distancia_km']
+    return None
 from django.db import models
 # Relacionamento entre Restaurante e Cliente
 class RestauranteCliente(models.Model):
