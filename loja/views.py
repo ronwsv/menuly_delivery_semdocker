@@ -734,16 +734,24 @@ class CheckoutView(BaseLojaView):
                     while Usuario.objects.filter(username=username).exists():
                         username = f"{base_username}{i}"
                         i += 1
-                    usuario = Usuario.objects.create(
-                        username=username,
-                        first_name=nome,
-                        email=email,
-                        celular=cliente_celular,
-                        is_active=True,
-                    )
-                    usuario.set_unusable_password()
-                    usuario.save()
-                    cliente_instance = usuario
+                    try:
+                        usuario = Usuario.objects.create(
+                            username=username,
+                            first_name=nome,
+                            email=email,
+                            celular=cliente_celular,
+                            is_active=True,
+                        )
+                        usuario.set_unusable_password()
+                        usuario.save()
+                        cliente_instance = usuario
+                    except Exception as e:
+                        from django.db import IntegrityError
+                        if isinstance(e, IntegrityError) and 'celular' in str(e):
+                            mensagem_erro = 'Já existe uma conta cadastrada com este número de celular. Faça login ou utilize outro número.'
+                            return render(request, 'loja/checkout.html', {'erro_cadastro': mensagem_erro})
+                        else:
+                            raise
 
             pedido = Pedido.objects.create(
                 restaurante=restaurante,

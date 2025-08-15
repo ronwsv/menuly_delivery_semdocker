@@ -41,7 +41,25 @@ def obter_coordenadas(endereco):
     else:
         return {"erro": "Erro ao acessar a API OpenCage."}
 
-def calcular_frete_cep(cep_destino, cep_referencia="08750580", raio_km=5, taxa_base=5, taxa_km=1):
+def calcular_frete_cep(cep_destino, cep_referencia="08750580", raio_km=5, taxa_base=5, taxa_km=1, raio_limite_km=None):
+    # Garantir que todos os argumentos numéricos sejam float para evitar erro de soma com Decimal
+    try:
+        raio_km = float(raio_km)
+    except Exception:
+        raio_km = 5.0
+    try:
+        taxa_base = float(taxa_base)
+    except Exception:
+        taxa_base = 5.0
+    try:
+        taxa_km = float(taxa_km)
+    except Exception:
+        taxa_km = 1.0
+    if raio_limite_km is not None:
+        try:
+            raio_limite_km = float(raio_limite_km)
+        except Exception:
+            raio_limite_km = None
     """
     Calcula o custo do frete com base na distância entre dois CEPs.
     :param cep_destino: CEP de destino (string).
@@ -53,13 +71,7 @@ def calcular_frete_cep(cep_destino, cep_referencia="08750580", raio_km=5, taxa_b
     :return: dict com distancia_km, custo_frete, erro (se houver)
     """
     import math
-    raio_limite_km = None
-    # Suporte a argumento extra via kwargs para compatibilidade retroativa
-    import inspect
-    frame = inspect.currentframe()
-    args, _, _, values = inspect.getargvalues(frame)
-    if 'raio_limite_km' in values:
-        raio_limite_km = values['raio_limite_km']
+    # raio_limite_km agora é argumento explícito
     dados_referencia = validar_cep(cep_referencia)
     dados_destino = validar_cep(cep_destino)
     if "erro" in dados_referencia:
