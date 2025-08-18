@@ -356,13 +356,14 @@ class ItemPersonalizacao(models.Model):
 
 class Pedido(models.Model):
     def calcular_frete(self):
-        """Calcula o valor do frete para o pedido, usando utilitário local e respeitando o raio limite de entrega."""
+        """Calcula o valor do frete para o pedido, usando utilitário local e respeitando o raio limite de entrega. Sempre retorna Decimal."""
         from core.utils_frete_cep import calcular_frete_cep
+        from decimal import Decimal
         restaurante = self.restaurante
         if restaurante.frete_fixo and restaurante.valor_frete_fixo is not None:
-            return restaurante.valor_frete_fixo
+            return Decimal(str(restaurante.valor_frete_fixo))
         if restaurante.valor_frete_padrao is not None:
-            valor = restaurante.valor_frete_padrao
+            valor = Decimal(str(restaurante.valor_frete_padrao))
             if self.endereco_cep and restaurante.cep and restaurante.valor_adicional_km:
                 resultado = calcular_frete_cep(
                     cep_destino=self.endereco_cep,
@@ -374,9 +375,9 @@ class Pedido(models.Model):
                 if resultado and 'erro' in resultado:
                     raise Exception(resultado['erro'])
                 if resultado and 'custo_frete' in resultado:
-                    return resultado['custo_frete']
+                    return Decimal(str(resultado['custo_frete']))
             return valor
-        return 0
+        return Decimal('0.0')
     """Modelo para pedidos"""
     STATUS_CHOICES = [
         ('carrinho', 'No Carrinho'),
