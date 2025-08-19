@@ -1,19 +1,32 @@
 from django.urls import reverse
-# Logout do lojista
-
-from django.contrib.auth.decorators import login_required
-
-@login_required
-def admin_loja_logout(request):
-    logout(request)
-    return render(request, 'admin_loja/logout.html')
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
+
+# Personalizar loja
+@login_required
+def admin_loja_personalizar_loja(request):
+    # Página inicial de personalização da loja
+    return render(request, 'admin_loja/personalizar_loja.html')
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+from django import forms
+
+# Logout do lojista
+@login_required
+def admin_loja_logout(request):
+    logout(request)
+    return render(request, 'admin_loja/logout.html')
+
+# Personalizar loja
+@login_required
+def admin_loja_personalizar_loja(request):
+    # Página inicial de personalização da loja
+    return render(request, 'admin_loja/personalizar_loja.html')
 
 # Configuração de frete
 @login_required

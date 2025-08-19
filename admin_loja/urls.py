@@ -10,6 +10,7 @@ urlpatterns = [
     path('pedidos/<uuid:pedido_id>/', views.admin_loja_cupom_pedido, name='cupom_pedido'),
     path('pedidos/<uuid:pedido_id>/avancar/', views.admin_loja_avancar_status_pedido, name='avancar_status_pedido'),
     path('configurar-frete/', views.admin_loja_configurar_frete, name='configurar_frete'),
+    path('personalizar-loja/', views.admin_loja_personalizar_loja, name='personalizar_loja'),
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]
