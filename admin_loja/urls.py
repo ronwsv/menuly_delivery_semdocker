@@ -11,4 +11,5 @@ urlpatterns = [
     path('pedidos/<uuid:pedido_id>/avancar/', views.admin_loja_avancar_status_pedido, name='avancar_status_pedido'),
     path('configurar-frete/', views.admin_loja_configurar_frete, name='configurar_frete'),
     path('', views.DashboardView.as_view(), name='dashboard-old'),
+    path('logout/', views.admin_loja_logout, name='logout'),
 ]

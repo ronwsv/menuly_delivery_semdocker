@@ -1,3 +1,12 @@
+from django.urls import reverse
+# Logout do lojista
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def admin_loja_logout(request):
+    logout(request)
+    return render(request, 'admin_loja/logout.html')
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
@@ -118,8 +127,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
 
-class DashboardView(TemplateView):
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'admin_loja/dashboard.html'
+    login_url = 'admin_loja:login'
 
 
 # Página de pedidos do lojista

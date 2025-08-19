@@ -23,7 +23,7 @@
             <li><a href="{% url 'admin_loja:pedidos' %}">Pedidos</a></li>
             <li><a href="#">Personalizar Loja</a></li>
             <li><a href="{% url 'admin_loja:configurar_frete' %}">Configurar Frete</a></li>
-            <li><a href="#">Sair</a></li>
+            <li><a href="{% url 'admin_loja:logout' %}">Sair</a></li>
         </ul>
     </nav>
     {% endif %}
