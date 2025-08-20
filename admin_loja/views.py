@@ -5,6 +5,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum
+from core.models import Pedido, ItemPedido
 
 
 # ==================== VIEWS DE PERSONALIZAÇÃO AVANÇADA ====================
@@ -257,6 +261,67 @@ def admin_loja_pedidos(request):
             if pedido.status in pedidos_por_status:
                 pedidos_por_status[pedido.status].append(pedido)
     return render(request, 'admin_loja/pedidos.html', {'pedidos_por_status': pedidos_por_status})
+
+@login_required
+def admin_loja_relatorios(request):
+    """Página de relatórios da loja"""
+    restaurante = request.user.restaurantes.first()
+    if not restaurante:
+        return render(request, 'admin_loja/relatorios.html', {'error': 'Restaurante não encontrado.'})
+
+    # Vendas diárias
+    hoje = timezone.now().date()
+    vendas_hoje = Pedido.objects.filter(
+        restaurante=restaurante,
+        status='finalizado',
+        created_at__date=hoje
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    # Vendas semanais
+    inicio_semana = hoje - timedelta(days=hoje.weekday())
+    fim_semana = inicio_semana + timedelta(days=6)
+    vendas_semana = Pedido.objects.filter(
+        restaurante=restaurante,
+        status='finalizado',
+        created_at__date__range=[inicio_semana, fim_semana]
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    # Vendas mensais
+    vendas_mes = Pedido.objects.filter(
+        restaurante=restaurante,
+        status='finalizado',
+        created_at__year=hoje.year,
+        created_at__month=hoje.month
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    # Dados para o gráfico de vendas dos últimos 7 dias
+    vendas_ultimos_7_dias = []
+    labels_ultimos_7_dias = []
+    for i in range(7):
+        dia = hoje - timedelta(days=i)
+        total_dia = Pedido.objects.filter(
+            restaurante=restaurante,
+            status='finalizado',
+            created_at__date=dia
+        ).aggregate(total=Sum('total'))['total'] or 0
+        vendas_ultimos_7_dias.insert(0, total_dia)
+        labels_ultimos_7_dias.insert(0, dia.strftime('%d/%m'))
+
+    # Produtos mais vendidos
+    produtos_mais_vendidos = ItemPedido.objects.filter(
+        pedido__restaurante=restaurante,
+        pedido__status='finalizado'
+    ).values('produto__nome').annotate(total_vendido=Sum('quantidade')).order_by('-total_vendido')[:10]
+
+    context = {
+        'vendas_hoje': vendas_hoje,
+        'vendas_semana': vendas_semana,
+        'vendas_mes': vendas_mes,
+        'vendas_ultimos_7_dias': vendas_ultimos_7_dias,
+        'labels_ultimos_7_dias': labels_ultimos_7_dias,
+        'produtos_mais_vendidos': produtos_mais_vendidos,
+    }
+    return render(request, 'admin_loja/relatorios.html', context)
 
 # Visualização de cupom do pedido
 from django.shortcuts import get_object_or_404

@@ -1,0 +1,106 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+{% block content %}
+<h2>Relatórios de Vendas</h2>
+
+<div class="summary">
+    <div class="card">
+        <h3>Vendas Hoje</h3>
+        <p>R$ {{ vendas_hoje|floatformat:2 }}</p>
+    </div>
+    <div class="card">
+        <h3>Vendas na Semana</h3>
+        <p>R$ {{ vendas_semana|floatformat:2 }}</p>
+    </div>
+    <div class="card">
+        <h3>Vendas no Mês</h3>
+        <p>R$ {{ vendas_mes|floatformat:2 }}</p>
+    </div>
+</div>
+
+<div class="chart-container">
+    <canvas id="vendasChart"></canvas>
+</div>
+
+<div class="produtos-container">
+    <h3>Produtos Mais Vendidos</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Quantidade Vendida</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos_mais_vendidos %}
+            <tr>
+                <td>{{ produto.produto__nome }}</td>
+                <td>{{ produto.total_vendido }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('vendasChart').getContext('2d');
+    const vendasChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_ultimos_7_dias|safe }},
+            datasets: [{
+                label: 'Vendas (R$)',
+                data: {{ vendas_ultimos_7_dias|safe }},
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+    .summary {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        flex: 1;
+        text-align: center;
+    }
+    .chart-container {
+        background: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .produtos-container {
+        margin-top: 30px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+</style>
+{% endblock %}
