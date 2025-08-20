@@ -313,6 +313,12 @@ def admin_loja_relatorios(request):
         pedido__status='finalizado'
     ).values('produto__nome').annotate(total_vendido=Sum('quantidade')).order_by('-total_vendido')[:10]
 
+    # Recebimentos por forma de pagamento
+    recebimentos_por_forma = Pedido.objects.filter(
+        restaurante=restaurante,
+        status='finalizado'
+    ).values('forma_pagamento').annotate(total=Sum('total')).order_by('-total')
+
     context = {
         'vendas_hoje': vendas_hoje,
         'vendas_semana': vendas_semana,
@@ -320,6 +326,7 @@ def admin_loja_relatorios(request):
         'vendas_ultimos_7_dias': vendas_ultimos_7_dias,
         'labels_ultimos_7_dias': labels_ultimos_7_dias,
         'produtos_mais_vendidos': produtos_mais_vendidos,
+        'recebimentos_por_forma': recebimentos_por_forma,
     }
     return render(request, 'admin_loja/relatorios.html', context)
 

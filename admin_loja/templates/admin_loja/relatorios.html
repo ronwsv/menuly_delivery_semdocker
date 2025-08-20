@@ -41,6 +41,26 @@
     </table>
 </div>
 
+<div class="pagamentos-container">
+    <h3>Recebimentos por Forma de Pagamento</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Forma de Pagamento</th>
+                <th>Total Recebido</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pagamento in recebimentos_por_forma %}
+            <tr>
+                <td>{{ pagamento.get_forma_pagamento_display }}</td>
+                <td>R$ {{ pagamento.total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('vendasChart').getContext('2d');
@@ -86,7 +106,7 @@
         border-radius: 5px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .produtos-container {
+    .produtos-container, .pagamentos-container {
         margin-top: 30px;
         background: #fff;
         padding: 20px;
