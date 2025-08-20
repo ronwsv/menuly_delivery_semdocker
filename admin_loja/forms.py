@@ -350,13 +350,6 @@ class FuncionarioForm(forms.ModelForm):
         
         if commit:
             user.save()
-            # Atualizar grupos
-            grupo = self.cleaned_data.get('grupo')
-            if grupo:
-                user.groups.clear()
-                user.groups.add(grupo)
-            
-            # Adicionar ao ManyToMany de funcionarios do Restaurante
-            # Isso será feito na view, pois precisamos do restaurante
+            # A atribuição de grupos será feita na view para evitar duplicação
             
         return user

@@ -281,9 +281,13 @@ def equipe_adicionar(request):
             user.save()
             restaurante.funcionarios.add(user)
             
-            # Definir o tipo de usuário com base no grupo selecionado
+            # Definir o tipo de usuário e grupo
             grupo_selecionado = form.cleaned_data.get('grupo')
             if grupo_selecionado:
+                # Limpar grupos existentes e adicionar o novo
+                user.groups.clear()
+                user.groups.add(grupo_selecionado)
+                
                 if grupo_selecionado.name == 'Gerente':
                     user.tipo_usuario = 'gerente'
                 elif grupo_selecionado.name == 'Atendente':
@@ -319,9 +323,13 @@ def equipe_editar(request, user_id):
             user.username = user.email # Garante que o username seja o email
             user.save()
             
-            # Atualizar o tipo de usuário com base no grupo selecionado
+            # Atualizar o tipo de usuário e grupo
             grupo_selecionado = form.cleaned_data.get('grupo')
             if grupo_selecionado:
+                # Limpar grupos existentes e adicionar o novo
+                user.groups.clear()
+                user.groups.add(grupo_selecionado)
+                
                 if grupo_selecionado.name == 'Gerente':
                     user.tipo_usuario = 'gerente'
                 elif grupo_selecionado.name == 'Atendente':

@@ -5,20 +5,94 @@
     <title>Painel do Lojista</title>
     <link rel="stylesheet" href="/static/admin/css/base.css">
     <style>
-        body { display: flex; min-height: 100vh; margin: 0; }
-        nav { width: 220px; background: #222; color: #fff; padding: 30px 0; min-height: 100vh; }
-        nav ul { list-style: none; padding: 0; }
-        nav li { margin: 20px 0; position: relative; }
-        nav a { color: #fff; text-decoration: none; font-weight: bold; padding: 10px 30px; display: block; }
-        nav a:hover { background: #444; }
+        body { 
+            display: flex; 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        nav { 
+            width: 260px; 
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+            color: #fff; 
+            padding: 20px 0; 
+            min-height: 100vh; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        nav::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+        }
+        nav > * {
+            position: relative;
+            z-index: 2;
+        }
+        .nav-header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+        .nav-header h3 {
+            color: #fff;
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        nav ul { 
+            list-style: none; 
+            padding: 0;
+            margin: 0;
+        }
+        nav li { 
+            margin: 4px 0; 
+            position: relative; 
+        }
+        nav a { 
+            color: rgba(255,255,255,0.9); 
+            text-decoration: none; 
+            font-weight: 500; 
+            padding: 12px 20px; 
+            display: block; 
+            border-radius: 8px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+        nav a:hover { 
+            background: rgba(255,255,255,0.15); 
+            color: #fff;
+            transform: translateX(5px);
+        }
+        nav a.active {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        nav a i {
+            width: 20px;
+            text-align: center;
+            margin-right: 12px;
+            opacity: 0.8;
+        }
+        nav a:hover i {
+            opacity: 1;
+        }
         
         /* Dropdown styles */
         .menu-dropdown .submenu { 
             display: none; 
-            background: #333; 
-            margin: 0; 
-            padding: 0;
-            margin-left: 20px;
+            background: rgba(0,0,0,0.2); 
+            margin: 4px 10px 0 10px; 
+            border-radius: 8px;
+            overflow: hidden;
         }
         .menu-dropdown.active .submenu { 
             display: block; 
@@ -27,44 +101,95 @@
             margin: 0; 
         }
         .submenu a { 
-            padding: 8px 30px; 
-            font-weight: normal;
+            padding: 10px 20px; 
+            font-weight: 400;
             font-size: 0.9em;
+            margin: 0;
+            border-radius: 0;
+            padding-left: 52px;
+            opacity: 0.85;
         }
         .submenu a:hover { 
-            background: #555; 
+            background: rgba(255,255,255,0.15); 
+            opacity: 1;
+            transform: none;
         }
-        .menu-toggle i { 
+        .menu-toggle {
+            position: relative;
+        }
+        .menu-toggle i.fa-chevron-down { 
             float: right; 
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
+            opacity: 0.7;
+            width: auto;
+            margin-right: 0;
         }
-        .menu-dropdown.active .menu-toggle i { 
+        .menu-dropdown.active .menu-toggle i.fa-chevron-down { 
             transform: rotate(180deg);
         }
         
-        main { flex: 1; padding: 40px; background: #f7f7f7; }
-        header { margin-bottom: 30px; }
+        main { 
+            flex: 1; 
+            padding: 30px 40px; 
+            background: #f8fafc; 
+            min-height: 100vh;
+        }
+        header { 
+            margin-bottom: 30px; 
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        header h1 {
+            color: #1a202c;
+            font-size: 2em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        /* Responsividade para telas menores */
+        @media (max-width: 768px) {
+            nav { 
+                width: 70px; 
+                padding: 10px 0;
+            }
+            nav a {
+                text-align: center;
+                padding: 15px 5px;
+            }
+            nav a span {
+                display: none;
+            }
+            .nav-header {
+                display: none;
+            }
+            main {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
     {% if request.user.is_authenticated %}
     <nav>
+        <div class="nav-header">
+            <h3><i class="fas fa-store"></i> Painel do Lojista</h3>
+        </div>
         <ul>
-            <li><a href="{% url 'admin_loja:dashboard' %}">Dashboard</a></li>
-            <li><a href="{% url 'admin_loja:pedidos' %}">Pedidos</a></li>
-            <li><a href="{% url 'admin_loja:relatorios' %}">Relatórios</a></li>
+            <li><a href="{% url 'admin_loja:dashboard' %}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+            <li><a href="{% url 'admin_loja:pedidos' %}"><i class="fas fa-shopping-cart"></i><span>Pedidos</span></a></li>
+            <li><a href="{% url 'admin_loja:relatorios' %}"><i class="fas fa-chart-line"></i><span>Relatórios</span></a></li>
             <li class="menu-dropdown">
-                <a href="#" class="menu-toggle">Cardápio <i class="fas fa-chevron-down"></i></a>
+                <a href="#" class="menu-toggle"><i class="fas fa-utensils"></i><span>Cardápio</span> <i class="fas fa-chevron-down"></i></a>
                 <ul class="submenu">
-                    <li><a href="{% url 'admin_loja:categorias' %}">Categorias</a></li>
-                    <li><a href="{% url 'admin_loja:produtos' %}">Produtos</a></li>
+                    <li><a href="{% url 'admin_loja:categorias' %}"><i class="fas fa-folder"></i><span>Categorias</span></a></li>
+                    <li><a href="{% url 'admin_loja:produtos' %}"><i class="fas fa-hamburger"></i><span>Produtos</span></a></li>
                 </ul>
             </li>
-            <li><a href="{% url 'admin_loja:personalizar_loja' %}">Personalizar Loja</a></li>
-            <li><a href="{% url 'admin_loja:configurar_frete' %}">Configurar Frete</a></li>
-            <li><a href="{% url 'admin_loja:impressoras' %}">Impressoras</a></li>
-            <li><a href="{% url 'admin_loja:equipe_listar' %}">Equipe</a></li>
-            <li><a href="{% url 'admin_loja:logout' %}">Sair</a></li>
+            <li><a href="{% url 'admin_loja:personalizar_loja' %}"><i class="fas fa-palette"></i><span>Personalizar Loja</span></a></li>
+            <li><a href="{% url 'admin_loja:configurar_frete' %}"><i class="fas fa-shipping-fast"></i><span>Configurar Frete</span></a></li>
+            <li><a href="{% url 'admin_loja:impressoras' %}"><i class="fas fa-print"></i><span>Impressoras</span></a></li>
+            <li><a href="{% url 'admin_loja:equipe_listar' %}"><i class="fas fa-users"></i><span>Equipe</span></a></li>
+            <li><a href="{% url 'admin_loja:logout' %}"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a></li>
         </ul>
     </nav>
     {% endif %}
