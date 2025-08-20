@@ -241,7 +241,7 @@ from django.db.models import Sum
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 
-from core.models import Pedido, ItemPedido, Restaurante, Usuario
+from core.models import Pedido, ItemPedido, Restaurante, Usuario, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto
 from .models import Impressora
 from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
                     PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, FuncionarioForm)
