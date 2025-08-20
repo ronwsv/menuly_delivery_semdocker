@@ -6,11 +6,40 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
 
+
 # Personalizar loja
+from .forms import LogoForm, BannerForm, ImpressoraForm
 @login_required
 def admin_loja_personalizar_loja(request):
-    # Página inicial de personalização da loja
-    return render(request, 'admin_loja/personalizar_loja.html')
+    from core.models import Restaurante
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/personalizar_loja.html', {'msg': 'Você não tem permissão para personalizar esta loja.'})
+    logo_url = restaurante.logo.url if restaurante.logo else None
+    banner_url = restaurante.banner.url if restaurante.banner else None
+    msg = None
+    logo_form = LogoForm(instance=restaurante)
+    banner_form = BannerForm(instance=restaurante)
+    if request.method == 'POST':
+        if 'logo' in request.FILES:
+            logo_form = LogoForm(request.POST, request.FILES, instance=restaurante)
+            if logo_form.is_valid():
+                logo_form.save()
+                msg = 'Logo atualizada com sucesso!'
+                logo_url = restaurante.logo.url if restaurante.logo else None
+        if 'banner' in request.FILES:
+            banner_form = BannerForm(request.POST, request.FILES, instance=restaurante)
+            if banner_form.is_valid():
+                banner_form.save()
+                msg = 'Banner atualizado com sucesso!'
+                banner_url = restaurante.banner.url if restaurante.banner else None
+    return render(request, 'admin_loja/personalizar_loja.html', {
+        'form': logo_form,
+        'banner_form': banner_form,
+        'logo_url': logo_url,
+        'banner_url': banner_url,
+        'msg': msg
+    })
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
@@ -174,3 +203,157 @@ def admin_loja_cupom_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__proprietario=request.user)
     itens = pedido.itens.all() if hasattr(pedido, 'itens') else []
     return render(request, 'admin_loja/cupom_pedido.html', {'pedido': pedido, 'itens': itens})
+
+
+# ==================== VIEWS DE IMPRESSORAS ====================
+
+@login_required
+def admin_loja_impressoras(request):
+    """Lista todas as impressoras do restaurante"""
+    from core.models import Restaurante
+    from .models import Impressora
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/impressoras.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    impressoras = Impressora.objects.filter(restaurante=restaurante).order_by('-created_at')
+    
+    return render(request, 'admin_loja/impressoras.html', {
+        'impressoras': impressoras,
+        'restaurante': restaurante
+    })
+
+@login_required
+def admin_loja_impressora_cadastrar(request):
+    """Cadastrar nova impressora"""
+    from core.models import Restaurante
+    from .models import Impressora
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/impressora_form.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    if request.method == 'POST':
+        form = ImpressoraForm(request.POST)
+        if form.is_valid():
+            impressora = form.save(commit=False)
+            impressora.restaurante = restaurante
+            impressora.save()
+            return redirect('admin_loja:impressoras')
+    else:
+        form = ImpressoraForm()
+    
+    return render(request, 'admin_loja/impressora_form.html', {
+        'form': form,
+        'titulo': 'Cadastrar Impressora'
+    })
+
+@login_required
+def admin_loja_impressora_editar(request, impressora_id):
+    """Editar impressora existente"""
+    from .models import Impressora
+    
+    impressora = get_object_or_404(
+        Impressora, 
+        id=impressora_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    if request.method == 'POST':
+        form = ImpressoraForm(request.POST, instance=impressora)
+        if form.is_valid():
+            form.save()
+            return redirect('admin_loja:impressoras')
+    else:
+        form = ImpressoraForm(instance=impressora)
+    
+    return render(request, 'admin_loja/impressora_form.html', {
+        'form': form,
+        'impressora': impressora,
+        'titulo': 'Editar Impressora'
+    })
+
+@login_required
+def admin_loja_impressora_deletar(request, impressora_id):
+    """Deletar impressora"""
+    from .models import Impressora
+    
+    impressora = get_object_or_404(
+        Impressora, 
+        id=impressora_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    impressora.delete()
+    return redirect('admin_loja:impressoras')
+
+@login_required
+def admin_loja_impressora_testar(request, impressora_id):
+    """Testar impressora"""
+    from .models import Impressora
+    import requests
+    import json
+    
+    impressora = get_object_or_404(
+        Impressora, 
+        id=impressora_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    # Dados para teste de impressão
+    dados_teste = {
+        'impressora': {
+            'nome': impressora.nome,
+            'tipo_conexao': impressora.tipo_conexao,
+            'connection_string': impressora.get_connection_string(),
+            'largura_papel': impressora.largura_papel,
+            'cortar_papel': impressora.cortar_papel
+        },
+        'conteudo': f"""
+=============================
+TESTE DE IMPRESSÃO
+=============================
+Impressora: {impressora.nome}
+Tipo: {impressora.get_tipo_conexao_display()}
+Data/Hora: {impressora.created_at.strftime('%d/%m/%Y %H:%M')}
+=============================
+Este é um teste de impressão
+para verificar se a impressora
+está funcionando corretamente.
+=============================
+        """.strip()
+    }
+    
+    try:
+        # Endpoint local para teste de impressão (simulado)
+        # Em um cenário real, você faria uma requisição para um serviço local
+        response = requests.post(
+            'http://localhost:8080/api/print-test',
+            json=dados_teste,
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            mensagem = 'Teste de impressão enviado com sucesso!'
+            tipo_msg = 'success'
+        else:
+            mensagem = f'Erro ao enviar teste: {response.text}'
+            tipo_msg = 'error'
+            
+    except requests.exceptions.RequestException as e:
+        mensagem = f'Erro de conexão com serviço de impressão: {str(e)}'
+        tipo_msg = 'error'
+    except Exception as e:
+        mensagem = f'Erro interno: {str(e)}'
+        tipo_msg = 'error'
+    
+    return render(request, 'admin_loja/impressora_teste.html', {
+        'impressora': impressora,
+        'mensagem': mensagem,
+        'tipo_msg': tipo_msg
+    })

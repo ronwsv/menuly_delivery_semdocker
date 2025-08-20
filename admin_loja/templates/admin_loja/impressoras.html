@@ -1,0 +1,129 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>Gerenciar Impressoras</h2>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="alert alert-info">{{ msg }}</div>
+{% endif %}
+
+<div class="mb-4">
+    <a href="{% url 'admin_loja:impressora_cadastrar' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Cadastrar Nova Impressora
+    </a>
+</div>
+
+{% if impressoras %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tipo de Conexão</th>
+                <th>Endereço/Porta</th>
+                <th>Status</th>
+                <th>Padrão para</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for impressora in impressoras %}
+            <tr>
+                <td>
+                    <strong>{{ impressora.nome }}</strong>
+                    <br>
+                    <small class="text-muted">
+                        Papel: {{ impressora.largura_papel }}mm
+                        {% if impressora.cortar_papel %} | Auto-corte{% endif %}
+                    </small>
+                </td>
+                <td>
+                    <span class="badge badge-secondary">
+                        {{ impressora.get_tipo_conexao_display }}
+                    </span>
+                </td>
+                <td>
+                    {% if impressora.tipo_conexao == 'usb' %}
+                        <code>{{ impressora.caminho_usb|default:'-' }}</code>
+                    {% else %}
+                        <code>{{ impressora.ip_address }}:{{ impressora.porta }}</code>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if impressora.ativa %}
+                        <span class="badge badge-success">Ativa</span>
+                    {% else %}
+                        <span class="badge badge-secondary">Inativa</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if impressora.padrao_para_tipo %}
+                        <span class="badge badge-info">
+                            {{ impressora.get_padrao_para_tipo_display }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'admin_loja:impressora_testar' impressora.id %}" 
+                           class="btn btn-sm btn-outline-primary" title="Testar Impressão">
+                            <i class="fas fa-print"></i>
+                        </a>
+                        <a href="{% url 'admin_loja:impressora_editar' impressora.id %}" 
+                           class="btn btn-sm btn-outline-secondary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'admin_loja:impressora_deletar' impressora.id %}" 
+                           class="btn btn-sm btn-outline-danger" title="Deletar"
+                           onclick="return confirm('Tem certeza que deseja deletar esta impressora?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center">
+        <i class="fas fa-print fa-3x text-muted mb-3"></i>
+        <h5>Nenhuma impressora cadastrada</h5>
+        <p class="text-muted">Cadastre sua primeira impressora para começar a imprimir pedidos.</p>
+        <a href="{% url 'admin_loja:impressora_cadastrar' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Cadastrar Primeira Impressora
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.btn-group .btn {
+    margin-right: 2px;
+}
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.badge {
+    font-size: 0.8em;
+}
+.alert {
+    border-radius: 8px;
+}
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- Font Awesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% endblock %}

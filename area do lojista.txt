@@ -1,0 +1,34 @@
+
+2. Administração de Impressoras
+Cadastro e configuração de impressoras (USB, rede, Wi-Fi).
+Teste de impressão.
+Seleção de impressora padrão para cada tipo de pedido (balcão, delivery, cozinha).
+3. Gestão de Cardápio
+Cadastro, edição e exclusão de produtos.
+Gerenciamento de categorias.
+Controle de disponibilidade (produto esgotado, ativar/desativar).
+4. Personalização da Loja
+Alteração de logo, cores e banners.
+Configuração de horários de funcionamento.
+Mensagens personalizadas para clientes.
+5. Configuração de Frete
+Áreas de entrega e taxas por região.
+Valor mínimo para entrega.
+Tempo estimado de entrega.
+6. Relatórios e Financeiro
+Relatórios de vendas diárias, semanais e mensais.
+Relatórios de produtos mais vendidos.
+Controle de recebimentos (formas de pagamento, taxas).
+7. Gestão de Usuários e Permissões
+Cadastro de funcionários (caixa, cozinha, entregador).
+Definição de permissões de acesso ao painel.
+8. Notificações e Alertas
+Alertas de novos pedidos.
+Notificações de produtos com estoque baixo.
+Mensagens do sistema (atualizações, avisos).
+9. Integração com Apps de Entrega
+Integração com iFood, Uber Eats, etc. (se aplicável).
+Sincronização de pedidos e cardápio.
+10. Suporte e Ajuda
+Chat ou canal de suporte.
+FAQ e tutoriais.

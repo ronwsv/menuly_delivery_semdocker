@@ -8,9 +8,40 @@
         body { display: flex; min-height: 100vh; margin: 0; }
         nav { width: 220px; background: #222; color: #fff; padding: 30px 0; min-height: 100vh; }
         nav ul { list-style: none; padding: 0; }
-        nav li { margin: 20px 0; }
+        nav li { margin: 20px 0; position: relative; }
         nav a { color: #fff; text-decoration: none; font-weight: bold; padding: 10px 30px; display: block; }
         nav a:hover { background: #444; }
+        
+        /* Dropdown styles */
+        .menu-dropdown .submenu { 
+            display: none; 
+            background: #333; 
+            margin: 0; 
+            padding: 0;
+            margin-left: 20px;
+        }
+        .menu-dropdown.active .submenu { 
+            display: block; 
+        }
+        .submenu li { 
+            margin: 0; 
+        }
+        .submenu a { 
+            padding: 8px 30px; 
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        .submenu a:hover { 
+            background: #555; 
+        }
+        .menu-toggle i { 
+            float: right; 
+            transition: transform 0.3s;
+        }
+        .menu-dropdown.active .menu-toggle i { 
+            transform: rotate(180deg);
+        }
+        
         main { flex: 1; padding: 40px; background: #f7f7f7; }
         header { margin-bottom: 30px; }
     </style>
@@ -21,8 +52,16 @@
         <ul>
             <li><a href="{% url 'admin_loja:dashboard' %}">Dashboard</a></li>
             <li><a href="{% url 'admin_loja:pedidos' %}">Pedidos</a></li>
+            <li class="menu-dropdown">
+                <a href="#" class="menu-toggle">Cardápio <i class="fas fa-chevron-down"></i></a>
+                <ul class="submenu">
+                    <li><a href="{% url 'admin_loja:categorias' %}">Categorias</a></li>
+                    <li><a href="{% url 'admin_loja:produtos' %}">Produtos</a></li>
+                </ul>
+            </li>
             <li><a href="{% url 'admin_loja:personalizar_loja' %}">Personalizar Loja</a></li>
             <li><a href="{% url 'admin_loja:configurar_frete' %}">Configurar Frete</a></li>
+            <li><a href="{% url 'admin_loja:impressoras' %}">Impressoras</a></li>
             <li><a href="{% url 'admin_loja:logout' %}">Sair</a></li>
         </ul>
     </nav>
