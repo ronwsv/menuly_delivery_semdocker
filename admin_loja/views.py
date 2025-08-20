@@ -8,7 +8,7 @@ from django import forms
 
 
 # Personalizar loja
-from .forms import LogoForm, BannerForm, ImpressoraForm
+from .forms import LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm
 @login_required
 def admin_loja_personalizar_loja(request):
     from core.models import Restaurante
@@ -357,3 +357,340 @@ está funcionando corretamente.
         'mensagem': mensagem,
         'tipo_msg': tipo_msg
     })
+
+
+# ==================== VIEWS DE CATEGORIAS ====================
+
+@login_required
+def admin_loja_categorias(request):
+    """Lista todas as categorias do restaurante"""
+    from core.models import Restaurante, Categoria
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/categorias.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    categorias = Categoria.objects.filter(restaurante=restaurante).order_by('ordem', 'nome')
+    
+    return render(request, 'admin_loja/categorias.html', {
+        'categorias': categorias,
+        'restaurante': restaurante
+    })
+
+@login_required
+def admin_loja_categoria_cadastrar(request):
+    """Cadastrar nova categoria"""
+    from core.models import Restaurante, Categoria
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/categoria_form.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    if request.method == 'POST':
+        form = CategoriaForm(request.POST, request.FILES)
+        if form.is_valid():
+            categoria = form.save(commit=False)
+            categoria.restaurante = restaurante
+            categoria.save()
+            return redirect('admin_loja:categorias')
+    else:
+        form = CategoriaForm()
+    
+    return render(request, 'admin_loja/categoria_form.html', {
+        'form': form,
+        'titulo': 'Nova Categoria',
+        'produtos_disponiveis': 0
+    })
+
+@login_required
+def admin_loja_categoria_editar(request, categoria_id):
+    """Editar categoria existente"""
+    from core.models import Categoria
+    
+    categoria = get_object_or_404(
+        Categoria, 
+        id=categoria_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    if request.method == 'POST':
+        form = CategoriaForm(request.POST, request.FILES, instance=categoria)
+        if form.is_valid():
+            form.save()
+            return redirect('admin_loja:categorias')
+    else:
+        form = CategoriaForm(instance=categoria)
+    
+    # Get statistics if editing existing category
+    produtos_disponiveis = 0
+    if categoria:
+        produtos_disponiveis = categoria.produtos.filter(disponivel=True).count()
+    
+    return render(request, 'admin_loja/categoria_form.html', {
+        'form': form,
+        'categoria': categoria,
+        'titulo': 'Editar Categoria',
+        'produtos_disponiveis': produtos_disponiveis
+    })
+
+@login_required
+def admin_loja_categoria_deletar(request, categoria_id):
+    """Deletar categoria"""
+    from core.models import Categoria
+    
+    categoria = get_object_or_404(
+        Categoria, 
+        id=categoria_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    # Verificar se há produtos na categoria
+    if categoria.produtos.exists():
+        return render(request, 'admin_loja/categorias.html', {
+            'categorias': Categoria.objects.filter(restaurante=categoria.restaurante).order_by('ordem', 'nome'),
+            'restaurante': categoria.restaurante,
+            'error_msg': 'Não é possível deletar categoria com produtos. Mova os produtos para outra categoria primeiro.'
+        })
+    
+    categoria.delete()
+    return redirect('admin_loja:categorias')
+
+@login_required 
+def admin_loja_categoria_toggle_ativo(request, categoria_id):
+    """Toggle status ativo da categoria via AJAX"""
+    from core.models import Categoria
+    from django.http import JsonResponse
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    categoria = get_object_or_404(
+        Categoria, 
+        id=categoria_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    categoria.ativo = not categoria.ativo
+    categoria.save()
+    
+    return JsonResponse({
+        'success': True,
+        'ativo': categoria.ativo,
+        'status_text': 'Ativa' if categoria.ativo else 'Inativa'
+    })
+
+
+# ==================== VIEWS DE PRODUTOS ====================
+
+@login_required
+def admin_loja_produtos(request):
+    """Lista todos os produtos do restaurante"""
+    from core.models import Restaurante, Produto, Categoria
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/produtos.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    # Filtros
+    categoria_id = request.GET.get('categoria')
+    status = request.GET.get('status')
+    
+    produtos = Produto.objects.filter(restaurante=restaurante)
+    
+    if categoria_id:
+        produtos = produtos.filter(categoria_id=categoria_id)
+    
+    if status == 'disponivel':
+        produtos = produtos.filter(disponivel=True)
+    elif status == 'indisponivel':
+        produtos = produtos.filter(disponivel=False)
+    elif status == 'destaque':
+        produtos = produtos.filter(destaque=True)
+    
+    produtos = produtos.select_related('categoria').order_by('categoria__ordem', 'ordem', 'nome')
+    categorias = Categoria.objects.filter(restaurante=restaurante, ativo=True).order_by('ordem', 'nome')
+    
+    return render(request, 'admin_loja/produtos.html', {
+        'produtos': produtos,
+        'categorias': categorias,
+        'restaurante': restaurante,
+        'filtro_categoria': categoria_id,
+        'filtro_status': status
+    })
+
+@login_required
+def admin_loja_produto_cadastrar(request):
+    """Cadastrar novo produto"""
+    from core.models import Restaurante, Produto
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/produto_form.html', {
+            'msg': 'Você não tem permissão para acessar esta página.'
+        })
+    
+    if request.method == 'POST':
+        form = ProdutoForm(request.POST, request.FILES, restaurante=restaurante)
+        if form.is_valid():
+            produto = form.save(commit=False)
+            produto.restaurante = restaurante
+            produto.save()
+            return redirect('admin_loja:produtos')
+    else:
+        form = ProdutoForm(restaurante=restaurante)
+    
+    return render(request, 'admin_loja/produto_form.html', {
+        'form': form,
+        'titulo': 'Novo Produto'
+    })
+
+@login_required
+def admin_loja_produto_editar(request, produto_id):
+    """Editar produto existente"""
+    from core.models import Produto
+    
+    produto = get_object_or_404(
+        Produto, 
+        id=produto_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    if request.method == 'POST':
+        form = ProdutoForm(
+            request.POST, 
+            request.FILES, 
+            instance=produto,
+            restaurante=produto.restaurante
+        )
+        if form.is_valid():
+            form.save()
+            return redirect('admin_loja:produtos')
+    else:
+        form = ProdutoForm(instance=produto, restaurante=produto.restaurante)
+    
+    return render(request, 'admin_loja/produto_form.html', {
+        'form': form,
+        'produto': produto,
+        'titulo': 'Editar Produto'
+    })
+
+@login_required
+def admin_loja_produto_deletar(request, produto_id):
+    """Deletar produto"""
+    from core.models import Produto
+    
+    produto = get_object_or_404(
+        Produto, 
+        id=produto_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    produto.delete()
+    return redirect('admin_loja:produtos')
+
+@login_required
+def admin_loja_produto_toggle_disponivel(request, produto_id):
+    """Toggle disponibilidade do produto via AJAX"""
+    from core.models import Produto
+    from django.http import JsonResponse
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    produto = get_object_or_404(
+        Produto, 
+        id=produto_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    produto.disponivel = not produto.disponivel
+    produto.save()
+    
+    return JsonResponse({
+        'success': True,
+        'disponivel': produto.disponivel,
+        'status_text': 'Disponível' if produto.disponivel else 'Esgotado'
+    })
+
+@login_required
+def admin_loja_produto_toggle_destaque(request, produto_id):
+    """Toggle destaque do produto via AJAX"""
+    from core.models import Produto
+    from django.http import JsonResponse
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    produto = get_object_or_404(
+        Produto, 
+        id=produto_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    produto.destaque = not produto.destaque
+    produto.save()
+    
+    return JsonResponse({
+        'success': True,
+        'destaque': produto.destaque,
+        'status_text': 'Em destaque' if produto.destaque else 'Normal'
+    })
+
+
+# ==================== VIEWS DE ORDENAÇÃO (DRAG & DROP) ====================
+
+@login_required
+def admin_loja_categoria_reorder(request):
+    """Reordenar categorias via AJAX"""
+    from core.models import Categoria
+    from django.http import JsonResponse
+    import json
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    try:
+        data = json.loads(request.body)
+        categoria_ids = data.get('categoria_ids', [])
+        
+        # Atualizar ordem das categorias
+        for index, categoria_id in enumerate(categoria_ids):
+            Categoria.objects.filter(
+                id=categoria_id,
+                restaurante__proprietario=request.user
+            ).update(ordem=index + 1)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def admin_loja_produto_reorder(request):
+    """Reordenar produtos via AJAX"""
+    from core.models import Produto
+    from django.http import JsonResponse
+    import json
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    try:
+        data = json.loads(request.body)
+        produto_ids = data.get('produto_ids', [])
+        
+        # Atualizar ordem dos produtos
+        for index, produto_id in enumerate(produto_ids):
+            Produto.objects.filter(
+                id=produto_id,
+                restaurante__proprietario=request.user
+            ).update(ordem=index + 1)
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

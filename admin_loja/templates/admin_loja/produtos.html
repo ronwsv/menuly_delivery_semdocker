@@ -1,0 +1,444 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>Gerenciar Produtos</h2>
+{% endblock %}
+
+{% block content %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% if msg %}
+<div class="alert alert-info">{{ msg }}</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-muted mb-0">Gerencie os produtos do seu cardápio</p>
+    </div>
+    <a href="{% url 'admin_loja:produto_cadastrar' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Novo Produto
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row align-items-end">
+            <div class="col-md-4">
+                <label for="categoria" class="form-label small">Categoria</label>
+                <select name="categoria" id="categoria" class="form-control form-control-sm">
+                    <option value="">Todas as categorias</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if filtro_categoria == categoria.id|slugify %}selected{% endif %}>
+                            {{ categoria.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label small">Status</label>
+                <select name="status" id="status" class="form-control form-control-sm">
+                    <option value="">Todos os status</option>
+                    <option value="disponivel" {% if filtro_status == 'disponivel' %}selected{% endif %}>Disponíveis</option>
+                    <option value="indisponivel" {% if filtro_status == 'indisponivel' %}selected{% endif %}>Esgotados</option>
+                    <option value="destaque" {% if filtro_status == 'destaque' %}selected{% endif %}>Em Destaque</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                <a href="{% url 'admin_loja:produtos' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if produtos %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-utensils"></i> Produtos do Cardápio
+            <span class="badge badge-secondary ml-2">{{ produtos.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div id="produtos-sortable">
+            {% regroup produtos by categoria as produtos_by_category %}
+            {% for categoria_group in produtos_by_category %}
+                <div class="categoria-section">
+                    <div class="categoria-header">
+                        <h6 class="text-muted mb-0 p-3 bg-light">
+                            <i class="fas fa-folder"></i> {{ categoria_group.grouper.nome }}
+                            <span class="badge badge-light ml-2">{{ categoria_group.list|length }}</span>
+                        </h6>
+                    </div>
+                    <div class="produtos-list">
+                        {% for produto in categoria_group.list %}
+                        <div class="produto-item border-bottom" data-produto-id="{{ produto.id }}">
+                            <div class="row align-items-center p-3">
+                                <div class="col-auto">
+                                    <i class="fas fa-grip-vertical text-muted drag-handle" style="cursor: move;" title="Arrastar para reordenar"></i>
+                                </div>
+                                <div class="col-auto">
+                                    {% if produto.imagem_principal %}
+                                        <img src="{{ produto.imagem_principal.url }}" alt="{{ produto.nome }}" class="produto-thumb">
+                                    {% else %}
+                                        <div class="produto-thumb-placeholder">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ produto.nome }}</h6>
+                                            {% if produto.descricao %}
+                                                <p class="text-muted mb-1 small">{{ produto.descricao|truncatechars:100 }}</p>
+                                            {% endif %}
+                                            <div class="produto-info">
+                                                <span class="badge badge-info">R$ {{ produto.preco_final }}</span>
+                                                {% if produto.tem_promocao %}
+                                                    <span class="badge badge-success">
+                                                        <i class="fas fa-percentage"></i> Promoção
+                                                    </span>
+                                                {% endif %}
+                                                {% if produto.destaque %}
+                                                    <span class="badge badge-warning">
+                                                        <i class="fas fa-star"></i> Destaque
+                                                    </span>
+                                                {% endif %}
+                                                <small class="text-muted ml-2">
+                                                    <i class="fas fa-clock"></i> {{ produto.tempo_preparo }}min
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="text-right ml-3">
+                                            <!-- Status Badges -->
+                                            <div class="mb-2">
+                                                {% if produto.disponivel %}
+                                                    <span class="badge badge-success status-badge-disponivel" 
+                                                          data-produto-id="{{ produto.id }}" 
+                                                          data-disponivel="true"
+                                                          style="cursor: pointer;"
+                                                          title="Clique para marcar como esgotado">
+                                                        <i class="fas fa-check"></i> Disponível
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge badge-danger status-badge-disponivel" 
+                                                          data-produto-id="{{ produto.id }}" 
+                                                          data-disponivel="false"
+                                                          style="cursor: pointer;"
+                                                          title="Clique para marcar como disponível">
+                                                        <i class="fas fa-times"></i> Esgotado
+                                                    </span>
+                                                {% endif %}
+                                                
+                                                {% if produto.destaque %}
+                                                    <span class="badge badge-warning status-badge-destaque" 
+                                                          data-produto-id="{{ produto.id }}" 
+                                                          data-destaque="true"
+                                                          style="cursor: pointer;"
+                                                          title="Clique para remover destaque">
+                                                        <i class="fas fa-star"></i> Destaque
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge badge-outline-warning status-badge-destaque" 
+                                                          data-produto-id="{{ produto.id }}" 
+                                                          data-destaque="false"
+                                                          style="cursor: pointer;"
+                                                          title="Clique para destacar">
+                                                        <i class="far fa-star"></i> Normal
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Action Buttons -->
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'admin_loja:produto_editar' produto.id %}" 
+                                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'admin_loja:produto_deletar' produto.id %}" 
+                                                   class="btn btn-sm btn-outline-danger" title="Deletar"
+                                                   onclick="return confirm('Tem certeza que deseja deletar este produto?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer text-muted">
+        <i class="fas fa-info-circle"></i> 
+        Arraste os produtos para reordenar. Clique nos status para alterar rapidamente.
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+        <h5>Nenhum produto encontrado</h5>
+        {% if filtro_categoria or filtro_status %}
+            <p class="text-muted">Nenhum produto corresponde aos filtros selecionados.</p>
+            <a href="{% url 'admin_loja:produtos' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Limpar Filtros
+            </a>
+        {% else %}
+            <p class="text-muted">Crie seu primeiro produto para começar a vender.</p>
+            <a href="{% url 'admin_loja:produto_cadastrar' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Criar Primeiro Produto
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.produto-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+}
+
+.produto-thumb-placeholder {
+    width: 60px;
+    height: 60px;
+    background: #e9ecef;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+}
+
+.produto-item {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.produto-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #007bff;
+}
+
+.produto-item.sortable-chosen {
+    background-color: #e3f2fd !important;
+    border-left-color: #2196f3 !important;
+}
+
+.produto-item.sortable-ghost {
+    opacity: 0.5;
+}
+
+.drag-handle {
+    padding: 8px;
+    margin: -8px;
+    border-radius: 4px;
+}
+
+.drag-handle:hover {
+    background-color: #e9ecef;
+}
+
+.status-badge-disponivel,
+.status-badge-destaque {
+    transition: all 0.3s ease;
+    margin-bottom: 2px;
+}
+
+.status-badge-disponivel:hover,
+.status-badge-destaque:hover {
+    transform: scale(1.05);
+}
+
+.badge-outline-warning {
+    color: #ffc107;
+    border: 1px solid #ffc107;
+    background: transparent;
+}
+
+.produto-info .badge {
+    margin-right: 4px;
+    margin-bottom: 2px;
+}
+
+.categoria-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.form-control-sm {
+    font-size: 0.875rem;
+}
+</style>
+
+<!-- SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize drag and drop for each category
+    $('.produtos-list').each(function() {
+        Sortable.create(this, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: function(evt) {
+                const produtoIds = [];
+                $(evt.to).find('.produto-item').each(function() {
+                    produtoIds.push($(this).data('produto-id'));
+                });
+                
+                // Send AJAX request to update order
+                updateOrder(produtoIds);
+            }
+        });
+    });
+    
+    // Function to update product order
+    function updateOrder(produtoIds) {
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                }
+            }
+        });
+        
+        $.ajax({
+            url: '{% url "admin_loja:produto_reorder" %}',
+            type: 'POST',
+            data: JSON.stringify({produto_ids: produtoIds}),
+            contentType: 'application/json',
+            success: function(response) {
+                if (!response.success) {
+                    alert('Erro ao atualizar ordem dos produtos.');
+                }
+            },
+            error: function() {
+                alert('Erro ao atualizar ordem dos produtos.');
+            }
+        });
+    }
+    
+    // Toggle disponibilidade
+    $('.status-badge-disponivel').click(function() {
+        const $badge = $(this);
+        const produtoId = $badge.data('produto-id');
+        
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                }
+            }
+        });
+        
+        $.ajax({
+            url: '/admin-loja/produtos/' + produtoId + '/toggle-disponivel/',
+            type: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    if (response.disponivel) {
+                        $badge.removeClass('badge-danger').addClass('badge-success');
+                        $badge.html('<i class="fas fa-check"></i> Disponível');
+                        $badge.attr('title', 'Clique para marcar como esgotado');
+                    } else {
+                        $badge.removeClass('badge-success').addClass('badge-danger');
+                        $badge.html('<i class="fas fa-times"></i> Esgotado');
+                        $badge.attr('title', 'Clique para marcar como disponível');
+                    }
+                    $badge.data('disponivel', response.disponivel);
+                }
+            },
+            error: function() {
+                alert('Erro ao alterar disponibilidade do produto.');
+            }
+        });
+    });
+    
+    // Toggle destaque
+    $('.status-badge-destaque').click(function() {
+        const $badge = $(this);
+        const produtoId = $badge.data('produto-id');
+        
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                }
+            }
+        });
+        
+        $.ajax({
+            url: '/admin-loja/produtos/' + produtoId + '/toggle-destaque/',
+            type: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    if (response.destaque) {
+                        $badge.removeClass('badge-outline-warning').addClass('badge-warning');
+                        $badge.html('<i class="fas fa-star"></i> Destaque');
+                        $badge.attr('title', 'Clique para remover destaque');
+                    } else {
+                        $badge.removeClass('badge-warning').addClass('badge-outline-warning');
+                        $badge.html('<i class="far fa-star"></i> Normal');
+                        $badge.attr('title', 'Clique para destacar');
+                    }
+                    $badge.data('destaque', response.destaque);
+                }
+            },
+            error: function() {
+                alert('Erro ao alterar destaque do produto.');
+            }
+        });
+    });
+});
+
+// Function to get CSRF cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

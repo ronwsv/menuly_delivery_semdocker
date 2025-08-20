@@ -1,0 +1,266 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>{{ titulo }}</h2>
+{% endblock %}
+
+{% block content %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% if msg %}
+<div class="alert alert-info">{{ msg }}</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Nome da Categoria -->
+                    <div class="form-group">
+                        <label for="{{ form.nome.id_for_label }}" class="form-label">
+                            <i class="fas fa-tag"></i> {{ form.nome.label }} *
+                        </label>
+                        {{ form.nome }}
+                        {% if form.nome.help_text %}
+                            <small class="form-text text-muted">{{ form.nome.help_text }}</small>
+                        {% endif %}
+                        {% if form.nome.errors %}
+                            <div class="invalid-feedback d-block">{{ form.nome.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Descrição -->
+                    <div class="form-group">
+                        <label for="{{ form.descricao.id_for_label }}" class="form-label">
+                            <i class="fas fa-align-left"></i> {{ form.descricao.label }}
+                        </label>
+                        {{ form.descricao }}
+                        {% if form.descricao.help_text %}
+                            <small class="form-text text-muted">{{ form.descricao.help_text }}</small>
+                        {% endif %}
+                        {% if form.descricao.errors %}
+                            <div class="invalid-feedback d-block">{{ form.descricao.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Imagem -->
+                    <div class="form-group">
+                        <label for="{{ form.imagem.id_for_label }}" class="form-label">
+                            <i class="fas fa-image"></i> {{ form.imagem.label }}
+                        </label>
+                        <div class="custom-file">
+                            {{ form.imagem }}
+                            <label class="custom-file-label" for="{{ form.imagem.id_for_label }}">Escolher imagem...</label>
+                        </div>
+                        {% if form.imagem.help_text %}
+                            <small class="form-text text-muted">{{ form.imagem.help_text }}</small>
+                        {% endif %}
+                        {% if form.imagem.errors %}
+                            <div class="invalid-feedback d-block">{{ form.imagem.errors }}</div>
+                        {% endif %}
+                        
+                        <!-- Preview atual da imagem -->
+                        {% if categoria and categoria.imagem %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ categoria.imagem.url }}" alt="{{ categoria.nome }}" class="img-thumbnail mt-1" style="max-width: 150px;">
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Preview da nova imagem -->
+                        <div class="mt-2" id="image-preview" style="display: none;">
+                            <small class="text-muted">Nova imagem:</small><br>
+                            <img id="preview-img" src="" alt="Preview" class="img-thumbnail mt-1" style="max-width: 150px;">
+                        </div>
+                    </div>
+                    
+                    <!-- Ordem e Status -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.ordem.id_for_label }}" class="form-label">
+                                    <i class="fas fa-sort-numeric-up"></i> {{ form.ordem.label }} *
+                                </label>
+                                {{ form.ordem }}
+                                {% if form.ordem.help_text %}
+                                    <small class="form-text text-muted">{{ form.ordem.help_text }}</small>
+                                {% else %}
+                                    <small class="form-text text-muted">Ordem de exibição no cardápio (menor número aparece primeiro)</small>
+                                {% endif %}
+                                {% if form.ordem.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.ordem.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <div class="form-check">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                        <i class="fas fa-toggle-on"></i> {{ form.ativo.label }}
+                                    </label>
+                                    <small class="form-text text-muted d-block">Categorias inativas não aparecem no cardápio</small>
+                                    {% if form.ativo.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.ativo.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'admin_loja:categorias' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Categoria
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Dicas</h6>
+            </div>
+            <div class="card-body">
+                <h6>Nome da Categoria</h6>
+                <p class="small text-muted">Use nomes claros e descritivos como "Pizzas", "Hambúrgueres", "Bebidas", etc.</p>
+                
+                <h6>Descrição</h6>
+                <p class="small text-muted">Uma descrição opcional pode ajudar os clientes a entender melhor a categoria.</p>
+                
+                <h6>Imagem</h6>
+                <p class="small text-muted">Formatos aceitos: JPG, PNG, GIF. Tamanho recomendado: 300x300px.</p>
+                
+                <h6>Ordem</h6>
+                <p class="small text-muted">A ordem determina como as categorias aparecem no cardápio. Menor número = primeira posição.</p>
+            </div>
+        </div>
+        
+        {% if categoria %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Estatísticas</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-right">
+                            <h4 class="text-primary">{{ categoria.produtos.count }}</h4>
+                            <small class="text-muted">Produto{{ categoria.produtos.count|pluralize }}</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ produtos_disponiveis }}</h4>
+                        <small class="text-muted">Disponíve{{ produtos_disponiveis|pluralize:"l,is" }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    color: #6c757d;
+    margin-right: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.custom-file-label::after {
+    content: "Buscar";
+}
+
+.form-check {
+    padding: 0.5rem 0;
+}
+
+.form-check-input {
+    margin-top: 0.3rem;
+}
+
+.form-check-label i {
+    color: #28a745;
+    margin-right: 0.5rem;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.img-thumbnail {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Update custom file input label
+    $('#{{ form.imagem.id_for_label }}').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName || 'Escolher imagem...');
+        
+        // Show image preview
+        if (this.files && this.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#preview-img').attr('src', e.target.result);
+                $('#image-preview').show();
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    // Form validation
+    $('form').on('submit', function(e) {
+        var nome = $('#{{ form.nome.id_for_label }}').val().trim();
+        if (!nome) {
+            e.preventDefault();
+            alert('Por favor, preencha o nome da categoria.');
+            $('#{{ form.nome.id_for_label }}').focus();
+            return false;
+        }
+    });
+});
+</script>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% endblock %}

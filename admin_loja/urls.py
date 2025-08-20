@@ -19,6 +19,23 @@ urlpatterns = [
     path('impressoras/<uuid:impressora_id>/deletar/', views.admin_loja_impressora_deletar, name='impressora_deletar'),
     path('impressoras/<uuid:impressora_id>/testar/', views.admin_loja_impressora_testar, name='impressora_testar'),
     
+    # URLs para categorias
+    path('categorias/', views.admin_loja_categorias, name='categorias'),
+    path('categorias/cadastrar/', views.admin_loja_categoria_cadastrar, name='categoria_cadastrar'),
+    path('categorias/<uuid:categoria_id>/editar/', views.admin_loja_categoria_editar, name='categoria_editar'),
+    path('categorias/<uuid:categoria_id>/deletar/', views.admin_loja_categoria_deletar, name='categoria_deletar'),
+    path('categorias/<uuid:categoria_id>/toggle-ativo/', views.admin_loja_categoria_toggle_ativo, name='categoria_toggle_ativo'),
+    path('categorias/reorder/', views.admin_loja_categoria_reorder, name='categoria_reorder'),
+    
+    # URLs para produtos
+    path('produtos/', views.admin_loja_produtos, name='produtos'),
+    path('produtos/cadastrar/', views.admin_loja_produto_cadastrar, name='produto_cadastrar'),
+    path('produtos/<uuid:produto_id>/editar/', views.admin_loja_produto_editar, name='produto_editar'),
+    path('produtos/<uuid:produto_id>/deletar/', views.admin_loja_produto_deletar, name='produto_deletar'),
+    path('produtos/<uuid:produto_id>/toggle-disponivel/', views.admin_loja_produto_toggle_disponivel, name='produto_toggle_disponivel'),
+    path('produtos/<uuid:produto_id>/toggle-destaque/', views.admin_loja_produto_toggle_destaque, name='produto_toggle_destaque'),
+    path('produtos/reorder/', views.admin_loja_produto_reorder, name='produto_reorder'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]

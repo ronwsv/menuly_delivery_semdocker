@@ -1,5 +1,6 @@
 from django import forms
-from core.models import Restaurante
+from django.db import models
+from core.models import Restaurante, Categoria, Produto
 from .models import Impressora
 
 
@@ -56,5 +57,133 @@ class ImpressoraForm(forms.ModelForm):
         
         if tipo_conexao == 'usb' and not caminho_usb:
             raise forms.ValidationError('Caminho USB é obrigatório para conexões USB.')
+        
+        return cleaned_data
+
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['nome', 'descricao', 'imagem', 'ordem', 'ativo']
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Ex: Pizzas, Hambúrgueres, Bebidas'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'Descrição da categoria (opcional)'
+            }),
+            'imagem': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'ordem': forms.NumberInput(attrs={'class': 'form-control'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['descricao'].required = False
+        self.fields['imagem'].required = False
+        
+        # Se é uma nova categoria, definir ordem automaticamente
+        if not self.instance.pk:
+            from core.models import Categoria
+            last_order = Categoria.objects.aggregate(
+                models.Max('ordem')
+            )['ordem__max'] or 0
+            self.fields['ordem'].initial = last_order + 1
+
+
+class ProdutoForm(forms.ModelForm):
+    class Meta:
+        model = Produto
+        fields = [
+            'nome', 'descricao', 'categoria', 'preco', 'preco_promocional',
+            'imagem_principal', 'destaque', 'disponivel', 'permite_observacoes',
+            'tempo_preparo', 'calorias', 'ingredientes', 'alergicos', 'ordem'
+        ]
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Pizza Margherita'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Descreva o produto...'
+            }),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'preco': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'preco_promocional': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'imagem_principal': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'destaque': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'disponivel': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'permite_observacoes': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tempo_preparo': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1'
+            }),
+            'calorias': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0'
+            }),
+            'ingredientes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Liste os ingredientes principais...'
+            }),
+            'alergicos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Informações sobre alérgenos...'
+            }),
+            'ordem': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        restaurante = kwargs.pop('restaurante', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar categorias pelo restaurante
+        if restaurante:
+            self.fields['categoria'].queryset = Categoria.objects.filter(
+                restaurante=restaurante, ativo=True
+            ).order_by('ordem', 'nome')
+        
+        # Campos opcionais
+        optional_fields = [
+            'preco_promocional', 'calorias', 'ingredientes', 
+            'alergicos', 'imagem_principal'
+        ]
+        for field_name in optional_fields:
+            self.fields[field_name].required = False
+        
+        # Se é um novo produto, definir ordem automaticamente
+        if not self.instance.pk and restaurante:
+            from core.models import Produto
+            last_order = Produto.objects.filter(
+                restaurante=restaurante
+            ).aggregate(
+                models.Max('ordem')
+            )['ordem__max'] or 0
+            self.fields['ordem'].initial = last_order + 1
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        preco = cleaned_data.get('preco')
+        preco_promocional = cleaned_data.get('preco_promocional')
+        
+        if preco_promocional and preco_promocional >= preco:
+            raise forms.ValidationError(
+                'Preço promocional deve ser menor que o preço normal.'
+            )
         
         return cleaned_data
