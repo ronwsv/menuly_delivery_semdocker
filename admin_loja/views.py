@@ -7,38 +7,106 @@ from django.http import HttpResponseRedirect
 from django import forms
 
 
-# Personalizar loja
-from .forms import LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm
+# ==================== VIEWS DE PERSONALIZAÇÃO AVANÇADA ====================
+
+from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
+                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet)
+
 @login_required
 def admin_loja_personalizar_loja(request):
-    from core.models import Restaurante
+    """View principal para personalização da loja"""
+    from core.models import Restaurante, HorarioFuncionamento
+    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
-        return render(request, 'admin_loja/personalizar_loja.html', {'msg': 'Você não tem permissão para personalizar esta loja.'})
-    logo_url = restaurante.logo.url if restaurante.logo else None
-    banner_url = restaurante.banner.url if restaurante.banner else None
-    msg = None
+        return render(request, 'admin_loja/personalizar_loja.html', {
+            'msg': 'Você não tem permissão para personalizar esta loja.'
+        })
+    
+    # Inicializar forms
     logo_form = LogoForm(instance=restaurante)
     banner_form = BannerForm(instance=restaurante)
+    visual_form = PersonalizacaoVisulaForm(instance=restaurante)
+    
+    # Preparar horários existentes (criar se não existirem)
+    horarios_existentes = []
+    for dia in range(7):  # 0-6 para Seg-Dom
+        horario, created = HorarioFuncionamento.objects.get_or_create(
+            restaurante=restaurante,
+            dia_semana=dia,
+            defaults={
+                'hora_abertura': '08:00',
+                'hora_fechamento': '22:00',
+                'ativo': True
+            }
+        )
+        horarios_existentes.append(horario)
+    
+    horarios_formset = HorarioFuncionamentoFormSet(
+        queryset=HorarioFuncionamento.objects.filter(
+            restaurante=restaurante
+        ).order_by('dia_semana')
+    )
+    
+    msg = None
+    msg_type = 'success'
+    
     if request.method == 'POST':
+        # Handle logo upload
         if 'logo' in request.FILES:
             logo_form = LogoForm(request.POST, request.FILES, instance=restaurante)
             if logo_form.is_valid():
                 logo_form.save()
                 msg = 'Logo atualizada com sucesso!'
-                logo_url = restaurante.logo.url if restaurante.logo else None
-        if 'banner' in request.FILES:
+        
+        # Handle banner upload  
+        elif 'banner' in request.FILES:
             banner_form = BannerForm(request.POST, request.FILES, instance=restaurante)
             if banner_form.is_valid():
                 banner_form.save()
                 msg = 'Banner atualizado com sucesso!'
-                banner_url = restaurante.banner.url if restaurante.banner else None
+        
+        # Handle visual customization
+        elif 'visual_form' in request.POST:
+            visual_form = PersonalizacaoVisulaForm(
+                request.POST, 
+                request.FILES, 
+                instance=restaurante
+            )
+            if visual_form.is_valid():
+                visual_form.save()
+                msg = 'Personalização visual salva com sucesso!'
+        
+        # Handle business hours
+        elif 'horarios_form' in request.POST:
+            horarios_formset = HorarioFuncionamentoFormSet(
+                request.POST,
+                queryset=HorarioFuncionamento.objects.filter(
+                    restaurante=restaurante
+                ).order_by('dia_semana')
+            )
+            if horarios_formset.is_valid():
+                instances = horarios_formset.save(commit=False)
+                for instance in instances:
+                    instance.restaurante = restaurante
+                    instance.save()
+                horarios_formset.save()
+                msg = 'Horários de funcionamento atualizados com sucesso!'
+            else:
+                msg = 'Erro ao salvar horários. Verifique os dados informados.'
+                msg_type = 'error'
+    
     return render(request, 'admin_loja/personalizar_loja.html', {
-        'form': logo_form,
+        'restaurante': restaurante,
+        'logo_form': logo_form,
         'banner_form': banner_form,
-        'logo_url': logo_url,
-        'banner_url': banner_url,
-        'msg': msg
+        'visual_form': visual_form,
+        'horarios_formset': horarios_formset,
+        'msg': msg,
+        'msg_type': msg_type,
+        'logo_url': restaurante.logo.url if restaurante.logo else None,
+        'banner_url': restaurante.banner.url if restaurante.banner else None,
+        'favicon_url': restaurante.favicon.url if restaurante.favicon else None,
     })
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -51,11 +119,6 @@ def admin_loja_logout(request):
     logout(request)
     return render(request, 'admin_loja/logout.html')
 
-# Personalizar loja
-@login_required
-def admin_loja_personalizar_loja(request):
-    # Página inicial de personalização da loja
-    return render(request, 'admin_loja/personalizar_loja.html')
 
 # Configuração de frete
 @login_required

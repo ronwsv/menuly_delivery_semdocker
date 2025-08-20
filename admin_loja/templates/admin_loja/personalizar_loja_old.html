@@ -1,0 +1,43 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block content %}
+<div class="personalizar-loja-page" style="max-width: 600px; margin: 60px auto; padding: 32px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
+    <h2>Personalizar Loja</h2>
+    {% if msg %}
+        <div style="color: green; margin-bottom: 16px;">{{ msg }}</div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" style="margin-bottom: 32px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 16px;">
+            <label for="id_logo"><strong>Logo da loja:</strong></label><br>
+            {% if logo_url %}
+                <img src="{{ logo_url }}" alt="Logo atual" style="max-width: 180px; max-height: 120px; display: block; margin: 12px 0; border: 1px solid #eee; background: #fafafa;" />
+            {% else %}
+                <span style="color: #888;">Nenhuma logo cadastrada</span><br>
+            {% endif %}
+            <input type="file" name="logo" id="id_logo" accept="image/*" style="display:none;" onchange="document.getElementById('logo-filename').innerText = this.files[0]?.name || ''">
+            <button type="button" onclick="document.getElementById('id_logo').click();" style="margin-top: 8px;">Selecionar Imagem</button>
+            <span id="logo-filename" style="margin-left: 8px; color: #555;"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Logo</button>
+    </form>
+
+    <form method="post" enctype="multipart/form-data" style="margin-bottom: 32px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 16px;">
+            <label for="id_banner"><strong>Banner promocional:</strong></label><br>
+            {% if banner_url %}
+                <img src="{{ banner_url }}" alt="Banner atual" style="max-width: 320px; max-height: 120px; display: block; margin: 12px 0; border: 1px solid #eee; background: #fafafa;" />
+            {% else %}
+                <span style="color: #888;">Nenhum banner cadastrado</span><br>
+            {% endif %}
+            <input type="file" name="banner" id="id_banner" accept="image/*" style="display:none;" onchange="document.getElementById('banner-filename').innerText = this.files[0]?.name || ''">
+            <button type="button" onclick="document.getElementById('id_banner').click();" style="margin-top: 8px;">Selecionar Banner</button>
+            <span id="banner-filename" style="margin-left: 8px; color: #555;"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Banner</button>
+    </form>
+    <hr>
+    <p><em>Em breve, você poderá editar cores, banners, mensagens e horários de funcionamento por aqui!</em></p>
+</div>
+{% endblock %}

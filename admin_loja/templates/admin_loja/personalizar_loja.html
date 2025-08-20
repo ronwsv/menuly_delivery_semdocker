@@ -1,43 +1,466 @@
 {% extends 'admin_loja/base_admin_loja.html' %}
 
-{% block content %}
-<div class="personalizar-loja-page" style="max-width: 600px; margin: 60px auto; padding: 32px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);">
-    <h2>Personalizar Loja</h2>
-    {% if msg %}
-        <div style="color: green; margin-bottom: 16px;">{{ msg }}</div>
-    {% endif %}
-    <form method="post" enctype="multipart/form-data" style="margin-bottom: 32px;">
-        {% csrf_token %}
-        <div style="margin-bottom: 16px;">
-            <label for="id_logo"><strong>Logo da loja:</strong></label><br>
-            {% if logo_url %}
-                <img src="{{ logo_url }}" alt="Logo atual" style="max-width: 180px; max-height: 120px; display: block; margin: 12px 0; border: 1px solid #eee; background: #fafafa;" />
-            {% else %}
-                <span style="color: #888;">Nenhuma logo cadastrada</span><br>
-            {% endif %}
-            <input type="file" name="logo" id="id_logo" accept="image/*" style="display:none;" onchange="document.getElementById('logo-filename').innerText = this.files[0]?.name || ''">
-            <button type="button" onclick="document.getElementById('id_logo').click();" style="margin-top: 8px;">Selecionar Imagem</button>
-            <span id="logo-filename" style="margin-left: 8px; color: #555;"></span>
-        </div>
-        <button type="submit" class="btn btn-primary">Salvar Logo</button>
-    </form>
+{% block header %}
+<h2>Personalizar Loja</h2>
+{% endblock %}
 
-    <form method="post" enctype="multipart/form-data" style="margin-bottom: 32px;">
-        {% csrf_token %}
-        <div style="margin-bottom: 16px;">
-            <label for="id_banner"><strong>Banner promocional:</strong></label><br>
-            {% if banner_url %}
-                <img src="{{ banner_url }}" alt="Banner atual" style="max-width: 320px; max-height: 120px; display: block; margin: 12px 0; border: 1px solid #eee; background: #fafafa;" />
-            {% else %}
-                <span style="color: #888;">Nenhum banner cadastrado</span><br>
-            {% endif %}
-            <input type="file" name="banner" id="id_banner" accept="image/*" style="display:none;" onchange="document.getElementById('banner-filename').innerText = this.files[0]?.name || ''">
-            <button type="button" onclick="document.getElementById('id_banner').click();" style="margin-top: 8px;">Selecionar Banner</button>
-            <span id="banner-filename" style="margin-left: 8px; color: #555;"></span>
-        </div>
-        <button type="submit" class="btn btn-primary">Salvar Banner</button>
-    </form>
-    <hr>
-    <p><em>Em breve, você poderá editar cores, banners, mensagens e horários de funcionamento por aqui!</em></p>
+{% block content %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% if msg %}
+<div class="alert {% if msg_type == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+    <i class="fas {% if msg_type == 'error' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}"></i>
+    {{ msg }}
+    <button type="button" class="close" data-dismiss="alert">
+        <span>&times;</span>
+    </button>
 </div>
+{% endif %}
+
+<!-- Tab Navigation -->
+<div class="card">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="imagens-tab" data-toggle="tab" href="#imagens" role="tab">
+                    <i class="fas fa-images"></i> Imagens
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="visual-tab" data-toggle="tab" href="#visual" role="tab">
+                    <i class="fas fa-palette"></i> Visual
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="horarios-tab" data-toggle="tab" href="#horarios" role="tab">
+                    <i class="fas fa-clock"></i> Horários
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="card-body">
+        <div class="tab-content">
+            
+            <!-- TAB 1: IMAGENS -->
+            <div class="tab-pane fade show active" id="imagens" role="tabpanel">
+                <div class="row">
+                    <!-- Logo Section -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-image"></i> Logo da Loja</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if logo_url %}
+                                    <img src="{{ logo_url }}" alt="Logo atual" class="img-thumbnail mb-3" style="max-width: 200px; max-height: 150px;">
+                                    <p class="text-muted small">Logo atual</p>
+                                {% else %}
+                                    <div class="bg-light p-4 mb-3 rounded">
+                                        <i class="fas fa-image fa-3x text-muted"></i>
+                                        <p class="text-muted mt-2">Nenhuma logo cadastrada</p>
+                                    </div>
+                                {% endif %}
+                                
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="custom-file mb-3">
+                                        <input type="file" class="custom-file-input" id="id_logo" name="logo" accept="image/*">
+                                        <label class="custom-file-label" for="id_logo">Escolher logo...</label>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload"></i> Atualizar Logo
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Banner Section -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-banner"></i> Banner Promocional</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if banner_url %}
+                                    <img src="{{ banner_url }}" alt="Banner atual" class="img-thumbnail mb-3" style="max-width: 300px; max-height: 150px;">
+                                    <p class="text-muted small">Banner atual</p>
+                                {% else %}
+                                    <div class="bg-light p-4 mb-3 rounded">
+                                        <i class="fas fa-panorama fa-3x text-muted"></i>
+                                        <p class="text-muted mt-2">Nenhum banner cadastrado</p>
+                                    </div>
+                                {% endif %}
+                                
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="custom-file mb-3">
+                                        <input type="file" class="custom-file-input" id="id_banner" name="banner" accept="image/*">
+                                        <label class="custom-file-label" for="id_banner">Escolher banner...</label>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload"></i> Atualizar Banner
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 2: PERSONALIZAÇÃO VISUAL -->
+            <div class="tab-pane fade" id="visual" role="tabpanel">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="visual_form" value="1">
+                    
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <!-- Mensagens -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-comment-alt"></i> Mensagens Personalizadas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label for="{{ visual_form.slogan.id_for_label }}" class="form-label">
+                                            <i class="fas fa-quote-left"></i> {{ visual_form.slogan.label }}
+                                        </label>
+                                        {{ visual_form.slogan }}
+                                        <small class="form-text text-muted">Slogan que aparecerá na página inicial</small>
+                                        {% if visual_form.slogan.errors %}
+                                            <div class="invalid-feedback d-block">{{ visual_form.slogan.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="{{ visual_form.mensagem_boas_vindas.id_for_label }}" class="form-label">
+                                            <i class="fas fa-heart"></i> {{ visual_form.mensagem_boas_vindas.label }}
+                                        </label>
+                                        {{ visual_form.mensagem_boas_vindas }}
+                                        <small class="form-text text-muted">Mensagem de boas-vindas exibida aos clientes</small>
+                                        {% if visual_form.mensagem_boas_vindas.errors %}
+                                            <div class="invalid-feedback d-block">{{ visual_form.mensagem_boas_vindas.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Cores -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-palette"></i> Cores da Marca</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="{{ visual_form.cor_primaria.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-circle text-primary"></i> {{ visual_form.cor_primaria.label }}
+                                                </label>
+                                                <div class="input-group">
+                                                    {{ visual_form.cor_primaria }}
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text" id="cor-primaria-preview" style="background-color: {{ restaurante.cor_primaria }}; width: 40px;"></span>
+                                                    </div>
+                                                </div>
+                                                <small class="form-text text-muted">Cor principal da sua marca</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="{{ visual_form.cor_secundaria.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-circle text-secondary"></i> {{ visual_form.cor_secundaria.label }}
+                                                </label>
+                                                <div class="input-group">
+                                                    {{ visual_form.cor_secundaria }}
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text" id="cor-secundaria-preview" style="background-color: {{ restaurante.cor_secundaria }}; width: 40px;"></span>
+                                                    </div>
+                                                </div>
+                                                <small class="form-text text-muted">Cor secundária</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="{{ visual_form.cor_destaque.id_for_label }}" class="form-label">
+                                                    <i class="fas fa-circle text-warning"></i> {{ visual_form.cor_destaque.label }}
+                                                </label>
+                                                <div class="input-group">
+                                                    {{ visual_form.cor_destaque }}
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text" id="cor-destaque-preview" style="background-color: {{ restaurante.cor_destaque }}; width: 40px;"></span>
+                                                    </div>
+                                                </div>
+                                                <small class="form-text text-muted">Cor para destaques</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Favicon -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-star"></i> Favicon</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3 text-center">
+                                            {% if favicon_url %}
+                                                <img src="{{ favicon_url }}" alt="Favicon atual" style="width: 32px; height: 32px;">
+                                                <p class="text-muted small mt-1">Favicon atual</p>
+                                            {% else %}
+                                                <i class="fas fa-star fa-2x text-muted"></i>
+                                                <p class="text-muted small mt-1">Sem favicon</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="form-group mb-0">
+                                                <label for="{{ visual_form.favicon.id_for_label }}" class="form-label">
+                                                    {{ visual_form.favicon.label }}
+                                                </label>
+                                                {{ visual_form.favicon }}
+                                                <small class="form-text text-muted">Ícone que aparece na aba do navegador (16x16 ou 32x32 pixels)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview -->
+                        <div class="col-lg-4">
+                            <div class="card position-sticky" style="top: 20px;">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-eye"></i> Prévia</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="color-preview" class="border rounded p-3 mb-3">
+                                        <div class="mb-2">
+                                            <span class="badge" id="primary-badge" style="background-color: {{ restaurante.cor_primaria }}">Primária</span>
+                                            <span class="badge ml-1" id="secondary-badge" style="background-color: {{ restaurante.cor_secundaria }}">Secundária</span>
+                                            <span class="badge ml-1" id="accent-badge" style="background-color: {{ restaurante.cor_destaque }}">Destaque</span>
+                                        </div>
+                                        <div class="small text-muted">
+                                            Esta é uma prévia de como suas cores aparecerão no site.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-success btn-block">
+                                            <i class="fas fa-save"></i> Salvar Personalização
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- TAB 3: HORÁRIOS -->
+            <div class="tab-pane fade" id="horarios" role="tabpanel">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="horarios_form" value="1">
+                    {{ horarios_formset.management_form }}
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-clock"></i> Horários de Funcionamento</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th width="25%">Dia da Semana</th>
+                                            <th width="25%">Abertura</th>
+                                            <th width="25%">Fechamento</th>
+                                            <th width="15%" class="text-center">Ativo</th>
+                                            <th width="10%">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for form in horarios_formset %}
+                                        <tr>
+                                            <td>
+                                                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                                <strong>{{ form.instance.get_dia_semana_display }}</strong>
+                                                {{ form.dia_semana.as_hidden }}
+                                            </td>
+                                            <td>
+                                                {{ form.hora_abertura }}
+                                                {% if form.hora_abertura.errors %}
+                                                    <small class="text-danger">{{ form.hora_abertura.errors }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.hora_fechamento }}
+                                                {% if form.hora_fechamento.errors %}
+                                                    <small class="text-danger">{{ form.hora_fechamento.errors }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {{ form.ativo }}
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary copy-hours" 
+                                                        data-abertura="{{ form.hora_abertura.value }}" 
+                                                        data-fechamento="{{ form.hora_fechamento.value }}"
+                                                        title="Copiar para todos">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% if form.non_field_errors %}
+                                        <tr>
+                                            <td colspan="5">
+                                                <small class="text-danger">{{ form.non_field_errors }}</small>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Salvar Horários
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ml-2" id="apply-to-all">
+                                    <i class="fas fa-clone"></i> Aplicar Segunda-feira para Todos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    color: #6c757d;
+    margin-right: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 0;
+    color: #6c757d;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: transparent;
+    border-bottom: 3px solid #007bff;
+    color: #007bff;
+    font-weight: 600;
+}
+
+.custom-file-label::after {
+    content: "Buscar";
+}
+
+.form-control-color {
+    width: 60px;
+    height: calc(1.5em + 0.75rem + 2px);
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+}
+
+.input-group-text {
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.alert {
+    border-radius: 8px;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Update file input labels
+    $('.custom-file-input').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName || 'Escolher arquivo...');
+    });
+    
+    // Color picker preview updates
+    $('#{{ visual_form.cor_primaria.id_for_label }}').on('input', function() {
+        var color = $(this).val();
+        $('#cor-primaria-preview').css('background-color', color);
+        $('#primary-badge').css('background-color', color);
+    });
+    
+    $('#{{ visual_form.cor_secundaria.id_for_label }}').on('input', function() {
+        var color = $(this).val();
+        $('#cor-secundaria-preview').css('background-color', color);
+        $('#secondary-badge').css('background-color', color);
+    });
+    
+    $('#{{ visual_form.cor_destaque.id_for_label }}').on('input', function() {
+        var color = $(this).val();
+        $('#cor-destaque-preview').css('background-color', color);
+        $('#accent-badge').css('background-color', color);
+    });
+    
+    // Copy hours functionality
+    $('.copy-hours').click(function() {
+        var abertura = $(this).data('abertura');
+        var fechamento = $(this).data('fechamento');
+        
+        if (confirm('Deseja copiar estes horários para todos os outros dias?')) {
+            $('input[name$="-hora_abertura"]').val(abertura);
+            $('input[name$="-hora_fechamento"]').val(fechamento);
+            $('input[name$="-ativo"]').prop('checked', true);
+        }
+    });
+    
+    // Apply Monday hours to all days
+    $('#apply-to-all').click(function() {
+        var mondayAbertura = $('input[name$="-hora_abertura"]:first').val();
+        var mondayFechamento = $('input[name$="-hora_fechamento"]:first').val();
+        
+        if (mondayAbertura && mondayFechamento) {
+            if (confirm('Aplicar os horários de segunda-feira para todos os dias da semana?')) {
+                $('input[name$="-hora_abertura"]').val(mondayAbertura);
+                $('input[name$="-hora_fechamento"]').val(mondayFechamento);
+                $('input[name$="-ativo"]').prop('checked', true);
+            }
+        } else {
+            alert('Por favor, defina primeiro os horários de segunda-feira.');
+        }
+    });
+});
+</script>
 {% endblock %}

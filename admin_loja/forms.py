@@ -1,6 +1,6 @@
 from django import forms
 from django.db import models
-from core.models import Restaurante, Categoria, Produto
+from core.models import Restaurante, Categoria, Produto, HorarioFuncionamento
 from .models import Impressora
 
 
@@ -187,3 +187,90 @@ class ProdutoForm(forms.ModelForm):
             )
         
         return cleaned_data
+
+
+# ==================== FORMS DE PERSONALIZAÇÃO AVANÇADA ====================
+
+class PersonalizacaoVisulaForm(forms.ModelForm):
+    """Form para personalização visual da loja"""
+    class Meta:
+        model = Restaurante
+        fields = [
+            'slogan', 'mensagem_boas_vindas', 'cor_primaria', 
+            'cor_secundaria', 'cor_destaque', 'favicon'
+        ]
+        widgets = {
+            'slogan': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: A melhor pizza da cidade!'
+            }),
+            'mensagem_boas_vindas': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Mensagem de boas-vindas para seus clientes...'
+            }),
+            'cor_primaria': forms.TextInput(attrs={
+                'type': 'color',
+                'class': 'form-control form-control-color',
+                'title': 'Escolher cor primária'
+            }),
+            'cor_secundaria': forms.TextInput(attrs={
+                'type': 'color',
+                'class': 'form-control form-control-color',
+                'title': 'Escolher cor secundária'
+            }),
+            'cor_destaque': forms.TextInput(attrs={
+                'type': 'color',
+                'class': 'form-control form-control-color',
+                'title': 'Escolher cor de destaque'
+            }),
+            'favicon': forms.FileInput(attrs={'class': 'form-control-file'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['favicon'].required = False
+        self.fields['slogan'].required = False
+        self.fields['mensagem_boas_vindas'].required = False
+
+
+class HorarioFuncionamentoForm(forms.ModelForm):
+    """Form para horários de funcionamento"""
+    class Meta:
+        model = HorarioFuncionamento
+        fields = ['dia_semana', 'hora_abertura', 'hora_fechamento', 'ativo']
+        widgets = {
+            'dia_semana': forms.Select(attrs={'class': 'form-control'}),
+            'hora_abertura': forms.TimeInput(attrs={
+                'type': 'time',
+                'class': 'form-control'
+            }),
+            'hora_fechamento': forms.TimeInput(attrs={
+                'type': 'time', 
+                'class': 'form-control'
+            }),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        hora_abertura = cleaned_data.get('hora_abertura')
+        hora_fechamento = cleaned_data.get('hora_fechamento')
+        
+        if hora_abertura and hora_fechamento:
+            if hora_abertura >= hora_fechamento:
+                raise forms.ValidationError(
+                    'Horário de abertura deve ser anterior ao horário de fechamento.'
+                )
+        
+        return cleaned_data
+
+
+# Formset para gerenciar múltiplos horários
+HorarioFuncionamentoFormSet = forms.modelformset_factory(
+    HorarioFuncionamento,
+    form=HorarioFuncionamentoForm,
+    extra=0,
+    can_delete=True,
+    fields=['dia_semana', 'hora_abertura', 'hora_fechamento', 'ativo']
+)

@@ -117,6 +117,7 @@ class Restaurante(models.Model):
     banner = models.ImageField(upload_to='restaurantes/banners/', null=True, blank=True)
     favicon = models.ImageField(upload_to='restaurantes/favicons/', null=True, blank=True)
     slogan = models.CharField(max_length=200, blank=True)
+    mensagem_boas_vindas = models.TextField(blank=True, help_text="Mensagem de boas-vindas exibida na página inicial")
     
     # Informações de contato
     telefone = models.CharField(max_length=15)
