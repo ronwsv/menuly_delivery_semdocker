@@ -254,6 +254,11 @@ class Produto(models.Model):
     permite_observacoes = models.BooleanField(default=True)
     tempo_preparo = models.PositiveIntegerField(default=15, help_text="Tempo em minutos")
     
+    # Controle de estoque
+    estoque_atual = models.PositiveIntegerField(default=0, help_text="Quantidade atual em estoque")
+    estoque_minimo = models.PositiveIntegerField(default=5, help_text="Estoque mínimo para alerta")
+    controlar_estoque = models.BooleanField(default=False, help_text="Ativar controle de estoque para este produto")
+    
     # Informações nutricionais/extras
     calorias = models.PositiveIntegerField(null=True, blank=True)
     ingredientes = models.TextField(blank=True)
@@ -288,6 +293,20 @@ class Produto(models.Model):
     def tem_promocao(self):
         """Verifica se o produto está em promoção"""
         return bool(self.preco_promocional and self.preco_promocional < self.preco)
+    
+    @property
+    def estoque_baixo(self):
+        """Verifica se o estoque está baixo"""
+        if not self.controlar_estoque:
+            return False
+        return self.estoque_atual <= self.estoque_minimo
+    
+    @property
+    def estoque_esgotado(self):
+        """Verifica se o estoque está esgotado"""
+        if not self.controlar_estoque:
+            return False
+        return self.estoque_atual <= 0
 
 
 class ImagemProduto(models.Model):
@@ -600,3 +619,68 @@ class AvaliacaoPedido(models.Model):
 
     def __str__(self):
         return f"Avaliação - Pedido #{self.pedido.numero} - Nota {self.nota_geral}/5"
+
+
+class Notificacao(models.Model):
+    """Sistema de notificações para o painel do lojista"""
+    TIPO_CHOICES = [
+        ('pedido_novo', 'Novo Pedido'),
+        ('estoque_baixo', 'Estoque Baixo'),
+        ('estoque_esgotado', 'Estoque Esgotado'),
+        ('sistema', 'Mensagem do Sistema'),
+        ('avaliacao', 'Nova Avaliação'),
+    ]
+    
+    PRIORIDADE_CHOICES = [
+        ('baixa', 'Baixa'),
+        ('media', 'Média'),
+        ('alta', 'Alta'),
+        ('urgente', 'Urgente'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    restaurante = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='notificacoes')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    titulo = models.CharField(max_length=200)
+    mensagem = models.TextField()
+    prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
+    lida = models.BooleanField(default=False)
+    link_acao = models.CharField(max_length=500, blank=True, help_text="Link para ação relacionada (opcional)")
+    
+    # Referências opcionais
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, null=True, blank=True)
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'notificacoes'
+        verbose_name = 'Notificação'
+        verbose_name_plural = 'Notificações'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.restaurante.nome} - {self.titulo}"
+    
+    @property
+    def icone(self):
+        """Retorna o ícone FontAwesome baseado no tipo"""
+        icones = {
+            'pedido_novo': 'fas fa-shopping-cart',
+            'estoque_baixo': 'fas fa-exclamation-triangle',
+            'estoque_esgotado': 'fas fa-times-circle',
+            'sistema': 'fas fa-info-circle',
+            'avaliacao': 'fas fa-star',
+        }
+        return icones.get(self.tipo, 'fas fa-bell')
+    
+    @property
+    def cor(self):
+        """Retorna a cor baseada na prioridade"""
+        cores = {
+            'baixa': 'info',
+            'media': 'warning',
+            'alta': 'danger',
+            'urgente': 'danger',
+        }
+        return cores.get(self.prioridade, 'info')

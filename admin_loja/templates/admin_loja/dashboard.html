@@ -1,5 +1,303 @@
 {% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>Dashboard</h2>
+{% endblock %}
+
 {% block content %}
-<h2>Bem-vindo ao painel do lojista!</h2>
-<p>Aqui você poderá gerenciar sua loja, pedidos e personalizações.</p>
+<!-- Alertas de notificação -->
+<div id="notification-container" class="notification-container mb-4"></div>
+
+<!-- Cards de resumo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Novos Pedidos</h5>
+                        <h3 class="mb-0">{{ novos_pedidos|default:0 }}</h3>
+                        <small>Últimos 30 min</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Vendas Hoje</h5>
+                        <h3 class="mb-0">R$ {{ total_vendas_hoje|floatformat:2 }}</h3>
+                        <small>{{ total_pedidos_hoje }} pedidos</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Estoque Baixo</h5>
+                        <h3 class="mb-0">{{ produtos_estoque_baixo|default:0 }}</h3>
+                        <small>Produtos</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Notificações</h5>
+                        <h3 class="mb-0" id="notification-count">{{ notificacoes_nao_lidas.count|default:0 }}</h3>
+                        <small>Não lidas</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-bell fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notificações recentes -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bell"></i> Notificações Recentes</h5>
+            </div>
+            <div class="card-body">
+                {% if notificacoes_nao_lidas %}
+                    <div id="notifications-list">
+                        {% for notificacao in notificacoes_nao_lidas %}
+                        <div class="notification-item alert alert-{{ notificacao.cor }} alert-dismissible fade show" 
+                             data-id="{{ notificacao.id }}" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="{{ notificacao.icone }} fa-lg me-3"></i>
+                                <div class="flex-grow-1">
+                                    <strong>{{ notificacao.titulo }}</strong>
+                                    <p class="mb-1">{{ notificacao.mensagem }}</p>
+                                    <small class="text-muted">{{ notificacao.created_at|timesince }} atrás</small>
+                                </div>
+                                {% if notificacao.link_acao %}
+                                <a href="{{ notificacao.link_acao }}" class="btn btn-sm btn-outline-secondary me-2">
+                                    <i class="fas fa-external-link-alt"></i> Ver
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" 
+                                        onclick="marcarComoLida('{{ notificacao.id }}')"></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-bell-slash fa-3x mb-3"></i>
+                        <h6>Nenhuma notificação</h6>
+                        <p>Você está em dia! Não há notificações pendentes.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tachometer-alt"></i> Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-primary">
+                        <i class="fas fa-shopping-cart"></i> Ver Pedidos
+                    </a>
+                    <a href="{% url 'admin_loja:produtos' %}" class="btn btn-success">
+                        <i class="fas fa-hamburger"></i> Gerenciar Produtos
+                    </a>
+                    <a href="{% url 'admin_loja:relatorios' %}" class="btn btn-info">
+                        <i class="fas fa-chart-line"></i> Relatórios
+                    </a>
+                    <button type="button" class="btn btn-warning" onclick="verificarNotificacoes()">
+                        <i class="fas fa-sync-alt"></i> Atualizar Dados
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {% if restaurante %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-store"></i> Informações da Loja</h5>
+            </div>
+            <div class="card-body">
+                <h6>{{ restaurante.nome }}</h6>
+                <p class="text-muted mb-2">{{ restaurante.endereco_completo|default:"Endereço não cadastrado" }}</p>
+                {% if restaurante.celular %}
+                <p class="mb-1"><i class="fas fa-phone"></i> {{ restaurante.celular }}</p>
+                {% endif %}
+                {% if restaurante.email %}
+                <p class="mb-1"><i class="fas fa-envelope"></i> {{ restaurante.email }}</p>
+                {% endif %}
+                <a href="{% url 'admin_loja:personalizar_loja' %}" class="btn btn-sm btn-outline-primary mt-2">
+                    <i class="fas fa-edit"></i> Editar Loja
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 400px;
+}
+
+.notification-item {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.btn {
+    border-radius: 8px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+</style>
+
+<script>
+// Função para marcar notificação como lida
+function marcarComoLida(notificacaoId) {
+    fetch(`/admin-loja/api/notificacoes/${notificacaoId}/marcar-lida/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Atualizar contador
+            const count = document.getElementById('notification-count');
+            const currentCount = parseInt(count.textContent);
+            count.textContent = Math.max(0, currentCount - 1);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao marcar notificação como lida:', error);
+    });
+}
+
+// Função para verificar novas notificações
+function verificarNotificacoes() {
+    fetch('/admin-loja/api/notificacoes/verificar/')
+    .then(response => response.json())
+    .then(data => {
+        if (data.novas_notificacoes && data.novas_notificacoes.length > 0) {
+            // Mostrar notificações em tempo real
+            data.novas_notificacoes.forEach(notificacao => {
+                mostrarNotificacaoToast(notificacao);
+            });
+            
+            // Recarregar a página após alguns segundos para mostrar todas as atualizações
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        }
+        
+        // Atualizar contadores na página
+        if (data.counters) {
+            document.getElementById('notification-count').textContent = data.counters.notificacoes_nao_lidas;
+            // Atualizar outros contadores se necessário
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao verificar notificações:', error);
+    });
+}
+
+// Função para mostrar notificação como toast
+function mostrarNotificacaoToast(notificacao) {
+    const container = document.getElementById('notification-container');
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${notificacao.cor} alert-dismissible fade show`;
+    toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="${notificacao.icone} fa-lg me-3"></i>
+            <div class="flex-grow-1">
+                <strong>${notificacao.titulo}</strong>
+                <p class="mb-0">${notificacao.mensagem}</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Verificar notificações automaticamente a cada 30 segundos
+setInterval(verificarNotificacoes, 30000);
+
+// Verificar na primeira carga da página
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(verificarNotificacoes, 2000);
+});
+</script>
+
+<!-- Font Awesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
 {% endblock %}

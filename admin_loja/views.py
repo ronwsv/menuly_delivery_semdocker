@@ -7,7 +7,8 @@ from django.http import HttpResponseRedirect
 from django import forms
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Sum
+from django.db.models import Sum, F
+from django.db import models
 from core.models import Pedido, ItemPedido
 
 
@@ -227,8 +228,278 @@ def admin_loja_login(request):
 
 @login_required
 def admin_loja_dashboard(request):
-    # Aqui futuramente vamos filtrar para mostrar só dados da loja do lojista
-    return render(request, 'admin_loja/dashboard.html')
+    from core.models import Restaurante, Pedido, Produto, Notificacao
+    from django.utils import timezone
+    from datetime import timedelta, datetime
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    context = {}
+    
+    if restaurante:
+        # Dados do dashboard
+        hoje = timezone.now().date()
+        
+        # Pedidos de hoje
+        pedidos_hoje = Pedido.objects.filter(
+            restaurante=restaurante,
+            created_at__date=hoje
+        ).exclude(status__in=['carrinho', 'cancelado'])
+        
+        # Novos pedidos (últimos 30 minutos)
+        time_threshold = timezone.now() - timedelta(minutes=30)
+        novos_pedidos = pedidos_hoje.filter(
+            created_at__gte=time_threshold,
+            status__in=['novo', 'confirmado']
+        ).count()
+        
+        # Produtos com estoque baixo
+        produtos_estoque_baixo = Produto.objects.filter(
+            restaurante=restaurante,
+            controlar_estoque=True,
+            estoque_atual__lte=F('estoque_minimo')
+        ).count()
+        
+        # Notificações não lidas
+        notificacoes_nao_lidas = Notificacao.objects.filter(
+            restaurante=restaurante,
+            lida=False
+        ).order_by('-created_at')[:10]
+        
+        # Estatísticas gerais
+        total_pedidos_hoje = pedidos_hoje.count()
+        total_vendas_hoje = pedidos_hoje.filter(
+            status='finalizado'
+        ).aggregate(
+            total=models.Sum('total')
+        )['total'] or 0
+        
+        context = {
+            'restaurante': restaurante,
+            'novos_pedidos': novos_pedidos,
+            'produtos_estoque_baixo': produtos_estoque_baixo,
+            'notificacoes_nao_lidas': notificacoes_nao_lidas,
+            'total_pedidos_hoje': total_pedidos_hoje,
+            'total_vendas_hoje': total_vendas_hoje,
+        }
+        
+        # Verificar e criar notificações automáticas
+        _verificar_estoque_baixo(restaurante)
+        _verificar_novos_pedidos(restaurante)
+    
+    return render(request, 'admin_loja/dashboard.html', context)
+
+
+def _verificar_estoque_baixo(restaurante):
+    """Verifica produtos com estoque baixo e cria notificações se necessário"""
+    from core.models import Produto, Notificacao
+    from django.utils import timezone
+    
+    # Buscar produtos com estoque baixo
+    produtos_estoque_baixo = Produto.objects.filter(
+        restaurante=restaurante,
+        controlar_estoque=True,
+        estoque_atual__lte=F('estoque_minimo'),
+        estoque_atual__gt=0
+    )
+    
+    # Criar notificações para produtos que ainda não têm notificação recente
+    for produto in produtos_estoque_baixo:
+        # Verificar se já existe notificação recente (últimas 24 horas)
+        notificacao_existente = Notificacao.objects.filter(
+            restaurante=restaurante,
+            produto=produto,
+            tipo='estoque_baixo',
+            created_at__gte=timezone.now() - timedelta(days=1)
+        ).exists()
+        
+        if not notificacao_existente:
+            Notificacao.objects.create(
+                restaurante=restaurante,
+                produto=produto,
+                tipo='estoque_baixo',
+                titulo=f'Estoque baixo: {produto.nome}',
+                mensagem=f'O produto "{produto.nome}" está com estoque baixo. Restam apenas {produto.estoque_atual} unidades.',
+                prioridade='alta',
+                link_acao=f'/admin-loja/produtos/{produto.id}/editar/'
+            )
+    
+    # Verificar produtos esgotados
+    produtos_esgotados = Produto.objects.filter(
+        restaurante=restaurante,
+        controlar_estoque=True,
+        estoque_atual=0
+    )
+    
+    for produto in produtos_esgotados:
+        notificacao_existente = Notificacao.objects.filter(
+            restaurante=restaurante,
+            produto=produto,
+            tipo='estoque_esgotado',
+            created_at__gte=timezone.now() - timedelta(days=1)
+        ).exists()
+        
+        if not notificacao_existente:
+            Notificacao.objects.create(
+                restaurante=restaurante,
+                produto=produto,
+                tipo='estoque_esgotado',
+                titulo=f'Produto esgotado: {produto.nome}',
+                mensagem=f'O produto "{produto.nome}" está esgotado. Reponha o estoque o quanto antes.',
+                prioridade='urgente',
+                link_acao=f'/admin-loja/produtos/{produto.id}/editar/'
+            )
+
+
+def _verificar_novos_pedidos(restaurante):
+    """Verifica novos pedidos e cria notificações"""
+    from core.models import Pedido, Notificacao
+    from django.utils import timezone
+    
+    # Buscar pedidos novos dos últimos 10 minutos que ainda não têm notificação
+    time_threshold = timezone.now() - timedelta(minutes=10)
+    pedidos_novos = Pedido.objects.filter(
+        restaurante=restaurante,
+        created_at__gte=time_threshold,
+        status__in=['novo', 'confirmado']
+    )
+    
+    for pedido in pedidos_novos:
+        # Verificar se já existe notificação para este pedido
+        notificacao_existente = Notificacao.objects.filter(
+            restaurante=restaurante,
+            pedido=pedido,
+            tipo='pedido_novo'
+        ).exists()
+        
+        if not notificacao_existente:
+            Notificacao.objects.create(
+                restaurante=restaurante,
+                pedido=pedido,
+                tipo='pedido_novo',
+                titulo=f'Novo pedido #{pedido.numero}',
+                mensagem=f'Pedido #{pedido.numero} recebido no valor de R$ {pedido.total}.',
+                prioridade='alta',
+                link_acao=f'/admin-loja/pedidos/'
+            )
+
+
+# ==================== VIEWS DE API PARA NOTIFICAÇÕES ====================
+
+@login_required
+def api_marcar_notificacao_lida(request, notificacao_id):
+    """Marca uma notificação como lida"""
+    from django.http import JsonResponse
+    from core.models import Notificacao
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    try:
+        notificacao = get_object_or_404(
+            Notificacao, 
+            id=notificacao_id, 
+            restaurante__proprietario=request.user
+        )
+        
+        notificacao.lida = True
+        notificacao.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_verificar_notificacoes(request):
+    """Verifica se há novas notificações"""
+    from django.http import JsonResponse
+    from core.models import Restaurante, Notificacao, Pedido, Produto
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return JsonResponse({'success': False, 'error': 'Restaurante não encontrado'})
+    
+    # Executar verificações de notificação
+    _verificar_estoque_baixo(restaurante)
+    _verificar_novos_pedidos(restaurante)
+    
+    # Buscar notificações recentes (últimos 2 minutos) que ainda não foram vistas
+    time_threshold = timezone.now() - timedelta(minutes=2)
+    novas_notificacoes = Notificacao.objects.filter(
+        restaurante=restaurante,
+        lida=False,
+        created_at__gte=time_threshold
+    ).order_by('-created_at')
+    
+    # Contadores atualizados
+    contadores = {
+        'notificacoes_nao_lidas': Notificacao.objects.filter(
+            restaurante=restaurante, 
+            lida=False
+        ).count(),
+        'novos_pedidos': Pedido.objects.filter(
+            restaurante=restaurante,
+            created_at__gte=timezone.now() - timedelta(minutes=30),
+            status__in=['novo', 'confirmado']
+        ).count(),
+        'produtos_estoque_baixo': Produto.objects.filter(
+            restaurante=restaurante,
+            controlar_estoque=True,
+            estoque_atual__lte=F('estoque_minimo')
+        ).count(),
+    }
+    
+    # Serializar notificações
+    notificacoes_data = []
+    for notificacao in novas_notificacoes:
+        notificacoes_data.append({
+            'id': str(notificacao.id),
+            'titulo': notificacao.titulo,
+            'mensagem': notificacao.mensagem,
+            'tipo': notificacao.tipo,
+            'prioridade': notificacao.prioridade,
+            'icone': notificacao.icone,
+            'cor': notificacao.cor,
+            'link_acao': notificacao.link_acao,
+            'created_at': notificacao.created_at.isoformat(),
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'novas_notificacoes': notificacoes_data,
+        'counters': contadores
+    })
+
+
+@login_required
+def api_criar_notificacao_sistema(request):
+    """Cria uma notificação do sistema (para testes)"""
+    from django.http import JsonResponse
+    from core.models import Restaurante, Notificacao
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método inválido'})
+    
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return JsonResponse({'success': False, 'error': 'Restaurante não encontrado'})
+    
+    # Criar notificação de sistema de exemplo
+    notificacao = Notificacao.objects.create(
+        restaurante=restaurante,
+        tipo='sistema',
+        titulo='Sistema atualizado',
+        mensagem='O sistema do painel foi atualizado com novas funcionalidades de notificação.',
+        prioridade='media'
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'notificacao_id': str(notificacao.id)
+    })
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth import authenticate, login, logout

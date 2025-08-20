@@ -101,7 +101,8 @@ class ProdutoForm(forms.ModelForm):
         fields = [
             'nome', 'descricao', 'categoria', 'preco', 'preco_promocional',
             'imagem_principal', 'destaque', 'disponivel', 'permite_observacoes',
-            'tempo_preparo', 'calorias', 'ingredientes', 'alergicos', 'ordem'
+            'tempo_preparo', 'calorias', 'ingredientes', 'alergicos', 'ordem',
+            'controlar_estoque', 'estoque_atual', 'estoque_minimo'
         ]
         widgets = {
             'nome': forms.TextInput(attrs={
@@ -147,6 +148,15 @@ class ProdutoForm(forms.ModelForm):
                 'placeholder': 'Informações sobre alérgenos...'
             }),
             'ordem': forms.NumberInput(attrs={'class': 'form-control'}),
+            'controlar_estoque': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'estoque_atual': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0'
+            }),
+            'estoque_minimo': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'min': '0'
+            }),
         }
     
     def __init__(self, *args, **kwargs):

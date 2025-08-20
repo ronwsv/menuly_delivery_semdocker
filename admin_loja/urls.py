@@ -43,6 +43,11 @@ urlpatterns = [
     path('equipe/<uuid:user_id>/editar/', views.equipe_editar, name='equipe_editar'),
     path('equipe/<uuid:user_id>/remover/', views.equipe_remover, name='equipe_remover'),
     
+    # APIs para notificações
+    path('api/notificacoes/<uuid:notificacao_id>/marcar-lida/', views.api_marcar_notificacao_lida, name='api_marcar_notificacao_lida'),
+    path('api/notificacoes/verificar/', views.api_verificar_notificacoes, name='api_verificar_notificacoes'),
+    path('api/notificacoes/criar-sistema/', views.api_criar_notificacao_sistema, name='api_criar_notificacao_sistema'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]
