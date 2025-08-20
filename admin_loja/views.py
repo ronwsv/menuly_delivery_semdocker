@@ -233,21 +233,139 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django import forms
-
-
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import Group
+
+from core.models import Pedido, ItemPedido, Restaurante, Usuario
+from .models import Impressora
+from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
+                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, FuncionarioForm)
+
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'admin_loja/dashboard.html'
     login_url = 'admin_loja:login'
 
 
-# Página de pedidos do lojista
-from django.contrib.auth.decorators import login_required
-@login_required
+# ==================== VIEWS DE GESTÃO DE EQUIPE ====================
 
+@login_required
+def equipe_listar(request):
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/equipe_listar.html', {'msg': 'Restaurante não encontrado.'})
+    
+    funcionarios = restaurante.funcionarios.all().order_by('first_name')
+    
+    return render(request, 'admin_loja/equipe_listar.html', {
+        'funcionarios': funcionarios,
+        'restaurante': restaurante
+    })
+
+@login_required
+def equipe_adicionar(request):
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/equipe_form.html', {'msg': 'Restaurante não encontrado.'})
+
+    if request.method == 'POST':
+        form = FuncionarioForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = user.email # Usar email como username
+            user.save()
+            restaurante.funcionarios.add(user)
+            
+            # Definir o tipo de usuário com base no grupo selecionado
+            grupo_selecionado = form.cleaned_data.get('grupo')
+            if grupo_selecionado:
+                if grupo_selecionado.name == 'Gerente':
+                    user.tipo_usuario = 'gerente'
+                elif grupo_selecionado.name == 'Atendente':
+                    user.tipo_usuario = 'funcionario' # Mapeia Atendente para funcionario
+                user.save()
+
+            return redirect('admin_loja:equipe_listar')
+    else:
+        form = FuncionarioForm()
+    
+    return render(request, 'admin_loja/equipe_form.html', {
+        'form': form,
+        'titulo': 'Adicionar Funcionário',
+        'restaurante': restaurante
+    })
+
+@login_required
+def equipe_editar(request, user_id):
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/equipe_form.html', {'msg': 'Restaurante não encontrado.'})
+    
+    funcionario = get_object_or_404(Usuario, id=user_id)
+    
+    # Verificar se o funcionário pertence ao restaurante do lojista logado
+    if funcionario not in restaurante.funcionarios.all():
+        return render(request, 'admin_loja/equipe_form.html', {'msg': 'Funcionário não encontrado neste restaurante.'})
+
+    if request.method == 'POST':
+        form = FuncionarioForm(request.POST, instance=funcionario)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = user.email # Garante que o username seja o email
+            user.save()
+            
+            # Atualizar o tipo de usuário com base no grupo selecionado
+            grupo_selecionado = form.cleaned_data.get('grupo')
+            if grupo_selecionado:
+                if grupo_selecionado.name == 'Gerente':
+                    user.tipo_usuario = 'gerente'
+                elif grupo_selecionado.name == 'Atendente':
+                    user.tipo_usuario = 'funcionario'
+                user.save()
+
+            return redirect('admin_loja:equipe_listar')
+    else:
+        form = FuncionarioForm(instance=funcionario)
+    
+    return render(request, 'admin_loja/equipe_form.html', {
+        'form': form,
+        'titulo': 'Editar Funcionário',
+        'funcionario': funcionario,
+        'restaurante': restaurante
+    })
+
+@login_required
+def equipe_remover(request, user_id):
+    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    if not restaurante:
+        return render(request, 'admin_loja/equipe_listar.html', {'msg': 'Restaurante não encontrado.'})
+    
+    funcionario = get_object_or_404(Usuario, id=user_id)
+    
+    # Verificar se o funcionário pertence ao restaurante do lojista logado
+    if funcionario not in restaurante.funcionarios.all():
+        return render(request, 'admin_loja/equipe_listar.html', {'msg': 'Funcionário não encontrado neste restaurante.'})
+
+    if request.method == 'POST':
+        restaurante.funcionarios.remove(funcionario)
+        # Opcional: Deletar o usuário se ele não estiver associado a nenhum outro restaurante
+        # if not funcionario.trabalha_em.exists():
+        #     funcionario.delete()
+        return redirect('admin_loja:equipe_listar')
+    
+    return render(request, 'admin_loja/equipe_confirmar_remocao.html', {
+        'funcionario': funcionario,
+        'restaurante': restaurante
+    })
+
+
+# Página de pedidos do lojista
+@login_required
 def admin_loja_pedidos(request):
     # Buscar restaurantes do lojista logado
     restaurantes = request.user.restaurantes.all()
@@ -255,7 +373,6 @@ def admin_loja_pedidos(request):
     status_list = ['novo', 'preparo', 'pronto', 'entrega', 'finalizado']
     pedidos_por_status = {status: [] for status in status_list}
     if restaurantes.exists():
-        from core.models import Pedido
         pedidos = Pedido.objects.filter(restaurante__in=restaurantes).order_by('created_at')
         for pedido in pedidos:
             if pedido.status in pedidos_por_status:
@@ -331,10 +448,8 @@ def admin_loja_relatorios(request):
     return render(request, 'admin_loja/relatorios.html', context)
 
 # Visualização de cupom do pedido
-from django.shortcuts import get_object_or_404
 @login_required
 def admin_loja_cupom_pedido(request, pedido_id):
-    from core.models import Pedido, ItemPedido
     pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__proprietario=request.user)
     itens = pedido.itens.all() if hasattr(pedido, 'itens') else []
     return render(request, 'admin_loja/cupom_pedido.html', {'pedido': pedido, 'itens': itens})
@@ -345,9 +460,6 @@ def admin_loja_cupom_pedido(request, pedido_id):
 @login_required
 def admin_loja_impressoras(request):
     """Lista todas as impressoras do restaurante"""
-    from core.models import Restaurante
-    from .models import Impressora
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/impressoras.html', {
@@ -364,9 +476,6 @@ def admin_loja_impressoras(request):
 @login_required
 def admin_loja_impressora_cadastrar(request):
     """Cadastrar nova impressora"""
-    from core.models import Restaurante
-    from .models import Impressora
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/impressora_form.html', {
@@ -391,8 +500,6 @@ def admin_loja_impressora_cadastrar(request):
 @login_required
 def admin_loja_impressora_editar(request, impressora_id):
     """Editar impressora existente"""
-    from .models import Impressora
-    
     impressora = get_object_or_404(
         Impressora, 
         id=impressora_id, 
@@ -416,8 +523,6 @@ def admin_loja_impressora_editar(request, impressora_id):
 @login_required
 def admin_loja_impressora_deletar(request, impressora_id):
     """Deletar impressora"""
-    from .models import Impressora
-    
     impressora = get_object_or_404(
         Impressora, 
         id=impressora_id, 
@@ -430,7 +535,6 @@ def admin_loja_impressora_deletar(request, impressora_id):
 @login_required
 def admin_loja_impressora_testar(request, impressora_id):
     """Testar impressora"""
-    from .models import Impressora
     import requests
     import json
     
@@ -499,8 +603,6 @@ está funcionando corretamente.
 @login_required
 def admin_loja_categorias(request):
     """Lista todas as categorias do restaurante"""
-    from core.models import Restaurante, Categoria
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/categorias.html', {
@@ -517,8 +619,6 @@ def admin_loja_categorias(request):
 @login_required
 def admin_loja_categoria_cadastrar(request):
     """Cadastrar nova categoria"""
-    from core.models import Restaurante, Categoria
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/categoria_form.html', {
@@ -544,8 +644,6 @@ def admin_loja_categoria_cadastrar(request):
 @login_required
 def admin_loja_categoria_editar(request, categoria_id):
     """Editar categoria existente"""
-    from core.models import Categoria
-    
     categoria = get_object_or_404(
         Categoria, 
         id=categoria_id, 
@@ -575,8 +673,6 @@ def admin_loja_categoria_editar(request, categoria_id):
 @login_required
 def admin_loja_categoria_deletar(request, categoria_id):
     """Deletar categoria"""
-    from core.models import Categoria
-    
     categoria = get_object_or_404(
         Categoria, 
         id=categoria_id, 
@@ -597,7 +693,6 @@ def admin_loja_categoria_deletar(request, categoria_id):
 @login_required 
 def admin_loja_categoria_toggle_ativo(request, categoria_id):
     """Toggle status ativo da categoria via AJAX"""
-    from core.models import Categoria
     from django.http import JsonResponse
     
     if request.method != 'POST':
@@ -624,8 +719,6 @@ def admin_loja_categoria_toggle_ativo(request, categoria_id):
 @login_required
 def admin_loja_produtos(request):
     """Lista todos os produtos do restaurante"""
-    from core.models import Restaurante, Produto, Categoria
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/produtos.html', {
@@ -662,8 +755,6 @@ def admin_loja_produtos(request):
 @login_required
 def admin_loja_produto_cadastrar(request):
     """Cadastrar novo produto"""
-    from core.models import Restaurante, Produto
-    
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/produto_form.html', {
@@ -688,8 +779,6 @@ def admin_loja_produto_cadastrar(request):
 @login_required
 def admin_loja_produto_editar(request, produto_id):
     """Editar produto existente"""
-    from core.models import Produto
-    
     produto = get_object_or_404(
         Produto, 
         id=produto_id, 
@@ -718,8 +807,6 @@ def admin_loja_produto_editar(request, produto_id):
 @login_required
 def admin_loja_produto_deletar(request, produto_id):
     """Deletar produto"""
-    from core.models import Produto
-    
     produto = get_object_or_404(
         Produto, 
         id=produto_id, 
@@ -732,7 +819,6 @@ def admin_loja_produto_deletar(request, produto_id):
 @login_required
 def admin_loja_produto_toggle_disponivel(request, produto_id):
     """Toggle disponibilidade do produto via AJAX"""
-    from core.models import Produto
     from django.http import JsonResponse
     
     if request.method != 'POST':
@@ -756,7 +842,6 @@ def admin_loja_produto_toggle_disponivel(request, produto_id):
 @login_required
 def admin_loja_produto_toggle_destaque(request, produto_id):
     """Toggle destaque do produto via AJAX"""
-    from core.models import Produto
     from django.http import JsonResponse
     
     if request.method != 'POST':
@@ -783,7 +868,6 @@ def admin_loja_produto_toggle_destaque(request, produto_id):
 @login_required
 def admin_loja_categoria_reorder(request):
     """Reordenar categorias via AJAX"""
-    from core.models import Categoria
     from django.http import JsonResponse
     import json
     
@@ -808,7 +892,6 @@ def admin_loja_categoria_reorder(request):
 @login_required
 def admin_loja_produto_reorder(request):
     """Reordenar produtos via AJAX"""
-    from core.models import Produto
     from django.http import JsonResponse
     import json
     
@@ -829,3 +912,4 @@ def admin_loja_produto_reorder(request):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+

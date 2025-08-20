@@ -1,0 +1,98 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>Gerenciar Equipe</h2>
+{% endblock %}
+
+{% block content %}
+{% if msg %}
+<div class="alert alert-info">{{ msg }}</div>
+{% endif %}
+
+<div class="mb-4">
+    <a href="{% url 'admin_loja:equipe_adicionar' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Adicionar Novo Funcionário
+    </a>
+</div>
+
+{% if funcionarios %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Celular</th>
+                <th>Cargo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for funcionario in funcionarios %}
+            <tr>
+                <td>{{ funcionario.get_full_name|default:funcionario.username }}</td>
+                <td>{{ funcionario.email }}</td>
+                <td>{{ funcionario.celular }}</td>
+                <td>
+                    {% for group in funcionario.groups.all %}
+                        <span class="badge badge-info">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="badge badge-secondary">Sem Cargo</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'admin_loja:equipe_editar' funcionario.id %}" 
+                           class="btn btn-sm btn-outline-secondary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'admin_loja:equipe_remover' funcionario.id %}" 
+                           class="btn btn-sm btn-outline-danger" title="Remover"
+                           onclick="return confirm('Tem certeza que deseja remover este funcionário?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <h5>Nenhum funcionário cadastrado</h5>
+        <p class="text-muted">Adicione seu primeiro funcionário para gerenciar sua equipe.</p>
+        <a href="{% url 'admin_loja:equipe_adicionar' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Adicionar Primeiro Funcionário
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.btn-group .btn {
+    margin-right: 2px;
+}
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.badge {
+    font-size: 0.8em;
+}
+.alert {
+    border-radius: 8px;
+}
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- Font Awesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% endblock %}

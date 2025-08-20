@@ -1,0 +1,48 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h2>Remover Funcionário</h2>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirmar Remoção</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">Você tem certeza que deseja remover o funcionário <strong>{{ funcionario.get_full_name|default:funcionario.username }}</strong>?</p>
+                <p>Esta ação irá desvincular o funcionário do seu restaurante. Ele não terá mais acesso às funcionalidades da loja.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'admin_loja:equipe_listar' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Confirmar Remoção
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header.bg-danger {
+    background-color: #dc3545 !important;
+}
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- Font Awesome para ícones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% endblock %}

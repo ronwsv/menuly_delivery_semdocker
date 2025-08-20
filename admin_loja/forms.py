@@ -1,7 +1,8 @@
 from django import forms
 from django.db import models
-from core.models import Restaurante, Categoria, Produto, HorarioFuncionamento
+from core.models import Restaurante, Categoria, Produto, HorarioFuncionamento, Usuario
 from .models import Impressora
+from django.contrib.auth.models import Group
 
 
 class LogoForm(forms.ModelForm):
@@ -274,3 +275,88 @@ HorarioFuncionamentoFormSet = forms.modelformset_factory(
     can_delete=True,
     fields=['dia_semana', 'hora_abertura', 'hora_fechamento', 'ativo']
 )
+
+
+class FuncionarioForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, required=False, label="Senha")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, required=False, label="Confirmar Senha")
+    
+    # Campo para selecionar o grupo (cargo)
+    grupo = forms.ModelChoiceField(
+        queryset=Group.objects.filter(name__in=['Gerente', 'Atendente']),
+        empty_label="Selecione um cargo",
+        label="Cargo",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Usuario
+        fields = ['first_name', 'last_name', 'email', 'celular', 'password', 'grupo']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'celular': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '(99) 99999-9999'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Se for edição, preencher o campo grupo com o grupo atual do usuário
+        if self.instance.pk:
+            try:
+                self.fields['grupo'].initial = self.instance.groups.get()
+            except Group.DoesNotExist:
+                self.fields['grupo'].initial = None
+            
+            # Senha não é obrigatória na edição
+            self.fields['password'].required = False
+            self.fields['confirm_password'].required = False
+        else:
+            # Senha é obrigatória na criação
+            self.fields['password'].required = True
+            self.fields['confirm_password'].required = True
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and Usuario.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este e-mail já está em uso.")
+        return email
+
+    def clean_celular(self):
+        celular = self.cleaned_data.get('celular')
+        if celular and Usuario.objects.filter(celular=celular).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este celular já está em uso.")
+        return celular
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
+
+        if password and password != confirm_password:
+            self.add_error('confirm_password', "As senhas não coincidem.")
+        
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        
+        if password:
+            user.set_password(password)
+        
+        user.tipo_usuario = 'funcionario' # Define o tipo de usuário como funcionário
+        
+        if commit:
+            user.save()
+            # Atualizar grupos
+            grupo = self.cleaned_data.get('grupo')
+            if grupo:
+                user.groups.clear()
+                user.groups.add(grupo)
+            
+            # Adicionar ao ManyToMany de funcionarios do Restaurante
+            # Isso será feito na view, pois precisamos do restaurante
+            
+        return user

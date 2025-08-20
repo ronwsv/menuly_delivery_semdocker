@@ -37,6 +37,12 @@ urlpatterns = [
     path('produtos/<uuid:produto_id>/toggle-destaque/', views.admin_loja_produto_toggle_destaque, name='produto_toggle_destaque'),
     path('produtos/reorder/', views.admin_loja_produto_reorder, name='produto_reorder'),
     
+    # URLs para gestão de equipe
+    path('equipe/', views.equipe_listar, name='equipe_listar'),
+    path('equipe/adicionar/', views.equipe_adicionar, name='equipe_adicionar'),
+    path('equipe/<uuid:user_id>/editar/', views.equipe_editar, name='equipe_editar'),
+    path('equipe/<uuid:user_id>/remover/', views.equipe_remover, name='equipe_remover'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]
