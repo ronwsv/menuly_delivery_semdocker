@@ -75,6 +75,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.media",
                 "core.context_processors.site_context",  # Context processor customizado
+                "admin_loja.context_processors.painel_permissoes",  # Context processor para permissões do painel
             ],
         },
     },

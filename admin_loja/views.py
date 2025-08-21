@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
 from django.utils import timezone
+from .utils import painel_loja_required, verificar_permissao_gerencial, verificar_permissao_lojista, obter_restaurante_usuario
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db import models
@@ -192,10 +193,19 @@ def admin_loja_configurar_frete(request):
 
 
 # Avançar status do pedido
-@login_required
+@painel_loja_required
 def admin_loja_avancar_status_pedido(request, pedido_id):
     from core.models import Pedido
-    pedido = Pedido.objects.get(id=pedido_id, restaurante__proprietario=request.user)
+    
+    # Buscar pedido baseado no tipo de usuário
+    tipo_usuario = getattr(request.user, 'tipo_usuario', None)
+    
+    if tipo_usuario == 'lojista':
+        pedido = Pedido.objects.get(id=pedido_id, restaurante__proprietario=request.user)
+    else:
+        # Gerente/Atendente: buscar pedidos dos restaurantes onde trabalha
+        restaurantes = request.user.trabalha_em.all()
+        pedido = Pedido.objects.get(id=pedido_id, restaurante__in=restaurantes)
     # Definir o fluxo de status
     fluxo = ['novo', 'preparo', 'pronto', 'entrega', 'finalizado']
     try:
@@ -217,22 +227,27 @@ def admin_loja_login(request):
         form = AdminLojaLoginForm(request.POST)
         if form.is_valid():
             user = authenticate(request, username=form.cleaned_data['username'], password=form.cleaned_data['password'])
-            if user is not None and hasattr(user, 'tipo_usuario') and user.tipo_usuario == 'lojista':
+            if user is not None and (
+                (hasattr(user, 'tipo_usuario') and user.tipo_usuario in ['lojista', 'gerente'])
+                or user.groups.filter(name='Atendente').exists()
+            ):
                 login(request, user)
                 return redirect('admin_loja:dashboard')
             else:
-                error = 'Usuário ou senha inválidos, ou você não é um lojista.'
+                error = 'Usuário ou senha inválidos, ou você não tem permissão para acessar o painel.'
     else:
         form = AdminLojaLoginForm()
     return render(request, 'admin_loja/login.html', {'form': form, 'error': error})
 
-@login_required
+@painel_loja_required
 def admin_loja_dashboard(request):
     from core.models import Restaurante, Pedido, Produto, Notificacao
     from django.utils import timezone
     from datetime import timedelta, datetime
     
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    # Buscar restaurante do usuário
+    restaurante = obter_restaurante_usuario(request.user)
+    
     context = {}
     
     if restaurante:
@@ -644,23 +659,38 @@ def equipe_remover(request, user_id):
 
 
 # Página de pedidos do lojista
-@login_required
+@painel_loja_required
 def admin_loja_pedidos(request):
-    # Buscar restaurantes do lojista logado
-    restaurantes = request.user.restaurantes.all()
+    # Buscar restaurantes baseado no tipo de usuário
+    tipo_usuario = getattr(request.user, 'tipo_usuario', None)
+    
+    if tipo_usuario == 'lojista':
+        # Lojista: buscar restaurantes que possui
+        restaurantes = request.user.restaurantes.all()
+    else:
+        # Gerente/Atendente: buscar restaurantes onde trabalha
+        restaurantes = request.user.trabalha_em.all()
+    
     pedidos = []
     status_list = ['novo', 'preparo', 'pronto', 'entrega', 'finalizado']
     pedidos_por_status = {status: [] for status in status_list}
+    
     if restaurantes.exists():
-        pedidos = Pedido.objects.filter(restaurante__in=restaurantes).order_by('created_at')
+        pedidos = Pedido.objects.filter(restaurante__in=restaurantes).order_by('-created_at')
         for pedido in pedidos:
             if pedido.status in pedidos_por_status:
                 pedidos_por_status[pedido.status].append(pedido)
+    
     return render(request, 'admin_loja/pedidos.html', {'pedidos_por_status': pedidos_por_status})
 
-@login_required
+@painel_loja_required
 def admin_loja_relatorios(request):
-    """Página de relatórios da loja"""
+    """Página de relatórios da loja - Apenas para Lojista e Gerente"""
+    # Verificar permissão específica
+    redirect_response = verificar_permissao_gerencial(request, "relatórios")
+    if redirect_response:
+        return redirect_response
+        
     restaurante = request.user.restaurantes.first()
     if not restaurante:
         return render(request, 'admin_loja/relatorios.html', {'error': 'Restaurante não encontrado.'})
@@ -727,16 +757,25 @@ def admin_loja_relatorios(request):
     return render(request, 'admin_loja/relatorios.html', context)
 
 # Visualização de cupom do pedido
-@login_required
+@painel_loja_required
 def admin_loja_cupom_pedido(request, pedido_id):
-    pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__proprietario=request.user)
+    # Buscar pedido baseado no tipo de usuário
+    tipo_usuario = getattr(request.user, 'tipo_usuario', None)
+    
+    if tipo_usuario == 'lojista':
+        pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__proprietario=request.user)
+    else:
+        # Gerente/Atendente: buscar pedidos dos restaurantes onde trabalha
+        restaurantes = request.user.trabalha_em.all()
+        pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__in=restaurantes)
+    
     itens = pedido.itens.all() if hasattr(pedido, 'itens') else []
     return render(request, 'admin_loja/cupom_pedido.html', {'pedido': pedido, 'itens': itens})
 
 
 # ==================== VIEWS DE IMPRESSORAS ====================
 
-@login_required
+@painel_loja_required
 def admin_loja_impressoras(request):
     """Lista todas as impressoras do restaurante"""
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
@@ -879,9 +918,14 @@ está funcionando corretamente.
 
 # ==================== VIEWS DE CATEGORIAS ====================
 
-@login_required
+@painel_loja_required
 def admin_loja_categorias(request):
-    """Lista todas as categorias do restaurante"""
+    """Lista todas as categorias do restaurante - Apenas para Lojista e Gerente"""
+    # Verificar permissão específica
+    redirect_response = verificar_permissao_gerencial(request, "o gerenciamento de categorias")
+    if redirect_response:
+        return redirect_response
+        
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/categorias.html', {
@@ -995,9 +1039,14 @@ def admin_loja_categoria_toggle_ativo(request, categoria_id):
 
 # ==================== VIEWS DE PRODUTOS ====================
 
-@login_required
+@painel_loja_required
 def admin_loja_produtos(request):
-    """Lista todos os produtos do restaurante"""
+    """Lista todos os produtos do restaurante - Apenas para Lojista e Gerente"""
+    # Verificar permissão específica
+    redirect_response = verificar_permissao_gerencial(request, "o gerenciamento de produtos")
+    if redirect_response:
+        return redirect_response
+        
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
         return render(request, 'admin_loja/produtos.html', {
