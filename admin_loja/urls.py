@@ -53,6 +53,11 @@ urlpatterns = [
     path('perfil/editar/', views.perfil_editar, name='perfil_editar'),
     path('perfil/alterar-senha/', views.perfil_alterar_senha, name='perfil_alterar_senha'),
     
+    # URLs para suporte e ajuda
+    path('suporte/', views.suporte_index, name='suporte_index'),
+    path('suporte/contato/', views.suporte_contato, name='suporte_contato'),
+    path('suporte/api/chat/', views.suporte_chat_api, name='suporte_chat_api'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]

@@ -1,0 +1,187 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h1><i class="fas fa-ticket-alt"></i> Abrir Ticket de Suporte</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-headset"></i> Solicitar Suporte Personalizado</h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Antes de enviar um ticket:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Verifique se sua pergunta já está respondida no <a href="{% url 'admin_loja:suporte_index' %}">FAQ</a></li>
+                        <li>Descreva o problema de forma detalhada</li>
+                        <li>Inclua passos para reproduzir o problema (se aplicável)</li>
+                        <li>Nossa equipe responde em até 24 horas</li>
+                    </ul>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="{{ form.assunto.id_for_label }}" class="form-label">{{ form.assunto.label }}</label>
+                                {{ form.assunto }}
+                                {% if form.assunto.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.assunto.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.prioridade.id_for_label }}" class="form-label">{{ form.prioridade.label }}</label>
+                                {{ form.prioridade }}
+                                {% if form.prioridade.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.prioridade.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.categoria.id_for_label }}" class="form-label">{{ form.categoria.label }}</label>
+                                {{ form.categoria }}
+                                {% if form.categoria.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.categoria.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email_contato.id_for_label }}" class="form-label">{{ form.email_contato.label }}</label>
+                                {{ form.email_contato }}
+                                {% if form.email_contato.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.email_contato.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">{{ form.email_contato.help_text }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                        {{ form.descricao }}
+                        {% if form.descricao.errors %}
+                            <div class="invalid-feedback d-block">{{ form.descricao.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            Seja o mais específico possível. Inclua screenshots, mensagens de erro, 
+                            ou qualquer informação que possa ajudar nossa equipe a entender o problema.
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <h6><i class="fas fa-user-circle"></i> Informações da Conta</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Usuário:</strong> {{ user.username }}<br>
+                                    <strong>Email:</strong> {{ user.email }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Tipo:</strong> 
+                                    {% if user.tipo_usuario == 'lojista' %}
+                                        <span class="badge bg-primary">Lojista</span>
+                                    {% elif user.tipo_usuario == 'gerente' %}
+                                        <span class="badge bg-success">Gerente</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Atendente</span>
+                                    {% endif %}
+                                    <br>
+                                    <strong>Cadastrado em:</strong> {{ user.date_joined|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'admin_loja:suporte_index' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar ao Suporte
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Enviar Ticket
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Dicas Adicionais -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Dicas para um Atendimento Mais Rápido</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📸 Screenshots</h6>
+                        <p class="small text-muted">Anexe prints da tela mostrando o problema</p>
+                        
+                        <h6>🔍 Detalhes Específicos</h6>
+                        <p class="small text-muted">Horário, navegador, dispositivo usado</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>📋 Passos para Reproduzir</h6>
+                        <p class="small text-muted">Liste exatamente o que fez antes do erro</p>
+                        
+                        <h6>⚡ Urgência Real</h6>
+                        <p class="small text-muted">Use prioridade "Urgente" apenas para problemas críticos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn {
+    min-width: 120px;
+}
+
+.invalid-feedback {
+    font-size: 0.875em;
+}
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
+{% endblock %}
