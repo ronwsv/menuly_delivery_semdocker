@@ -89,6 +89,94 @@ class Endereco(models.Model):
         return f"{self.nome} - {self.logradouro}, {self.numero}"
 
 
+class Plano(models.Model):
+    """Modelo para planos de assinatura dos lojistas"""
+    NOME_CHOICES = [
+        ('starter', 'Starter'),
+        ('pro', 'Pro'),
+        ('multi', 'Multi-Loja'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nome = models.CharField(max_length=20, choices=NOME_CHOICES, unique=True)
+    titulo = models.CharField(max_length=100, help_text='Título exibido para o usuário')
+    descricao = models.TextField()
+    preco_mensal = models.DecimalField(max_digits=8, decimal_places=2)
+    preco_setup = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text='Taxa de configuração inicial')
+    
+    # Limites do plano
+    limite_pedidos_mes = models.PositiveIntegerField(null=True, blank=True, help_text='Null = ilimitado')
+    limite_produtos = models.PositiveIntegerField(null=True, blank=True, help_text='Null = ilimitado')
+    limite_funcionarios = models.PositiveIntegerField(default=1)
+    limite_lojas = models.PositiveIntegerField(default=1)
+    
+    # Recursos inclusos
+    permite_pagamento_online = models.BooleanField(default=False)
+    permite_cupons_desconto = models.BooleanField(default=False)
+    permite_whatsapp_bot = models.BooleanField(default=False)
+    permite_impressao_termica = models.BooleanField(default=True)
+    permite_relatorios_avancados = models.BooleanField(default=False)
+    permite_api_integracao = models.BooleanField(default=False)
+    permite_area_entregador = models.BooleanField(default=False)
+    permite_multi_loja = models.BooleanField(default=False)
+    
+    # Configurações
+    ativo = models.BooleanField(default=True)
+    ordem_exibicao = models.PositiveIntegerField(default=0, help_text='Ordem para exibição nos preços')
+    destaque = models.BooleanField(default=False, help_text='Destacar como plano recomendado')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['ordem_exibicao', 'preco_mensal']
+        verbose_name = 'Plano de Assinatura'
+        verbose_name_plural = 'Planos de Assinatura'
+    
+    def __str__(self):
+        return f"{self.get_nome_display()} - R$ {self.preco_mensal}/mês"
+    
+    @property
+    def recursos_lista(self):
+        """Retorna lista de recursos inclusos no plano"""
+        recursos = []
+        
+        if self.nome == 'starter':
+            recursos = [
+                'Site responsivo',
+                'Gestão de produtos',
+                'Impressão A4',
+                'Dashboard simples',
+                f'Até {self.limite_pedidos_mes} pedidos/mês' if self.limite_pedidos_mes else 'Pedidos ilimitados',
+                f'Até {self.limite_produtos} produtos' if self.limite_produtos else 'Produtos ilimitados',
+            ]
+        elif self.nome == 'pro':
+            recursos = [
+                'Todos os recursos do Starter',
+                'Pagamentos online (PIX/Cartão)',
+                'Cupons de desconto',
+                'WhatsApp Bot integrado',
+                'Impressão térmica',
+                'Relatórios avançados',
+                f'Até {self.limite_pedidos_mes} pedidos/mês' if self.limite_pedidos_mes else 'Pedidos ilimitados',
+                f'Até {self.limite_funcionarios} funcionários',
+            ]
+        elif self.nome == 'multi':
+            recursos = [
+                'Todos os recursos do Pro',
+                'Multi-loja (ilimitado)',
+                'API para integração ERP',
+                'Área do entregador',
+                'Suporte prioritário',
+                'Pedidos ilimitados',
+                'Produtos ilimitados',
+                'Funcionários ilimitados',
+            ]
+        
+        return recursos
+
+
 class Restaurante(models.Model):
     # Configurações de frete
     frete_fixo = models.BooleanField(default=False, help_text='Usar valor fixo para o frete?')
@@ -110,6 +198,17 @@ class Restaurante(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Plano de assinatura
+    plano = models.ForeignKey(Plano, on_delete=models.SET_NULL, null=True, blank=True, 
+                             help_text='Plano de assinatura do restaurante')
+    data_inicio_plano = models.DateField(null=True, blank=True, 
+                                        help_text='Data de início da assinatura')
+    data_vencimento_plano = models.DateField(null=True, blank=True, 
+                                            help_text='Data de vencimento da mensalidade')
+    plano_ativo = models.BooleanField(default=True, 
+                                     help_text='Se false, restaurante fica suspenso')
+    
     nome = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     descricao = models.TextField()
@@ -176,6 +275,74 @@ class Restaurante(models.Model):
         """Verifica se o restaurante está aberto com base no horário"""
         # TODO: Implementar lógica de horário de funcionamento
         return self.status == 'ativo'
+    
+    # Métodos relacionados ao plano de assinatura
+    def pode_criar_produto(self):
+        """Verifica se pode criar mais produtos baseado no limite do plano"""
+        if not self.plano or not self.plano.limite_produtos:
+            return True
+        
+        produtos_atuais = self.produtos.count()
+        return produtos_atuais < self.plano.limite_produtos
+    
+    def pode_criar_funcionario(self):
+        """Verifica se pode adicionar mais funcionários baseado no limite do plano"""
+        if not self.plano:
+            return True
+        
+        funcionarios_atuais = self.funcionarios.count()
+        return funcionarios_atuais < self.plano.limite_funcionarios
+    
+    def pode_processar_pedido(self):
+        """Verifica se pode processar mais pedidos baseado no limite mensal do plano"""
+        if not self.plano or not self.plano.limite_pedidos_mes:
+            return True
+        
+        from django.utils import timezone
+        hoje = timezone.now().date()
+        inicio_mes = hoje.replace(day=1)
+        
+        pedidos_mes = self.pedidos.filter(
+            created_at__date__gte=inicio_mes,
+            created_at__date__lte=hoje
+        ).exclude(status='cancelado').count()
+        
+        return pedidos_mes < self.plano.limite_pedidos_mes
+    
+    def tem_recurso(self, recurso):
+        """Verifica se o plano atual permite determinado recurso"""
+        if not self.plano:
+            return False
+        
+        recursos_map = {
+            'pagamento_online': self.plano.permite_pagamento_online,
+            'cupons_desconto': self.plano.permite_cupons_desconto,
+            'whatsapp_bot': self.plano.permite_whatsapp_bot,
+            'impressao_termica': self.plano.permite_impressao_termica,
+            'relatorios_avancados': self.plano.permite_relatorios_avancados,
+            'api_integracao': self.plano.permite_api_integracao,
+            'area_entregador': self.plano.permite_area_entregador,
+            'multi_loja': self.plano.permite_multi_loja,
+        }
+        
+        return recursos_map.get(recurso, False)
+    
+    def plano_vencido(self):
+        """Verifica se o plano está vencido"""
+        if not self.data_vencimento_plano:
+            return False
+        
+        from django.utils import timezone
+        return timezone.now().date() > self.data_vencimento_plano
+    
+    def dias_ate_vencimento(self):
+        """Retorna quantos dias faltam para o vencimento do plano"""
+        if not self.data_vencimento_plano:
+            return None
+        
+        from django.utils import timezone
+        hoje = timezone.now().date()
+        return (self.data_vencimento_plano - hoje).days
 
 
 class HorarioFuncionamento(models.Model):

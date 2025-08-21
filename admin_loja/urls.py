@@ -58,6 +58,13 @@ urlpatterns = [
     path('suporte/contato/', views.suporte_contato, name='suporte_contato'),
     path('suporte/api/chat/', views.suporte_chat_api, name='suporte_chat_api'),
     
+    # URLs para gestão de planos
+    path('planos/', views.planos_meu_plano, name='planos_meu_plano'),
+    path('planos/comparar/', views.planos_comparar, name='planos_comparar'),
+    path('planos/upgrade/', views.planos_solicitar_upgrade, name='planos_solicitar_upgrade'),
+    path('planos/historico/', views.planos_historico_uso, name='planos_historico_uso'),
+    path('planos/api/verificar-limite/', views.planos_api_verificar_limite, name='planos_api_verificar_limite'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]

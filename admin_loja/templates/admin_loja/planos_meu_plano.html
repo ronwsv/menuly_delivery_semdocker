@@ -1,0 +1,251 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h1><i class="fas fa-credit-card"></i> Meu Plano</h1>
+{% endblock %}
+
+{% block content %}
+<!-- Alertas -->
+{% if alertas %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% for alerta in alertas %}
+        <div class="alert alert-{{ alerta.tipo }} alert-dismissible fade show" role="alert">
+            <h6 class="alert-heading">
+                <i class="fas fa-exclamation-triangle"></i> {{ alerta.titulo }}
+            </h6>
+            {{ alerta.mensagem }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Plano Atual -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-star"></i> 
+                    {% if restaurante.plano %}
+                        {{ restaurante.plano.titulo }}
+                    {% else %}
+                        Nenhum Plano Ativo
+                    {% endif %}
+                </h5>
+                {% if restaurante.plano and restaurante.plano.destaque %}
+                    <span class="badge bg-success">Recomendado</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if restaurante.plano %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h3 class="text-primary">R$ {{ restaurante.plano.preco_mensal }}/mês</h3>
+                        <p class="text-muted">{{ restaurante.plano.descricao }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-end">
+                            {% if restaurante.data_vencimento_plano %}
+                            <p class="mb-1">
+                                <strong>Próximo vencimento:</strong><br>
+                                <span class="{% if stats.dias_ate_vencimento and stats.dias_ate_vencimento <= 7 %}text-danger{% endif %}">
+                                    {{ restaurante.data_vencimento_plano|date:"d/m/Y" }}
+                                </span>
+                            </p>
+                            {% endif %}
+                            {% if restaurante.data_inicio_plano %}
+                            <p class="mb-0">
+                                <strong>Assinatura desde:</strong><br>
+                                {{ restaurante.data_inicio_plano|date:"d/m/Y" }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recursos do Plano -->
+                <h6><i class="fas fa-check-circle"></i> Recursos Inclusos</h6>
+                <div class="row">
+                    {% for recurso in restaurante.plano.recursos_lista %}
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <i class="fas fa-check text-success"></i> {{ recurso }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-circle fa-3x text-warning mb-3"></i>
+                    <h5>Nenhum plano ativo</h5>
+                    <p class="text-muted">Você precisa escolher um plano para continuar usando o sistema.</p>
+                    <a href="{% url 'admin_loja:planos_comparar' %}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Ver Planos Disponíveis
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Estatísticas de Uso -->
+        {% if restaurante.plano %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Uso do Mês Atual</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Pedidos -->
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ stats.pedidos_mes }}</h4>
+                            <p class="text-muted mb-1">Pedidos</p>
+                            {% if restaurante.plano.limite_pedidos_mes %}
+                                <small class="text-muted">de {{ restaurante.plano.limite_pedidos_mes }}</small>
+                                <div class="progress mt-2">
+                                    {% widthratio stats.pedidos_mes restaurante.plano.limite_pedidos_mes 100 as percentual %}
+                                    <div class="progress-bar {% if percentual >= 80 %}bg-warning{% endif %} {% if percentual >= 95 %}bg-danger{% endif %}" 
+                                         style="width: {{ percentual }}%"></div>
+                                </div>
+                            {% else %}
+                                <small class="text-success">Ilimitado</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Produtos -->
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-info">{{ stats.produtos_total }}</h4>
+                            <p class="text-muted mb-1">Produtos</p>
+                            {% if restaurante.plano.limite_produtos %}
+                                <small class="text-muted">de {{ restaurante.plano.limite_produtos }}</small>
+                                <div class="progress mt-2">
+                                    {% widthratio stats.produtos_total restaurante.plano.limite_produtos 100 as percentual %}
+                                    <div class="progress-bar {% if percentual >= 80 %}bg-warning{% endif %} {% if percentual >= 95 %}bg-danger{% endif %}" 
+                                         style="width: {{ percentual }}%"></div>
+                                </div>
+                            {% else %}
+                                <small class="text-success">Ilimitado</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Funcionários -->
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-warning">{{ stats.funcionarios_total }}</h4>
+                            <p class="text-muted mb-1">Funcionários</p>
+                            <small class="text-muted">de {{ restaurante.plano.limite_funcionarios }}</small>
+                            <div class="progress mt-2">
+                                {% widthratio stats.funcionarios_total restaurante.plano.limite_funcionarios 100 as percentual %}
+                                <div class="progress-bar {% if percentual >= 80 %}bg-warning{% endif %} {% if percentual >= 95 %}bg-danger{% endif %}" 
+                                     style="width: {{ percentual }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Ações -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs"></i> Ações</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'admin_loja:planos_comparar' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i> Comparar Planos
+                    </a>
+                    
+                    {% if restaurante.plano %}
+                    <a href="{% url 'admin_loja:planos_solicitar_upgrade' %}" class="btn btn-outline-success">
+                        <i class="fas fa-arrow-up"></i> Fazer Upgrade
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'admin_loja:planos_historico_uso' %}" class="btn btn-outline-info">
+                        <i class="fas fa-history"></i> Histórico de Uso
+                    </a>
+                    
+                    <hr>
+                    
+                    <a href="mailto:vendas@menuly.com.br" class="btn btn-outline-secondary">
+                        <i class="fas fa-envelope"></i> Contatar Vendas
+                    </a>
+                    
+                    <a href="tel:+5511999999999" class="btn btn-outline-secondary">
+                        <i class="fas fa-phone"></i> Ligar para Suporte
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dicas -->
+        {% if restaurante.plano %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Dicas</h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    {% if restaurante.plano.nome == 'starter' %}
+                    <p><strong>Aproveite mais recursos:</strong></p>
+                    <ul>
+                        <li>Upgrade para Pro e aceite pagamentos online</li>
+                        <li>Use cupons de desconto para atrair clientes</li>
+                        <li>Automatize com WhatsApp Bot</li>
+                    </ul>
+                    {% elif restaurante.plano.nome == 'pro' %}
+                    <p><strong>Expanda seu negócio:</strong></p>
+                    <ul>
+                        <li>Upgrade para Multi-Loja e abra filiais</li>
+                        <li>Integre com seu ERP via API</li>
+                        <li>Use a área do entregador</li>
+                    </ul>
+                    {% else %}
+                    <p><strong>Você tem o melhor plano!</strong></p>
+                    <ul>
+                        <li>Aproveite todos os recursos</li>
+                        <li>Integre com sistemas externos</li>
+                        <li>Suporte prioritário disponível</li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.progress {
+    height: 8px;
+}
+
+.d-grid {
+    display: grid;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.btn {
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}

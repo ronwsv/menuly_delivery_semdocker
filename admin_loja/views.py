@@ -9,6 +9,7 @@ from django.utils import timezone
 from .utils import painel_loja_required, verificar_permissao_gerencial, verificar_permissao_lojista, obter_restaurante_usuario
 from .views_perfil import perfil_visualizar, perfil_editar, perfil_alterar_senha
 from .views_suporte import suporte_index, suporte_contato, suporte_chat_api
+from .views_planos import planos_meu_plano, planos_comparar, planos_solicitar_upgrade, planos_historico_uso, planos_api_verificar_limite
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db import models
@@ -543,7 +544,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 # ==================== VIEWS DE GESTÃO DE EQUIPE ====================
 
-@login_required
+@painel_loja_required
 def equipe_listar(request):
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
@@ -556,15 +557,27 @@ def equipe_listar(request):
         'restaurante': restaurante
     })
 
-@login_required
+@painel_loja_required
 def equipe_adicionar(request):
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/equipe_form.html', {'msg': 'Restaurante não encontrado.'})
+
+    # Verificar limite do plano
+    if not restaurante.pode_criar_funcionario():
+        messages.error(request, 
+            f'Limite de {restaurante.plano.limite_funcionarios} funcionários atingido. '
+            f'Faça upgrade do seu plano para adicionar mais funcionários.')
+        return redirect('admin_loja:equipe_listar')
 
     if request.method == 'POST':
         form = FuncionarioForm(request.POST)
         if form.is_valid():
+            # Verificar novamente antes de salvar
+            if not restaurante.pode_criar_funcionario():
+                messages.error(request, 'Limite de funcionários atingido.')
+                return redirect('admin_loja:equipe_listar')
+                
             user = form.save(commit=False)
             user.username = user.email # Usar email como username
             user.save()
@@ -593,7 +606,7 @@ def equipe_adicionar(request):
         'restaurante': restaurante
     })
 
-@login_required
+@painel_loja_required
 def equipe_editar(request, user_id):
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
@@ -636,7 +649,7 @@ def equipe_editar(request, user_id):
         'restaurante': restaurante
     })
 
-@login_required
+@painel_loja_required
 def equipe_remover(request, user_id):
     restaurante = Restaurante.objects.filter(proprietario=request.user).first()
     if not restaurante:
@@ -694,9 +707,12 @@ def admin_loja_relatorios(request):
     if redirect_response:
         return redirect_response
         
-    restaurante = request.user.restaurantes.first()
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/relatorios.html', {'error': 'Restaurante não encontrado.'})
+    
+    # Verificar se o plano permite relatórios avançados
+    relatorios_avancados = restaurante.tem_recurso('relatorios_avancados')
 
     # Vendas diárias
     hoje = timezone.now().date()
@@ -756,6 +772,8 @@ def admin_loja_relatorios(request):
         'labels_ultimos_7_dias': labels_ultimos_7_dias,
         'produtos_mais_vendidos': produtos_mais_vendidos,
         'recebimentos_por_forma': recebimentos_por_forma,
+        'relatorios_avancados': relatorios_avancados,
+        'restaurante': restaurante,
     }
     return render(request, 'admin_loja/relatorios.html', context)
 
@@ -767,10 +785,17 @@ def admin_loja_cupom_pedido(request, pedido_id):
     
     if tipo_usuario == 'lojista':
         pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__proprietario=request.user)
+        restaurante = pedido.restaurante
     else:
         # Gerente/Atendente: buscar pedidos dos restaurantes onde trabalha
         restaurantes = request.user.trabalha_em.all()
         pedido = get_object_or_404(Pedido, id=pedido_id, restaurante__in=restaurantes)
+        restaurante = pedido.restaurante
+    
+    # Verificar se o plano permite cupons de desconto
+    if not restaurante.tem_recurso('cupons_desconto'):
+        messages.error(request, 'Cupons de desconto não disponíveis em seu plano. Faça upgrade para acessar este recurso.')
+        return redirect('admin_loja:pedidos')
     
     itens = pedido.itens.all() if hasattr(pedido, 'itens') else []
     return render(request, 'admin_loja/cupom_pedido.html', {'pedido': pedido, 'itens': itens})
@@ -781,11 +806,15 @@ def admin_loja_cupom_pedido(request, pedido_id):
 @painel_loja_required
 def admin_loja_impressoras(request):
     """Lista todas as impressoras do restaurante"""
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/impressoras.html', {
             'msg': 'Você não tem permissão para acessar esta página.'
         })
+    
+    # Verificar se o plano permite impressão térmica
+    if not restaurante.tem_recurso('impressao_termica'):
+        messages.warning(request, 'Impressão térmica não disponível em seu plano. Faça upgrade para acessar este recurso.')
     
     impressoras = Impressora.objects.filter(restaurante=restaurante).order_by('-created_at')
     
@@ -794,14 +823,23 @@ def admin_loja_impressoras(request):
         'restaurante': restaurante
     })
 
-@login_required
+@painel_loja_required
 def admin_loja_impressora_cadastrar(request):
     """Cadastrar nova impressora"""
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    redirect_response = verificar_permissao_gerencial(request, "o gerenciamento de impressoras")
+    if redirect_response:
+        return redirect_response
+        
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/impressora_form.html', {
             'msg': 'Você não tem permissão para acessar esta página.'
         })
+    
+    # Verificar se o plano permite impressão térmica
+    if not restaurante.tem_recurso('impressao_termica'):
+        messages.error(request, 'Impressão térmica não disponível em seu plano. Faça upgrade para acessar este recurso.')
+        return redirect('admin_loja:impressoras')
     
     if request.method == 'POST':
         form = ImpressoraForm(request.POST)
@@ -942,10 +980,14 @@ def admin_loja_categorias(request):
         'restaurante': restaurante
     })
 
-@login_required
+@painel_loja_required
 def admin_loja_categoria_cadastrar(request):
     """Cadastrar nova categoria"""
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    redirect_response = verificar_permissao_gerencial(request, "o gerenciamento de categorias")
+    if redirect_response:
+        return redirect_response
+        
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/categoria_form.html', {
             'msg': 'Você não tem permissão para acessar esta página.'
@@ -1083,28 +1125,46 @@ def admin_loja_produtos(request):
         'filtro_status': status
     })
 
-@login_required
+@painel_loja_required
 def admin_loja_produto_cadastrar(request):
     """Cadastrar novo produto"""
-    restaurante = Restaurante.objects.filter(proprietario=request.user).first()
+    redirect_response = verificar_permissao_gerencial(request, "o gerenciamento de produtos")
+    if redirect_response:
+        return redirect_response
+        
+    restaurante = obter_restaurante_usuario(request.user)
     if not restaurante:
         return render(request, 'admin_loja/produto_form.html', {
             'msg': 'Você não tem permissão para acessar esta página.'
         })
     
+    # Verificar limite do plano
+    if not restaurante.pode_criar_produto():
+        messages.error(request, 
+            f'Limite de {restaurante.plano.limite_produtos} produtos atingido. '
+            f'Faça upgrade do seu plano para adicionar mais produtos.')
+        return redirect('admin_loja:produtos')
+    
     if request.method == 'POST':
         form = ProdutoForm(request.POST, request.FILES, restaurante=restaurante)
         if form.is_valid():
+            # Verificar novamente antes de salvar
+            if not restaurante.pode_criar_produto():
+                messages.error(request, 'Limite de produtos atingido.')
+                return redirect('admin_loja:produtos')
+                
             produto = form.save(commit=False)
             produto.restaurante = restaurante
             produto.save()
+            messages.success(request, 'Produto criado com sucesso!')
             return redirect('admin_loja:produtos')
     else:
         form = ProdutoForm(restaurante=restaurante)
     
     return render(request, 'admin_loja/produto_form.html', {
         'form': form,
-        'titulo': 'Novo Produto'
+        'titulo': 'Novo Produto',
+        'restaurante': restaurante,
     })
 
 @login_required

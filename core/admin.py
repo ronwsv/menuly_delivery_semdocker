@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
-    Usuario, Endereco, Restaurante, HorarioFuncionamento,
+    Usuario, Endereco, Plano, Restaurante, HorarioFuncionamento,
     Categoria, Produto, ImagemProduto, OpcaoPersonalizacao, ItemPersonalizacao,
     Pedido, ItemPedido, PersonalizacaoItemPedido, HistoricoStatusPedido, AvaliacaoPedido
 )
@@ -24,6 +24,33 @@ class UsuarioAdmin(UserAdmin):
 class HorarioFuncionamentoInline(admin.TabularInline):
     model = HorarioFuncionamento
     extra = 7  # Para os 7 dias da semana
+
+
+@admin.register(Plano)
+class PlanoAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'nome', 'preco_mensal', 'preco_setup', 'destaque', 'ativo', 'ordem_exibicao')
+    list_filter = ('ativo', 'destaque', 'nome')
+    search_fields = ('titulo', 'descricao')
+    ordering = ('ordem_exibicao', 'preco_mensal')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('nome', 'titulo', 'descricao', 'ativo', 'destaque', 'ordem_exibicao')
+        }),
+        ('Preços', {
+            'fields': ('preco_mensal', 'preco_setup')
+        }),
+        ('Limites', {
+            'fields': ('limite_pedidos_mes', 'limite_produtos', 'limite_funcionarios', 'limite_lojas')
+        }),
+        ('Recursos', {
+            'fields': (
+                'permite_pagamento_online', 'permite_cupons_desconto', 'permite_whatsapp_bot',
+                'permite_impressao_termica', 'permite_relatorios_avancados', 'permite_api_integracao',
+                'permite_area_entregador', 'permite_multi_loja'
+            )
+        }),
+    )
 
 
 @admin.register(Restaurante)

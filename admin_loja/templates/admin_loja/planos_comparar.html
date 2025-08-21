@@ -1,0 +1,297 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<h1><i class="fas fa-balance-scale"></i> Comparar Planos</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle"></i>
+            <strong>Escolha o plano ideal para seu negócio!</strong>
+            Compare recursos e preços dos nossos planos de assinatura.
+            {% if restaurante.plano %}
+                Seu plano atual: <strong>{{ restaurante.plano.titulo }}</strong>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for plano in planos %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 {% if plano.destaque %}border-success{% endif %} {% if restaurante.plano and restaurante.plano.id == plano.id %}border-primary{% endif %}">
+            
+            <!-- Header do Plano -->
+            <div class="card-header text-center {% if plano.destaque %}bg-success text-white{% elif restaurante.plano and restaurante.plano.id == plano.id %}bg-primary text-white{% endif %}">
+                <h5 class="mb-0">{{ plano.titulo }}</h5>
+                {% if plano.destaque %}
+                    <small class="badge bg-light text-success mt-1">Mais Popular</small>
+                {% endif %}
+                {% if restaurante.plano and restaurante.plano.id == plano.id %}
+                    <small class="badge bg-light text-primary mt-1">Plano Atual</small>
+                {% endif %}
+            </div>
+            
+            <!-- Preço -->
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <h2 class="text-primary">R$ {{ plano.preco_mensal }}</h2>
+                    <small class="text-muted">/mês</small>
+                    {% if plano.preco_setup > 0 %}
+                        <p class="small text-muted mb-0">+ R$ {{ plano.preco_setup }} taxa de configuração</p>
+                    {% endif %}
+                </div>
+                
+                <p class="text-muted">{{ plano.descricao }}</p>
+                
+                <!-- Recursos -->
+                <div class="text-start">
+                    <h6><i class="fas fa-check-circle"></i> Recursos Inclusos:</h6>
+                    <ul class="list-unstyled">
+                        {% for recurso in plano.recursos_lista %}
+                        <li class="mb-1">
+                            <i class="fas fa-check text-success"></i> {{ recurso }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <!-- Limites -->
+                <div class="text-start mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Limites:</h6>
+                    <ul class="list-unstyled small">
+                        <li><strong>Pedidos/mês:</strong> 
+                            {% if plano.limite_pedidos_mes %}{{ plano.limite_pedidos_mes }}{% else %}Ilimitado{% endif %}
+                        </li>
+                        <li><strong>Produtos:</strong> 
+                            {% if plano.limite_produtos %}{{ plano.limite_produtos }}{% else %}Ilimitado{% endif %}
+                        </li>
+                        <li><strong>Funcionários:</strong> {{ plano.limite_funcionarios }}</li>
+                        <li><strong>Lojas:</strong> 
+                            {% if plano.limite_lojas > 100 %}Ilimitado{% else %}{{ plano.limite_lojas }}{% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Footer com ação -->
+            <div class="card-footer text-center">
+                {% if restaurante.plano and restaurante.plano.id == plano.id %}
+                    <button class="btn btn-secondary" disabled>
+                        <i class="fas fa-check"></i> Plano Atual
+                    </button>
+                {% elif not restaurante.plano or plano.preco_mensal > restaurante.plano.preco_mensal %}
+                    <a href="{% url 'admin_loja:planos_solicitar_upgrade' %}?plano={{ plano.id }}" class="btn btn-success">
+                        <i class="fas fa-arrow-up"></i> 
+                        {% if not restaurante.plano %}Contratar{% else %}Fazer Upgrade{% endif %}
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="fas fa-arrow-down"></i> Downgrade não disponível
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Tabela de Comparação Detalhada -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-table"></i> Comparação Detalhada de Recursos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Recurso</th>
+                                {% for plano in planos %}
+                                <th class="text-center">{{ plano.titulo }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Preço Mensal</strong></td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    <strong class="text-primary">R$ {{ plano.preco_mensal }}</strong>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Site Responsivo</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    <i class="fas fa-check text-success"></i>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Gestão de Produtos</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    <i class="fas fa-check text-success"></i>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Pagamentos Online</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_pagamento_online %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Cupons de Desconto</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_cupons_desconto %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>WhatsApp Bot</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_whatsapp_bot %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Impressão Térmica</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_impressao_termica %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Relatórios Avançados</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_relatorios_avancados %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>API para Integração</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_api_integracao %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Área do Entregador</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_area_entregador %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Multi-Loja</td>
+                                {% for plano in planos %}
+                                <td class="text-center">
+                                    {% if plano.permite_multi_loja %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{% url 'admin_loja:planos_meu_plano' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Voltar ao Meu Plano
+        </a>
+        
+        <a href="{% url 'admin_loja:planos_solicitar_upgrade' %}" class="btn btn-success">
+            <i class="fas fa-paper-plane"></i> Solicitar Upgrade
+        </a>
+        
+        <a href="mailto:vendas@menuly.com.br" class="btn btn-outline-primary">
+            <i class="fas fa-envelope"></i> Contatar Vendas
+        </a>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.15s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.border-success {
+    border: 2px solid #28a745 !important;
+}
+
+.border-primary {
+    border: 2px solid #007bff !important;
+}
+
+.h-100 {
+    height: 100% !important;
+}
+
+.table th {
+    border-top: none;
+}
+
+.btn {
+    min-width: 140px;
+}
+</style>
+{% endblock %}

@@ -240,6 +240,11 @@
             <!-- Perfil - Todos podem ver -->
             <li><a href="{% url 'admin_loja:perfil_visualizar' %}"><i class="fas fa-user"></i><span>Meu Perfil</span></a></li>
             
+            <!-- Planos - Apenas Lojista -->
+            {% if is_lojista %}
+            <li><a href="{% url 'admin_loja:planos_meu_plano' %}"><i class="fas fa-credit-card"></i><span>Meu Plano</span></a></li>
+            {% endif %}
+            
             <!-- Suporte - Todos podem ver -->
             <li><a href="{% url 'admin_loja:suporte_index' %}"><i class="fas fa-life-ring"></i><span>Suporte</span></a></li>
             
