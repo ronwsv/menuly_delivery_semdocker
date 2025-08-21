@@ -48,6 +48,11 @@ urlpatterns = [
     path('api/notificacoes/verificar/', views.api_verificar_notificacoes, name='api_verificar_notificacoes'),
     path('api/notificacoes/criar-sistema/', views.api_criar_notificacao_sistema, name='api_criar_notificacao_sistema'),
     
+    # URLs para perfil do usuário
+    path('perfil/', views.perfil_visualizar, name='perfil_visualizar'),
+    path('perfil/editar/', views.perfil_editar, name='perfil_editar'),
+    path('perfil/alterar-senha/', views.perfil_alterar_senha, name='perfil_alterar_senha'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]

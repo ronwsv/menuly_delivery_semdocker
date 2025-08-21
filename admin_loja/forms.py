@@ -3,6 +3,7 @@ from django.db import models
 from core.models import Restaurante, Categoria, Produto, HorarioFuncionamento, Usuario
 from .models import Impressora
 from django.contrib.auth.models import Group
+from django.contrib.auth.forms import PasswordChangeForm
 
 
 class LogoForm(forms.ModelForm):
@@ -363,3 +364,85 @@ class FuncionarioForm(forms.ModelForm):
             # A atribuição de grupos será feita na view para evitar duplicação
             
         return user
+
+
+# ==================== FORMS PARA PERFIL DO USUÁRIO ====================
+
+class PerfilForm(forms.ModelForm):
+    """Form para editar dados do perfil do usuário"""
+    
+    class Meta:
+        model = Usuario
+        fields = ['first_name', 'last_name', 'email', 'celular', 'data_nascimento', 'cpf']
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nome'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Sobrenome'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'email@exemplo.com'
+            }),
+            'celular': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '(11) 99999-9999'
+            }),
+            'data_nascimento': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'cpf': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '000.000.000-00'
+            }),
+        }
+        labels = {
+            'first_name': 'Nome',
+            'last_name': 'Sobrenome',
+            'email': 'Email',
+            'celular': 'Celular',
+            'data_nascimento': 'Data de Nascimento',
+            'cpf': 'CPF',
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and Usuario.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este email já está em uso.")
+        return email
+
+    def clean_celular(self):
+        celular = self.cleaned_data.get('celular')
+        if celular and Usuario.objects.filter(celular=celular).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este celular já está em uso.")
+        return celular
+
+
+class AlterarSenhaForm(PasswordChangeForm):
+    """Form customizado para alterar senha"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Personalizar widgets
+        self.fields['old_password'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Senha atual'
+        })
+        self.fields['new_password1'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Nova senha'
+        })
+        self.fields['new_password2'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Confirmar nova senha'
+        })
+        
+        # Personalizar labels
+        self.fields['old_password'].label = 'Senha Atual'
+        self.fields['new_password1'].label = 'Nova Senha'
+        self.fields['new_password2'].label = 'Confirmar Nova Senha'

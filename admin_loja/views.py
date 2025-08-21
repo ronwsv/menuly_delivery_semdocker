@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django import forms
 from django.utils import timezone
 from .utils import painel_loja_required, verificar_permissao_gerencial, verificar_permissao_lojista, obter_restaurante_usuario
+from .views_perfil import perfil_visualizar, perfil_editar, perfil_alterar_senha
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db import models
@@ -530,7 +531,8 @@ from django.contrib.auth.models import Group
 from core.models import Pedido, ItemPedido, Restaurante, Usuario, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto
 from .models import Impressora
 from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
-                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, FuncionarioForm)
+                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, FuncionarioForm,
+                    PerfilForm, AlterarSenhaForm)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
