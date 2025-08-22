@@ -9,7 +9,9 @@ from django.utils import timezone
 from .utils import painel_loja_required, verificar_permissao_gerencial, verificar_permissao_lojista, obter_restaurante_usuario
 from .views_perfil import perfil_visualizar, perfil_editar, perfil_alterar_senha
 from .views_suporte import suporte_index, suporte_contato, suporte_chat_api
-from .views_planos import planos_meu_plano, planos_comparar, planos_solicitar_upgrade, planos_historico_uso, planos_api_verificar_limite
+from .views_planos import (planos_meu_plano, planos_comparar, planos_solicitar_upgrade, 
+                          planos_historico_uso, planos_api_verificar_limite, processar_upgrade, 
+                          atribuir_plano, listar_restaurantes_sem_plano)
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db import models

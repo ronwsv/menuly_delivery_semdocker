@@ -302,3 +302,121 @@ def planos_api_verificar_limite(request):
         })
     
     return JsonResponse(resultado)
+
+@painel_loja_required
+def processar_upgrade(request):
+    """View para processar o upgrade de plano do lojista"""
+    
+    if request.method != 'POST':
+        messages.error(request, 'Método não permitido.')
+        return redirect('admin_loja:planos_comparar')
+    
+    restaurante = obter_restaurante_usuario(request.user)
+    
+    if not restaurante:
+        messages.error(request, 'Restaurante não encontrado.')
+        return redirect('admin_loja:dashboard')
+    
+    plano_id = request.POST.get('plano_id')
+    
+    if not plano_id:
+        messages.error(request, 'Plano não especificado.')
+        return redirect('admin_loja:planos_comparar')
+    
+    try:
+        novo_plano = Plano.objects.get(id=plano_id, ativo=True)
+    except Plano.DoesNotExist:
+        messages.error(request, 'Plano não encontrado.')
+        return redirect('admin_loja:planos_comparar')
+    
+    # Verificar se é realmente um upgrade
+    if restaurante.plano and novo_plano.preco_mensal <= restaurante.plano.preco_mensal:
+        messages.error(request, 'Apenas upgrades são permitidos.')
+        return redirect('admin_loja:planos_comparar')
+    
+    # Atualizar o plano do restaurante
+    plano_anterior = restaurante.plano.titulo if restaurante.plano else "Nenhum"
+    restaurante.plano = novo_plano
+    restaurante.data_vencimento_plano = timezone.now().date() + timedelta(days=30)
+    restaurante.save()
+    
+    # Log da alteração (você pode implementar um modelo de histórico aqui)
+    print(f"UPGRADE REALIZADO: {restaurante.nome} - {plano_anterior} -> {novo_plano.titulo}")
+    
+    messages.success(request, 
+        f'Upgrade realizado com sucesso! Seu plano foi alterado para {novo_plano.titulo}. '
+        f'Todos os novos recursos já estão disponíveis.')
+    
+    return redirect('admin_loja:planos_meu_plano')
+
+@painel_loja_required 
+def atribuir_plano(request):
+    """View para atribuir um plano específico ao lojista (uso administrativo/vendas)"""
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método não permitido'})
+    
+    # Esta view será usada pelo sistema de vendas para atribuir planos
+    # Requer autenticação especial ou chave de API
+    
+    import json
+    
+    try:
+        data = json.loads(request.body)
+        restaurante_id = data.get('restaurante_id')
+        plano_id = data.get('plano_id')
+        dias_validade = data.get('dias_validade', 30)
+        chave_api = data.get('api_key')
+        
+        # Verificar chave de API (implemente sua verificação de segurança aqui)
+        # if chave_api != settings.VENDAS_API_KEY:
+        #     return JsonResponse({'success': False, 'error': 'Chave de API inválida'})
+        
+        if not restaurante_id or not plano_id:
+            return JsonResponse({'success': False, 'error': 'Dados obrigatórios faltando'})
+        
+        try:
+            restaurante = Restaurante.objects.get(id=restaurante_id)
+            plano = Plano.objects.get(id=plano_id, ativo=True)
+        except (Restaurante.DoesNotExist, Plano.DoesNotExist):
+            return JsonResponse({'success': False, 'error': 'Restaurante ou plano não encontrado'})
+        
+        # Atribuir o plano
+        plano_anterior = restaurante.plano.titulo if restaurante.plano else "Nenhum"
+        restaurante.plano = plano
+        restaurante.data_vencimento_plano = timezone.now().date() + timedelta(days=dias_validade)
+        restaurante.save()
+        
+        # Log da alteração
+        print(f"PLANO ATRIBUÍDO VIA API: {restaurante.nome} - {plano_anterior} -> {plano.titulo}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Plano {plano.titulo} atribuído com sucesso ao restaurante {restaurante.nome}',
+            'restaurante': restaurante.nome,
+            'plano_anterior': plano_anterior,
+            'plano_novo': plano.titulo,
+            'data_vencimento': restaurante.data_vencimento_plano.isoformat()
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'JSON inválido'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erro interno: {str(e)}'})
+
+def listar_restaurantes_sem_plano(request):
+    """API para listar restaurantes sem plano (para uso do sistema de vendas)"""
+    
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': 'Método não permitido'})
+    
+    # Verificar autenticação/API key aqui
+    
+    restaurantes_sem_plano = Restaurante.objects.filter(plano__isnull=True).values(
+        'id', 'nome', 'email_contato', 'telefone', 'created_at'
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'restaurantes': list(restaurantes_sem_plano)
+    })

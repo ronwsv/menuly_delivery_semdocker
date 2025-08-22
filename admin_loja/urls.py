@@ -62,6 +62,9 @@ urlpatterns = [
     path('planos/', views.planos_meu_plano, name='planos_meu_plano'),
     path('planos/comparar/', views.planos_comparar, name='planos_comparar'),
     path('planos/upgrade/', views.planos_solicitar_upgrade, name='planos_solicitar_upgrade'),
+    path('planos/processar-upgrade/', views.processar_upgrade, name='processar_upgrade'),
+    path('planos/atribuir-plano/', views.atribuir_plano, name='atribuir_plano'),
+    path('planos/api/restaurantes-sem-plano/', views.listar_restaurantes_sem_plano, name='listar_restaurantes_sem_plano'),
     path('planos/historico/', views.planos_historico_uso, name='planos_historico_uso'),
     path('planos/api/verificar-limite/', views.planos_api_verificar_limite, name='planos_api_verificar_limite'),
     
