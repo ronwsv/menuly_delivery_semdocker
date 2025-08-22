@@ -1,46 +1,165 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 
-{% block title %}Bem-vindo ao Menuly{% endblock %}
+{% block title %}Menuly - Plataforma de Delivery para Restaurantes{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-            <h1 class="display-4 fw-bold">Bem-vindo ao Menuly</h1>
-            <p class="lead text-muted">Sua solução completa de cardápio e delivery online.</p>
-            <hr class="my-4">
-            <p>Escolha um de nossos restaurantes parceiros abaixo para começar.</p>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        {% if restaurantes %}
-            {% for restaurante in restaurantes %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    {% if restaurante.logo %}
-                        <img src="{{ restaurante.logo.url }}" class="card-img-top" alt="Logo {{ restaurante.nome }}" style="max-height: 200px; object-fit: contain; padding: 1rem;">
-                    {% endif %}
-                    <div class="card-body text-center d-flex flex-column">
-                        <h5 class="card-title">{{ restaurante.nome }}</h5>
-                        <p class="card-text text-muted">{{ restaurante.descricao|truncatewords:15 }}</p>
-                        <a href="{% url 'loja:home' restaurante_slug=restaurante.slug %}" class="btn btn-primary mt-auto">Ver Cardápio</a>
+<!-- Hero Section -->
+<section class="bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5">
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="display-4 fw-bold mb-4">
+                    <span class="d-block">Bem-vindo ao</span>
+                    <span class="menuly-brand text-white">Menuly</span>
+                </h1>
+                <p class="lead mb-4">A plataforma completa para restaurantes criarem seus sites de delivery online de forma profissional e moderna.</p>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="bg-white bg-opacity-10 rounded-lg p-4 mb-4">
+                            <div class="row text-center">
+                                <div class="col-md-4 mb-3">
+                                    <i class="bi bi-globe2 fs-1 text-warning mb-2"></i>
+                                    <h6>Site Profissional</h6>
+                                    <small>Design moderno e responsivo</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <i class="bi bi-cart-check fs-1 text-warning mb-2"></i>
+                                    <h6>Sistema de Pedidos</h6>
+                                    <small>Gestão completa de vendas</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <i class="bi bi-graph-up fs-1 text-warning mb-2"></i>
+                                    <h6>Relatórios</h6>
+                                    <small>Estatísticas em tempo real</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <hr class="my-4 border-white border-opacity-25">
+                <p class="fs-5">Conheça nossos restaurantes parceiros:</p>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 text-center">
-                <p>Nenhum restaurante disponível no momento.</p>
-            </div>
-        {% endif %}
-    </div>
-
-    <div class="row mt-5">
-        <div class="col-12 text-center">
-            <p>É um administrador?</p>
-            <a href="{{ admin_url }}" class="btn btn-secondary">Acessar o Painel</a>
         </div>
     </div>
-</div>
+</section>
+
+<!-- Restaurantes Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+
+        <!-- Título da seção -->
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="h3 fw-bold">Nossos Restaurantes Parceiros</h2>
+                <p class="text-muted">Escolha um restaurante abaixo para ver o cardápio e fazer seu pedido</p>
+            </div>
+        </div>
+
+        <!-- Lista de Restaurantes -->
+        <div class="row">
+            {% if restaurantes %}
+                {% for restaurante in restaurantes %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow">
+                        {% if restaurante.logo %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: #f8f9fa;">
+                                <img src="{{ restaurante.logo.url }}" alt="Logo {{ restaurante.nome }}" style="max-height: 150px; max-width: 90%; object-fit: contain;">
+                            </div>
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-primary text-white" style="height: 180px;">
+                                <i class="bi bi-shop fs-1"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body text-center d-flex flex-column">
+                            <h5 class="card-title fw-bold">{{ restaurante.nome }}</h5>
+                            <p class="card-text text-muted small mb-3">{{ restaurante.descricao|truncatewords:15 }}</p>
+                            
+                            <!-- Info do Restaurante -->
+                            <div class="mb-3">
+                                {% if restaurante.cidade %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt"></i> {{ restaurante.cidade }}, {{ restaurante.estado }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Status -->
+                            {% if restaurante.esta_aberto %}
+                                <span class="badge bg-success mb-3">
+                                    <i class="bi bi-check-circle"></i> Aberto
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary mb-3">
+                                    <i class="bi bi-clock"></i> Fechado
+                                </span>
+                            {% endif %}
+                            
+                            <a href="{% url 'loja:home' restaurante_slug=restaurante.slug %}" 
+                               class="btn btn-primary mt-auto">
+                                <i class="bi bi-menu-button-wide me-2"></i>Ver Cardápio
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-shop fs-1 text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum restaurante disponível no momento</h4>
+                    <p class="text-muted">Em breve teremos restaurantes parceiros na plataforma.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action para Administradores -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-8">
+                <h3 class="fw-bold mb-3">Área Administrativa</h3>
+                <p class="lead mb-4">Acesse o painel administrativo para gerenciar restaurantes e configurações da plataforma.</p>
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                    <a href="/admin-loja/" class="btn btn-light btn-lg">
+                        <i class="bi bi-shop me-2"></i>Painel do Lojista
+                    </a>
+                    <a href="{{ admin_url }}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-gear me-2"></i>Administração
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.hover-shadow {
+    transition: all 0.3s ease;
+}
+
+.hover-shadow:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.bg-gradient-to-r {
+    background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+}
+
+.rounded-lg {
+    border-radius: 0.75rem;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.border-opacity-25 {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+</style>
 {% endblock %}
