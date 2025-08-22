@@ -1,0 +1,166 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static admin_modify %}
+
+{% block title %}Atribuir Plano - {{ site_title|default:"Django Admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Início</a>
+    &rsaquo; <a href="{% url 'admin:core_restaurante_changelist' %}">Restaurantes</a>
+    &rsaquo; Atribuir Plano
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="atribuir-plano-form">
+    <h1>🎯 Atribuir Plano aos Restaurantes Selecionados</h1>
+    
+    <div class="restaurantes-selecionados">
+        <h3>Restaurantes selecionados ({{ restaurantes|length }}):</h3>
+        <ul style="background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 200px; overflow-y: auto;">
+            {% for restaurante in restaurantes %}
+            <li style="margin-bottom: 5px;">
+                <strong>{{ restaurante.nome }}</strong> 
+                {% if restaurante.plano %}
+                    <span style="color: #28a745;">(Plano atual: {{ restaurante.plano.titulo }})</span>
+                {% else %}
+                    <span style="color: #dc3545;">(Sem plano)</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="field-box">
+                {{ form.plano.label_tag }}
+                {{ form.plano }}
+                {% if form.plano.help_text %}
+                    <div class="help">{{ form.plano.help_text }}</div>
+                {% endif %}
+                {{ form.plano.errors }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-box">
+                {{ form.dias_validade.label_tag }}
+                {{ form.dias_validade }}
+                {% if form.dias_validade.help_text %}
+                    <div class="help">{{ form.dias_validade.help_text }}</div>
+                {% endif %}
+                {{ form.dias_validade.errors }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-box">
+                <label>
+                    {{ form.sobrescrever_plano_existente }} {{ form.sobrescrever_plano_existente.label }}
+                </label>
+                {% if form.sobrescrever_plano_existente.help_text %}
+                    <div class="help">{{ form.sobrescrever_plano_existente.help_text }}</div>
+                {% endif %}
+                {{ form.sobrescrever_plano_existente.errors }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-box">
+                <label>
+                    {{ form.enviar_email_notificacao }} {{ form.enviar_email_notificacao.label }}
+                </label>
+                {% if form.enviar_email_notificacao.help_text %}
+                    <div class="help">{{ form.enviar_email_notificacao.help_text }}</div>
+                {% endif %}
+                {{ form.enviar_email_notificacao.errors }}
+            </div>
+        </div>
+
+        <div class="submit-row">
+            <input type="hidden" name="action" value="atribuir_plano_personalizado">
+            <input type="hidden" name="{{ action_checkbox_name }}" value="1">
+            {% for restaurante in restaurantes %}
+                <input type="hidden" name="{{ action_checkbox_name }}" value="{{ restaurante.pk }}">
+            {% endfor %}
+            
+            <input type="submit" value="Atribuir Plano" name="apply" class="default">
+            <a href="{% url 'admin:core_restaurante_changelist' %}" class="button cancel-link">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.atribuir-plano-form {
+    padding: 20px;
+}
+
+.restaurantes-selecionados {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.field-box {
+    margin-bottom: 15px;
+}
+
+.field-box label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.field-box input, .field-box select {
+    width: 300px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.field-box .help {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.submit-row {
+    margin-top: 20px;
+    padding: 15px 0;
+    border-top: 1px solid #ddd;
+}
+
+.submit-row input[type="submit"] {
+    background: #417690;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.submit-row input[type="submit"]:hover {
+    background: #205067;
+}
+
+.cancel-link {
+    background: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.cancel-link:hover {
+    background: #545b62;
+    color: white;
+}
+</style>
+{% endblock %}
