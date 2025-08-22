@@ -15,14 +15,14 @@
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:title" content="{% block og_title %}Menuly - Sua Solução Completa de Delivery{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Plataforma completa para restaurantes criarem seus sites de delivery online.{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% static 'img/menuly-logo.png' %}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}/pdf_cardapio/menuly-logo.png{% endblock %}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
     <meta property="twitter:title" content="{% block twitter_title %}Menuly - Sua Solução Completa de Delivery{% endblock %}">
     <meta property="twitter:description" content="{% block twitter_description %}Plataforma completa para restaurantes criarem seus sites de delivery online.{% endblock %}">
-    <meta property="twitter:image" content="{% block twitter_image %}{% static 'img/menuly-logo.png' %}{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}/pdf_cardapio/menuly-logo.png{% endblock %}">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
@@ -45,10 +45,10 @@
     <!-- Variáveis CSS para Menuly -->
     <style>
         :root {
-            --cor-primaria: #2563eb;
+            --cor-primaria: #7c3aed;
             --cor-secundaria: #6b7280;
-            --cor-destaque: #10b981;
-            --cor-primaria-hover: #1d4ed8;
+            --cor-destaque: #a855f7;
+            --cor-primaria-hover: #6d28d9;
             --cor-sucesso: #10b981;
             --cor-perigo: #ef4444;
             --cor-info: #06b6d4;
@@ -56,7 +56,7 @@
         }
         
         .menuly-brand {
-            background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -79,7 +79,7 @@
         <div class="container-fluid px-4">
             <!-- Logo/Nome do Menuly -->
             <a class="navbar-brand d-flex align-items-center" href="{% url 'landing_page' %}">
-                <img src="{% static 'img/menuly-logo.png' %}" alt="Menuly" class="menuly-logo me-2" onerror="this.style.display='none'">
+                <img src="/pdf_cardapio/menuly-logo-semfundo.png" alt="Menuly" class="menuly-logo me-2" onerror="this.style.display='none'">
                 <span class="menuly-brand">Menuly</span>
             </a>
             
@@ -145,7 +145,7 @@
                 <!-- Informações do Menuly -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <h5 class="text-primary mb-3">
-                        <img src="{% static 'img/menuly-logo.png' %}" alt="Menuly" style="height: 30px;" class="me-2" onerror="this.style.display='none'">
+                        <img src="/pdf_cardapio/menuly-logo-semfundo.png" alt="Menuly" style="height: 30px;" class="me-2" onerror="this.style.display='none'">
                         Menuly
                     </h5>
                     <p class="mb-2">A plataforma completa para restaurantes criarem seus sites de delivery online de forma profissional e moderna.</p>
