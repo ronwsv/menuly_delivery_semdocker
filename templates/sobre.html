@@ -1,17 +1,26 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 {% load static %}
 
-{% block title %}Sobre o Menuly{% endblock %}
+{% block title %}Sobre o Menuly - Plataforma de Delivery{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-5">
-                <h1 class="display-4">Sobre o Menuly</h1>
-                <p class="lead text-muted">Sua plataforma completa de delivery e gestão de restaurantes</p>
+<!-- Hero Section -->
+<section class="bg-gradient-to-r text-white py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 fw-bold mb-4">Sobre o Menuly</h1>
+                <p class="lead">A plataforma completa que transforma a forma como restaurantes vendem online</p>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- Conteúdo Principal -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
 
             <!-- Descrição Principal -->
             <div class="mb-5">
@@ -101,5 +110,19 @@
             </div>
         </div>
     </div>
-</div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient-to-r {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
+</style>
 {% endblock %}

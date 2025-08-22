@@ -1,17 +1,26 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 {% load static %}
 
 {% block title %}Contato - Menuly{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-5">
-                <h1 class="display-4">Entre em Contato</h1>
-                <p class="lead text-muted">Estamos aqui para ajudar você! Fale conosco através dos canais abaixo.</p>
+<!-- Hero Section -->
+<section class="bg-gradient-to-r text-white py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 fw-bold mb-4">Entre em Contato</h1>
+                <p class="lead">Estamos aqui para ajudar você! Fale conosco através dos canais abaixo.</p>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- Conteúdo Principal -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
 
             <!-- Informações de Contato -->
             <div class="row g-4 mb-5">
@@ -151,5 +160,34 @@
             </div>
         </div>
     </div>
-</div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient-to-r {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+    transform: translateY(-1px);
+}
+</style>
 {% endblock %}

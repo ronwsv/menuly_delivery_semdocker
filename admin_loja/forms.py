@@ -446,3 +446,74 @@ class AlterarSenhaForm(PasswordChangeForm):
         self.fields['old_password'].label = 'Senha Atual'
         self.fields['new_password1'].label = 'Nova Senha'
         self.fields['new_password2'].label = 'Confirmar Nova Senha'
+
+
+class ContatoWhatsAppForm(forms.ModelForm):
+    """Formulário para configurar informações de contato e WhatsApp"""
+    
+    class Meta:
+        model = Restaurante
+        fields = ['telefone', 'whatsapp', 'email']
+        widgets = {
+            'telefone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '(11) 99999-9999',
+                'data-mask': '(00) 00000-0000'
+            }),
+            'whatsapp': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '5511999999999',
+                'help_text': 'Formato: código do país + DDD + número (sem espaços ou símbolos)'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'contato@seurestaurante.com.br'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Personalizar labels e help texts
+        self.fields['telefone'].label = 'Telefone Principal'
+        self.fields['telefone'].help_text = 'Telefone que aparecerá nas informações de contato'
+        
+        self.fields['whatsapp'].label = 'WhatsApp Flutuante'
+        self.fields['whatsapp'].help_text = 'Número do WhatsApp no formato: 5511999999999 (código do país + DDD + número). Deixe vazio para desabilitar o botão flutuante.'
+        
+        self.fields['email'].label = 'E-mail de Contato'
+        self.fields['email'].help_text = 'E-mail principal para contato com clientes'
+        
+        # Tornar todos os campos opcionais
+        for field in self.fields.values():
+            field.required = False
+    
+    def clean_whatsapp(self):
+        whatsapp = self.cleaned_data.get('whatsapp')
+        if whatsapp:
+            # Remove todos os caracteres não numéricos
+            whatsapp = ''.join(filter(str.isdigit, whatsapp))
+            
+            # Validar formato
+            if len(whatsapp) < 10:
+                raise forms.ValidationError('Número do WhatsApp deve ter pelo menos 10 dígitos.')
+            
+            if len(whatsapp) > 15:
+                raise forms.ValidationError('Número do WhatsApp não pode ter mais de 15 dígitos.')
+            
+            # Se não começar com código do país, adicionar 55 (Brasil)
+            if not whatsapp.startswith('55') and len(whatsapp) == 11:
+                whatsapp = '55' + whatsapp
+            
+            return whatsapp
+        
+        return whatsapp
+    
+    def clean_telefone(self):
+        telefone = self.cleaned_data.get('telefone')
+        if telefone:
+            # Remover formatação e validar
+            telefone_clean = ''.join(filter(str.isdigit, telefone))
+            if len(telefone_clean) < 10:
+                raise forms.ValidationError('Telefone deve ter pelo menos 10 dígitos.')
+        return telefone

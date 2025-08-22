@@ -21,7 +21,7 @@ from core.models import Pedido, ItemPedido
 # ==================== VIEWS DE PERSONALIZAÇÃO AVANÇADA ====================
 
 from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
-                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet)
+                    PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, ContatoWhatsAppForm)
 
 @login_required
 def admin_loja_personalizar_loja(request):
@@ -38,6 +38,7 @@ def admin_loja_personalizar_loja(request):
     logo_form = LogoForm(instance=restaurante)
     banner_form = BannerForm(instance=restaurante)
     visual_form = PersonalizacaoVisulaForm(instance=restaurante)
+    contato_form = ContatoWhatsAppForm(instance=restaurante)
     
     # Preparar horários existentes (criar se não existirem)
     horarios_existentes = []
@@ -88,6 +89,16 @@ def admin_loja_personalizar_loja(request):
                 visual_form.save()
                 msg = 'Personalização visual salva com sucesso!'
         
+        # Handle contact and WhatsApp
+        elif 'contato_form' in request.POST:
+            contato_form = ContatoWhatsAppForm(request.POST, instance=restaurante)
+            if contato_form.is_valid():
+                contato_form.save()
+                msg = 'Informações de contato atualizadas com sucesso!'
+            else:
+                msg = 'Erro ao salvar informações de contato. Verifique os dados informados.'
+                msg_type = 'error'
+        
         # Handle business hours
         elif 'horarios_form' in request.POST:
             horarios_formset = HorarioFuncionamentoFormSet(
@@ -112,6 +123,7 @@ def admin_loja_personalizar_loja(request):
         'logo_form': logo_form,
         'banner_form': banner_form,
         'visual_form': visual_form,
+        'contato_form': contato_form,
         'horarios_formset': horarios_formset,
         'msg': msg,
         'msg_type': msg_type,
