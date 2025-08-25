@@ -1,0 +1,107 @@
+Claro! Aqui estão **especificações funcionais** para um app de motoboys integrado ao Menuly Delivery, considerando integração total com seu backend e fluxo de pedidos:
+
+---
+
+## **Especificações do App de Motoboys – Menuly Delivery**
+
+### **1. Objetivo**
+Permitir que motoboys recebam, aceitem e gerenciem entregas de pedidos feitos via Menuly Delivery, com otimização de rotas, controle de status e cálculo automático de ganhos.
+
+---
+
+### **2. Funcionalidades Principais**
+
+#### **2.1. Login e Cadastro**
+- Login via celular/senha ou código enviado por SMS/WhatsApp.
+- Cadastro de motoboy com dados pessoais, CNH, veículo, dados bancários/pix.
+
+#### **2.2. Dashboard de Pedidos**
+- Lista de pedidos disponíveis para entrega (em tempo real).
+- Visualização dos detalhes do pedido: endereço, valor da entrega, forma de pagamento, observações.
+- Filtro por status: Novos, Em andamento, Finalizados.
+
+#### **2.3. Aceite e Organização de Pedidos**
+- Motoboy pode aceitar um ou mais pedidos.
+- Sistema sugere ordem de entrega otimizada (baseado em distância, prioridade, tempo de preparo).
+- Visualização de mapa com rotas sugeridas (Google Maps/OpenStreetMap).
+
+#### **2.4. Gestão de Entregas**
+- Atualização de status:  
+  - “Retirado no restaurante”  
+  - “A caminho”  
+  - “Entregue”
+- Botão para ligar ou enviar mensagem ao cliente.
+- Confirmação de entrega (opcional: foto, assinatura digital ou código de entrega).
+
+#### **2.5. Gestão de Ganhos**
+- Visualização do valor por entrega (fixo, comissão ou ambos).
+- Relatório de entregas e ganhos diários/semanais/mensais.
+- Histórico de pagamentos (Pix, transferência, etc).
+
+#### **2.6. Notificações**
+- Push para novos pedidos disponíveis.
+- Alertas de alteração de rota, cancelamento ou mensagens do restaurante.
+
+#### **2.7. Perfil e Configurações**
+- Edição de dados pessoais e bancários.
+- Preferências de notificação.
+- Visualização de regras de remuneração (fixo, comissão, ambos).
+
+---
+
+### **3. Integração com Menuly Delivery**
+
+- **API RESTful** para receber pedidos, atualizar status e consultar ganhos.
+- **Webhooks** para notificar o app sobre novos pedidos ou alterações.
+- **Compatibilidade com múltiplos restaurantes** (multi-loja).
+- **Controle de acesso**: cada motoboy só vê pedidos da(s) loja(s) autorizada(s).
+- **Sincronização de status**: atualização em tempo real para painel do lojista e cliente.
+
+---
+
+### **4. Fluxo Inteligente de Pedidos**
+
+- Algoritmo para sugerir ordem de entregas baseado em:
+  - Proximidade geográfica dos pedidos.
+  - Tempo estimado de preparo.
+  - Prioridade (ex: pedidos agendados ou atrasados).
+  - Capacidade do motoboy (quantos pedidos pode carregar).
+- Possibilidade de “agrupar” entregas próximas para otimizar rotas.
+
+---
+
+### **5. Especificações Técnicas**
+
+- **Plataforma:** App Android (Flutter/React Native recomendado para multiplataforma).
+- **Autenticação:** JWT ou OAuth2 integrado ao backend Django.
+- **Mapas:** Integração com Google Maps API ou Mapbox.
+- **Notificações:** Firebase Cloud Messaging (push).
+- **Offline:** Suporte básico para consulta de pedidos aceitos mesmo sem conexão.
+
+---
+
+### **6. Painel de Gestão (Admin/Loja)**
+
+- Visualização em tempo real dos motoboys ativos e status das entregas.
+- Atribuição manual de pedidos a motoboys (opcional).
+- Relatórios de desempenho dos motoboys.
+
+---
+
+### **7. Remuneração**
+
+- Configuração de valor fixo por entrega, comissão por pedido ou ambos.
+- Cálculo automático do total devido ao motoboy.
+- Exportação de relatórios para pagamento.
+
+---
+
+### **8. Segurança e Privacidade**
+
+- Dados sensíveis criptografados.
+- Apenas motoboys autorizados podem acessar pedidos.
+- Logs de acesso e auditoria.
+
+---
+
+Se quiser, posso detalhar os endpoints da API ou sugerir telas para o app!
