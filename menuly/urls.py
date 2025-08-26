@@ -25,8 +25,14 @@ urlpatterns = [
     path("sobre/", SobreView.as_view(), name="sobre_menuly"),
     path("contato/", ContatoView.as_view(), name="contato_menuly"),
 
+    # API REST para entregadores e gestão de pedidos
+    path("api/", include("core.urls_api")),
+
     # Admin da Loja - Painel do lojista
     path("admin-loja/", include("admin_loja.urls")),
+    
+    # Painel do Entregador
+    path("entregador/", include("painel_entregador.urls")),
     
     # Superadmin - Painel global
     path("superadmin/", include("superadmin.urls")),

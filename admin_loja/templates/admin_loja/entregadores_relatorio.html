@@ -1,0 +1,321 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: rgba(13,110,253,.1);
+        border-bottom: 1px solid rgba(13,110,253,.25);
+    }
+    
+    .badge {
+        font-weight: 600;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .text-primary {
+        color: #0d6efd !important;
+    }
+    
+    .text-info {
+        color: #0dcaf0 !important;
+    }
+    
+    .border-warning {
+        border-color: #ffc107 !important;
+    }
+    
+    .border-success {
+        border-color: #198754 !important;
+    }
+    
+    .border-primary {
+        border-color: #0d6efd !important;
+    }
+    
+    .border-info {
+        border-color: #0dcaf0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-chart-bar me-2"></i>Relatório de Entregas
+        </h1>
+        <div class="text-muted">
+            <i class="fas fa-calendar me-1"></i>
+            Últimos {{ dias }} dias (desde {{ data_inicio|date:"d/m/Y" }})
+        </div>
+    </div>
+
+    <!-- Filtro de Período -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="dias" class="form-label">Período de Análise</label>
+                            <select class="form-select" id="dias" name="dias" onchange="this.form.submit()">
+                                <option value="7" {% if dias == 7 %}selected{% endif %}>Últimos 7 dias</option>
+                                <option value="15" {% if dias == 15 %}selected{% endif %}>Últimos 15 dias</option>
+                                <option value="30" {% if dias == 30 %}selected{% endif %}>Últimos 30 dias</option>
+                                <option value="60" {% if dias == 60 %}selected{% endif %}>Últimos 60 dias</option>
+                                <option value="90" {% if dias == 90 %}selected{% endif %}>Últimos 90 dias</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="btn-group" role="group">
+                                <a href="?dias=7" class="btn btn-outline-primary btn-sm">7 dias</a>
+                                <a href="?dias=30" class="btn btn-outline-primary btn-sm">30 dias</a>
+                                <a href="?dias=90" class="btn btn-outline-primary btn-sm">90 dias</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="fas fa-truck text-primary fa-2x mb-2"></i>
+                    <h3 class="text-primary">{{ total_entregas }}</h3>
+                    <small class="text-muted">Total de Entregas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="fas fa-users text-success fa-2x mb-2"></i>
+                    <h3 class="text-success">{{ total_entregadores }}</h3>
+                    <small class="text-muted">Entregadores Ativos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="fas fa-clock text-info fa-2x mb-2"></i>
+                    <h3 class="text-info">{{ media_por_dia|floatformat:1|default:"0.0" }}</h3>
+                    <small class="text-muted">Média por Dia</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                    <h3 class="text-warning">{{ ocorrencias_stats.count|default:0 }}</h3>
+                    <small class="text-muted">Ocorrências</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Performance dos Entregadores -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>Performance dos Entregadores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if entregadores_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Entregador</th>
+                                        <th>Entregas</th>
+                                        <th>Nota Média</th>
+                                        <th>Valor Total</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entregador in entregadores_stats %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-motorcycle me-2"></i>
+                                                <div>
+                                                    <strong>{{ entregador.nome }}</strong>
+                                                    <br><small class="text-muted">{{ entregador.telefone }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ entregador.entregas_periodo|default:0 }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">{{ entregador.nota_media_periodo|floatformat:1|default:"N/A" }}</span>
+                                                {% if entregador.nota_media_periodo %}
+                                                    <div class="text-warning">
+                                                        {% for i in "12345" %}
+                                                            {% if entregador.nota_media_periodo >= i|add:"0" %}
+                                                                <i class="fas fa-star"></i>
+                                                            {% else %}
+                                                                <i class="far fa-star"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="text-success">R$ {{ entregador.valor_total_entregas|floatformat:2|default:"0,00" }}</td>
+                                        <td>
+                                            {% if entregador.entregas_periodo >= 20 %}
+                                                <span class="badge bg-success">Excelente</span>
+                                            {% elif entregador.entregas_periodo >= 10 %}
+                                                <span class="badge bg-info">Bom</span>
+                                            {% elif entregador.entregas_periodo >= 5 %}
+                                                <span class="badge bg-warning">Regular</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Baixo</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Nenhum entregador com atividade no período</h6>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tipos de Ocorrências -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Tipos de Ocorrências
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if ocorrencias_stats %}
+                        {% for ocorrencia in ocorrencias_stats %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <strong>{{ ocorrencia.get_tipo_display }}</strong>
+                            </div>
+                            <div>
+                                <span class="badge bg-warning">{{ ocorrencia.total }}</span>
+                            </div>
+                        </div>
+                        <div class="progress mb-3" style="height: 5px;">
+                            {% widthratio ocorrencia.total ocorrencias_stats.0.total 100 as percentage %}
+                            <div class="progress-bar bg-warning" style="width: {{ percentage }}%"></div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h6 class="text-success">Nenhuma ocorrência!</h6>
+                            <p class="small text-muted">Parabéns! Não há ocorrências no período analisado.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Metas e Dicas -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Dicas de Gestão
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <p><strong>Para melhorar a performance:</strong></p>
+                        <ul class="mb-3">
+                            <li>Mantenha comunicação constante com entregadores</li>
+                            <li>Monitore ocorrências e resolva rapidamente</li>
+                            <li>Reconheça bons entregadores</li>
+                            <li>Treine sobre localização e atendimento</li>
+                        </ul>
+                        
+                        <p><strong>Metas sugeridas:</strong></p>
+                        <ul class="mb-0">
+                            <li>Nota média acima de 4.5</li>
+                            <li>Máximo 5% de ocorrências</li>
+                            <li>Tempo médio de entrega < 30min</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links de Ação -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-tasks me-2"></i>Ações Rápidas
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                <i class="fas fa-users me-1"></i>Ver Entregadores
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:pedidos_aguardando_entregador' %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                                <i class="fas fa-clock me-1"></i>Pedidos Aguardando
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:ocorrencias_entrega' %}" class="btn btn-outline-danger btn-sm w-100 mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Ver Ocorrências
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                                <i class="fas fa-list me-1"></i>Todos os Pedidos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh da página a cada 5 minutos para dados atualizados
+setTimeout(function() {
+    location.reload();
+}, 300000);
+
+// Função para exportar relatório (futura implementação)
+function exportarRelatorio() {
+    alert('Funcionalidade de exportação será implementada em breve!');
+}
+</script>
+{% endblock %}

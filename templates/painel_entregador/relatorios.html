@@ -1,0 +1,297 @@
+{% extends 'painel_entregador/base.html' %}
+
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-chart-bar me-2"></i>Relatórios e Estatísticas
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-calendar me-1"></i>
+        {% if periodo == 'semana' %}Última semana{% elif periodo == 'trimestre' %}Último trimestre{% else %}Último mês{% endif %}
+    </div>
+</div>
+
+<!-- Filtro de Período -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="periodo" class="form-label">Período</label>
+                        <select class="form-select" id="periodo" name="periodo" onchange="this.form.submit()">
+                            <option value="semana" {% if periodo == 'semana' %}selected{% endif %}>Última semana</option>
+                            <option value="mes" {% if periodo == 'mes' %}selected{% endif %}>Último mês</option>
+                            <option value="trimestre" {% if periodo == 'trimestre' %}selected{% endif %}>Último trimestre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group">
+                            <a href="?periodo=semana" class="btn btn-outline-primary btn-sm">7 dias</a>
+                            <a href="?periodo=mes" class="btn btn-outline-primary btn-sm">30 dias</a>
+                            <a href="?periodo=trimestre" class="btn btn-outline-primary btn-sm">90 dias</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas Principais -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-box text-primary fa-2x mb-2"></i>
+                <h3 class="text-primary">{{ total_entregas }}</h3>
+                <small class="text-muted">Entregas Realizadas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-money-bill text-success fa-2x mb-2"></i>
+                <h3 class="text-success">R$ {{ total_ganhos|floatformat:2 }}</h3>
+                <small class="text-muted">Total Ganho</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line text-info fa-2x mb-2"></i>
+                <h3 class="text-info">R$ {{ media_diaria|floatformat:2 }}</h3>
+                <small class="text-muted">Média Diária</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-star text-warning fa-2x mb-2"></i>
+                <h3 class="text-warning">{{ avaliacoes_periodo }}</h3>
+                <small class="text-muted">Avaliações Recebidas</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Performance (Placeholder) -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i>Performance no Período
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Gráfico de Performance</h5>
+                    <p class="text-muted">
+                        Visualização gráfica da sua performance ao longo do período selecionado.
+                        <br><small>Funcionalidade será implementada em versão futura.</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumo por Período -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>Resumo do Período
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td><i class="fas fa-calendar me-2"></i>Período analisado:</td>
+                            <td><strong>{{ data_inicio|date:"d/m/Y" }} até hoje</strong></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-truck me-2"></i>Total de entregas:</td>
+                            <td><strong>{{ total_entregas }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-money-bill me-2"></i>Total ganho:</td>
+                            <td><strong class="text-success">R$ {{ total_ganhos|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-chart-line me-2"></i>Média por dia:</td>
+                            <td><strong>R$ {{ media_diaria|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% if total_entregas > 0 %}
+                        <tr>
+                            <td><i class="fas fa-calculator me-2"></i>Valor médio por entrega:</td>
+                            <td><strong>R$ {{ valor_medio_entrega|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-star me-2"></i>Avaliações no Período
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if avaliacoes_periodo > 0 %}
+                    <div class="text-center mb-3">
+                        <div class="h3 text-warning">{{ entregador.nota_media|floatformat:1 }}/5.0</div>
+                        <div class="d-flex justify-content-center mb-2">
+                            {% for i in "12345" %}
+                                {% if entregador.nota_media >= i|add:"0" %}
+                                    <i class="fas fa-star text-warning fs-4 me-1"></i>
+                                {% elif entregador.nota_media >= i|add:"-0.5" %}
+                                    <i class="fas fa-star-half-alt text-warning fs-4 me-1"></i>
+                                {% else %}
+                                    <i class="far fa-star text-warning fs-4 me-1"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">{{ avaliacoes_periodo }} avaliações neste período</small>
+                    </div>
+                    
+                    <div class="text-center">
+                        <a href="{% url 'painel_entregador:avaliacoes' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-eye me-1"></i>Ver Todas as Avaliações
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-star fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Nenhuma avaliação neste período</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Histórico de Entregas -->
+{% if pedidos_periodo %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Entregas Recentes do Período
+                </h5>
+                <small class="text-muted">Últimas 20 entregas</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Pedido</th>
+                                <th>Restaurante</th>
+                                <th>Cliente</th>
+                                <th>Data</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in pedidos_periodo %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'painel_entregador:detalhe_pedido' pedido.id %}" class="text-decoration-none">
+                                        #{{ pedido.numero }}
+                                    </a>
+                                </td>
+                                <td>{{ pedido.restaurante.nome }}</td>
+                                <td>{{ pedido.cliente_nome }}</td>
+                                <td>{{ pedido.created_at|date:"d/m H:i" }}</td>
+                                <td class="text-success">R$ {{ pedido.valor_entrega|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge bg-{% if pedido.status == 'entregue' %}success{% else %}primary{% endif %}">
+                                        {{ pedido.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'painel_entregador:meus_pedidos' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-1"></i>Ver Histórico Completo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhuma entrega no período</h5>
+                <p class="text-muted">Você não realizou entregas no período selecionado.</p>
+                <a href="{% url 'painel_entregador:pedidos_disponiveis' %}" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i>Ver Pedidos Disponíveis
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Metas e Objetivos -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-target me-2"></i>Metas e Dicas de Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-trophy text-warning fa-2x mb-2"></i>
+                            <h6>Meta de Entregas</h6>
+                            <p class="small">Tente realizar pelo menos 5 entregas por dia para maximizar seus ganhos</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-star text-primary fa-2x mb-2"></i>
+                            <h6>Qualidade no Atendimento</h6>
+                            <p class="small">Mantenha uma avaliação média acima de 4.5 estrelas</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-clock text-success fa-2x mb-2"></i>
+                            <h6>Pontualidade</h6>
+                            <p class="small">Seja pontual nas retiradas e entregas para melhorar sua reputação</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

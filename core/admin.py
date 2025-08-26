@@ -12,7 +12,8 @@ from django import forms
 from .models import (
     Usuario, Endereco, Plano, Restaurante, HorarioFuncionamento,
     Categoria, Produto, ImagemProduto, OpcaoPersonalizacao, ItemPersonalizacao,
-    Pedido, ItemPedido, PersonalizacaoItemPedido, HistoricoStatusPedido, AvaliacaoPedido
+    Pedido, ItemPedido, PersonalizacaoItemPedido, HistoricoStatusPedido, AvaliacaoPedido,
+    Entregador, AceitePedido, AvaliacaoEntregador, OcorrenciaEntrega, Notificacao
 )
 
 
@@ -377,8 +378,8 @@ class HistoricoStatusInline(admin.TabularInline):
 
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'restaurante', 'cliente_nome', 'status', 'total', 'tipo_entrega', 'created_at')
-    list_filter = ('status', 'tipo_entrega', 'forma_pagamento', 'restaurante', 'created_at')
+    list_display = ('numero', 'restaurante', 'cliente_nome', 'entregador', 'status', 'total', 'tipo_entrega', 'created_at')
+    list_filter = ('status', 'tipo_entrega', 'forma_pagamento', 'restaurante', 'entregador', 'created_at')
     search_fields = ('numero', 'cliente_nome', 'cliente_celular', 'cliente_email')
     readonly_fields = ('numero', 'subtotal', 'total', 'created_at', 'updated_at')
     inlines = [ItemPedidoInline, HistoricoStatusInline]
@@ -391,7 +392,7 @@ class PedidoAdmin(admin.ModelAdmin):
             'fields': ('cliente', 'cliente_nome', 'cliente_celular', 'cliente_email')
         }),
         ('Entrega', {
-            'fields': ('tipo_entrega', 'endereco_entrega', 'endereco_logradouro', 'endereco_numero', 
+            'fields': ('tipo_entrega', 'entregador', 'endereco_entrega', 'endereco_logradouro', 'endereco_numero', 
                       'endereco_complemento', 'endereco_bairro', 'endereco_cidade', 'endereco_estado',
                       'endereco_ponto_referencia')
         }),
@@ -399,7 +400,7 @@ class PedidoAdmin(admin.ModelAdmin):
             'fields': ('forma_pagamento', 'troco_para')
         }),
         ('Valores', {
-            'fields': ('subtotal', 'taxa_entrega', 'desconto', 'total')
+            'fields': ('subtotal', 'taxa_entrega', 'valor_entrega', 'desconto', 'total')
         }),
         ('Observações', {
             'fields': ('observacoes', 'observacoes_internas')
@@ -423,3 +424,108 @@ class AvaliacaoPedidoAdmin(admin.ModelAdmin):
     list_filter = ('nota_geral', 'nota_comida', 'nota_entrega', 'created_at')
     search_fields = ('pedido__numero', 'comentario')
     readonly_fields = ('created_at',)
+
+
+@admin.register(Entregador)
+class EntregadorAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'usuario', 'telefone', 'disponivel', 'em_pausa', 'nota_media', 'total_entregas')
+    list_filter = ('disponivel', 'em_pausa', 'created_at')
+    search_fields = ('nome', 'usuario__username', 'telefone', 'cnh')
+    readonly_fields = ('nota_media', 'total_avaliacoes', 'total_entregas', 'created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Informações Pessoais', {
+            'fields': ('usuario', 'nome', 'telefone')
+        }),
+        ('Documentos e Veículo', {
+            'fields': ('cnh', 'veiculo', 'dados_bancarios')
+        }),
+        ('Status', {
+            'fields': ('disponivel', 'em_pausa')
+        }),
+        ('Estatísticas', {
+            'fields': ('nota_media', 'total_avaliacoes', 'total_entregas'),
+            'classes': ('collapse',)
+        }),
+        ('Controle', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('usuario')
+
+
+@admin.register(AceitePedido)
+class AceitePedidoAdmin(admin.ModelAdmin):
+    list_display = ('pedido', 'entregador', 'status', 'data_aceite')
+    list_filter = ('status', 'data_aceite')
+    search_fields = ('pedido__numero', 'entregador__nome')
+    readonly_fields = ('data_aceite',)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('pedido', 'entregador')
+
+
+@admin.register(AvaliacaoEntregador)
+class AvaliacaoEntregadorAdmin(admin.ModelAdmin):
+    list_display = ('entregador', 'pedido', 'nota', 'data')
+    list_filter = ('nota', 'data')
+    search_fields = ('entregador__nome', 'pedido__numero', 'comentario')
+    readonly_fields = ('data',)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('pedido', 'entregador')
+
+
+@admin.register(OcorrenciaEntrega)
+class OcorrenciaEntregaAdmin(admin.ModelAdmin):
+    list_display = ('pedido', 'entregador', 'tipo', 'resolvido', 'data')
+    list_filter = ('tipo', 'resolvido', 'data')
+    search_fields = ('pedido__numero', 'entregador__nome', 'descricao')
+    readonly_fields = ('data',)
+    
+    fieldsets = (
+        ('Informações da Ocorrência', {
+            'fields': ('pedido', 'entregador', 'tipo', 'descricao')
+        }),
+        ('Resolução', {
+            'fields': ('resolvido', 'observacoes_resolucao')
+        }),
+        ('Controle', {
+            'fields': ('data',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('pedido', 'entregador')
+
+
+@admin.register(Notificacao)
+class NotificacaoAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'restaurante', 'tipo', 'prioridade', 'lida', 'created_at')
+    list_filter = ('tipo', 'prioridade', 'lida', 'created_at')
+    search_fields = ('titulo', 'mensagem', 'restaurante__nome')
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Informações da Notificação', {
+            'fields': ('restaurante', 'tipo', 'titulo', 'mensagem', 'prioridade')
+        }),
+        ('Status', {
+            'fields': ('lida',)
+        }),
+        ('Referências Opcionais', {
+            'fields': ('pedido', 'produto', 'link_acao'),
+            'classes': ('collapse',)
+        }),
+        ('Controle', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('restaurante')

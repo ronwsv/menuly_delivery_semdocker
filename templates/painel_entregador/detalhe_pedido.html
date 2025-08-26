@@ -1,0 +1,325 @@
+{% extends 'painel_entregador/base.html' %}
+
+{% block title %}Pedido #{{ pedido.numero }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-box me-2"></i>Pedido #{{ pedido.numero }}
+    </h1>
+    <div>
+        <span class="badge bg-{% if pedido.status == 'em_entrega' %}primary{% elif pedido.status == 'entregue' %}success{% else %}secondary{% endif %} fs-6">
+            {{ pedido.get_status_display }}
+        </span>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informações do Pedido -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações do Pedido
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-store me-1"></i>Restaurante
+                        </h6>
+                        <p class="mb-3">{{ pedido.restaurante.nome }}</p>
+                        
+                        <h6 class="text-primary">
+                            <i class="fas fa-user me-1"></i>Cliente
+                        </h6>
+                        <p class="mb-1"><strong>{{ pedido.cliente_nome }}</strong></p>
+                        <p class="mb-1">
+                            <i class="fas fa-phone me-1"></i>
+                            <a href="tel:{{ pedido.cliente_celular }}">{{ pedido.cliente_celular }}</a>
+                        </p>
+                        {% if pedido.cliente_email %}
+                        <p class="mb-3">
+                            <i class="fas fa-envelope me-1"></i>{{ pedido.cliente_email }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-map-marker-alt me-1"></i>Endereço de Entrega
+                        </h6>
+                        <address class="mb-0">
+                            <strong>{{ pedido.endereco_logradouro }}, {{ pedido.endereco_numero }}</strong><br>
+                            {% if pedido.endereco_complemento %}
+                                {{ pedido.endereco_complemento }}<br>
+                            {% endif %}
+                            {{ pedido.endereco_bairro }}<br>
+                            {{ pedido.endereco_cidade }} - {{ pedido.endereco_estado }}<br>
+                            CEP: {{ pedido.endereco_cep }}
+                            {% if pedido.endereco_ponto_referencia %}
+                                <br><small class="text-muted">
+                                    <strong>Referência:</strong> {{ pedido.endereco_ponto_referencia }}
+                                </small>
+                            {% endif %}
+                        </address>
+                        <div class="mt-2">
+                            <a href="https://www.google.com/maps?q={{ pedido.endereco_logradouro }},{{ pedido.endereco_numero }},{{ pedido.endereco_bairro }},{{ pedido.endereco_cidade }}" 
+                               target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-map me-1"></i>Ver no Google Maps
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Itens do Pedido -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Itens do Pedido
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for item in pedido.itens.all %}
+                <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div>
+                        <h6 class="mb-1">{{ item.produto_nome }}</h6>
+                        <small class="text-muted">Qtd: {{ item.quantidade }}</small>
+                        {% if item.observacoes %}
+                        <br><small class="text-warning">
+                            <i class="fas fa-comment me-1"></i>{{ item.observacoes }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold">R$ {{ item.subtotal|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Observações -->
+        {% if pedido.observacoes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sticky-note me-2"></i>Observações do Cliente
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ pedido.observacoes }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Ocorrências -->
+        {% if ocorrencias %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Ocorrências Registradas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for ocorrencia in ocorrencias %}
+                <div class="alert alert-warning">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ ocorrencia.get_tipo_display }}</strong>
+                        <small class="text-muted">{{ ocorrencia.data|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="mb-0 mt-2">{{ ocorrencia.descricao }}</p>
+                    {% if ocorrencia.resolvido %}
+                    <div class="mt-2">
+                        <span class="badge bg-success">Resolvido</span>
+                        {% if ocorrencia.observacoes_resolucao %}
+                        <small class="d-block mt-1">{{ ocorrencia.observacoes_resolucao }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar com Ações -->
+    <div class="col-lg-4">
+        <!-- Resumo Financeiro -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calculator me-2"></i>Resumo Financeiro
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>R$ {{ pedido.subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Taxa de Entrega:</span>
+                    <span>R$ {{ pedido.taxa_entrega|floatformat:2 }}</span>
+                </div>
+                {% if pedido.desconto > 0 %}
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>Desconto:</span>
+                    <span>- R$ {{ pedido.desconto|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>Total:</strong>
+                    <strong>R$ {{ pedido.total|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-success"><strong>Valor da Entrega:</strong></span>
+                    <span class="text-success"><strong>R$ {{ pedido.valor_entrega|floatformat:2 }}</strong></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informações da Entrega -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-truck me-2"></i>Informações da Entrega
+                </h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Tipo:</strong> {{ pedido.get_tipo_entrega_display }}</p>
+                <p><strong>Pagamento:</strong> {{ pedido.get_forma_pagamento_display }}</p>
+                {% if pedido.troco_para %}
+                <p class="text-warning">
+                    <strong>Troco para:</strong> R$ {{ pedido.troco_para|floatformat:2 }}
+                </p>
+                {% endif %}
+                <p><strong>Criado em:</strong> {{ pedido.created_at|date:"d/m/Y H:i" }}</p>
+                {% if pedido.tempo_entrega_estimado %}
+                <p><strong>Tempo estimado:</strong> {{ pedido.tempo_entrega_estimado }} minutos</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Ações -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Ações
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pedido.status == 'em_entrega' %}
+                    <button class="btn btn-success w-100 mb-2" onclick="marcarComoEntregue()">
+                        <i class="fas fa-check me-1"></i>Marcar como Entregue
+                    </button>
+                    
+                    <button class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalOcorrencia">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Registrar Ocorrência
+                    </button>
+                {% endif %}
+                
+                <a href="tel:{{ pedido.cliente_celular }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-phone me-1"></i>Ligar para Cliente
+                </a>
+                
+                <a href="tel:{{ pedido.restaurante.telefone }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-phone me-1"></i>Ligar para Restaurante
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Registrar Ocorrência -->
+<div class="modal fade" id="modalOcorrencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registrar Ocorrência</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formOcorrencia">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo da Ocorrência</label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">Selecione o tipo</option>
+                            {% for codigo, nome in tipos_ocorrencia %}
+                                <option value="{{ codigo }}">{{ nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="4" 
+                                placeholder="Descreva detalhadamente o que aconteceu..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Registrar Ocorrência</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function marcarComoEntregue() {
+    if (confirm('Confirma que o pedido foi entregue ao cliente?')) {
+        fetch(`/entregador/alterar-status/{{ pedido.id }}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=entregue'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '/entregador/';
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao alterar status. Tente novamente.');
+        });
+    }
+}
+
+document.getElementById('formOcorrencia').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(`/entregador/registrar-ocorrencia/{{ pedido.id }}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Erro ao registrar ocorrência. Tente novamente.');
+    });
+});
+</script>
+{% endblock %}

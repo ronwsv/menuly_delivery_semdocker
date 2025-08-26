@@ -38,11 +38,13 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "django_extensions",
+    "rest_framework",
     
     # Local apps - seguindo a ordem de desenvolvimento
     "core",           # Modelos compartilhados
     "loja",           # Frontend para clientes (1ª prioridade)
     "admin_loja",     # Painel do lojista (2ª prioridade)
+    "painel_entregador", # Painel do entregador
     "superadmin",     # Painel global (3ª prioridade)
 ]
 
@@ -167,3 +169,22 @@ SITE_ID = 1
 # Configurações de sessão
 SESSION_COOKIE_AGE = 86400  # 24 horas
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DATETIME_FORMAT': '%d/%m/%Y %H:%M',
+    'DATE_FORMAT': '%d/%m/%Y',
+}

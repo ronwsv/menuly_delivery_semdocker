@@ -1,0 +1,417 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block title %}Pedidos Aguardando Entregador{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: rgba(13,110,253,.1);
+        border-bottom: 1px solid rgba(13,110,253,.25);
+    }
+    
+    .badge {
+        font-weight: 600;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .text-primary {
+        color: #0d6efd !important;
+    }
+    
+    .text-info {
+        color: #0dcaf0 !important;
+    }
+    
+    .border-warning {
+        border-color: #ffc107 !important;
+    }
+    
+    .border-success {
+        border-color: #198754 !important;
+    }
+    
+    .border-primary {
+        border-color: #0d6efd !important;
+    }
+    
+    .border-info {
+        border-color: #0dcaf0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-clock me-2"></i>Pedidos Aguardando Entregador
+        </h1>
+        <div class="text-muted">
+            <i class="fas fa-motorcycle me-1"></i>
+            {{ pedidos.count }} pedido{{ pedidos.count|pluralize:"s" }} aguardando
+        </div>
+    </div>
+
+    <!-- Estatísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                    <h3 class="text-warning">{{ pedidos.count }}</h3>
+                    <small class="text-muted">Aguardando Entregador</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                    <h3 class="text-success">{{ entregadores_disponiveis }}</h3>
+                    <small class="text-muted">Entregadores Disponíveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="fas fa-motorcycle text-primary fa-2x mb-2"></i>
+                    <h3 class="text-primary">{{ pedidos_em_entrega }}</h3>
+                    <small class="text-muted">Em Entrega</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="fas fa-truck text-info fa-2x mb-2"></i>
+                    <h3 class="text-info">{{ tempo_medio_espera|default:"N/A" }}</h3>
+                    <small class="text-muted">Tempo Médio de Espera</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Pedidos -->
+    {% if pedidos %}
+        <div class="row">
+            {% for pedido in pedidos %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card h-100 border-warning">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <strong>Pedido #{{ pedido.numero }}</strong>
+                            </h6>
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-clock me-1"></i>Aguardando
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Informações do Restaurante -->
+                            <div class="mb-3">
+                                <p class="mb-1">
+                                    <i class="fas fa-store me-1"></i>
+                                    <strong>{{ pedido.restaurante.nome }}</strong>
+                                </p>
+                                <small class="text-muted">{{ pedido.restaurante.endereco_completo }}</small>
+                            </div>
+
+                            <!-- Informações do Cliente -->
+                            <div class="mb-3">
+                                <p class="mb-1">
+                                    <i class="fas fa-user me-1"></i>
+                                    <strong>{{ pedido.cliente_nome }}</strong>
+                                </p>
+                                <p class="mb-1">
+                                    <i class="fas fa-phone me-1"></i>{{ pedido.cliente_telefone }}
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ pedido.endereco_entrega }}
+                                </small>
+                            </div>
+
+                            <!-- Detalhes do Pedido -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Valor Total:</small>
+                                    <div class="fw-bold text-success">R$ {{ pedido.valor_total|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Taxa Entrega:</small>
+                                    <div class="fw-bold text-info">R$ {{ pedido.valor_entrega|floatformat:2 }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Tempo de Espera -->
+                            <div class="alert alert-warning">
+                                <i class="fas fa-stopwatch me-1"></i>
+                                <strong>Aguardando há:</strong> {{ pedido.tempo_aguardando }}
+                                <br><small>Criado em {{ pedido.created_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+
+                            <!-- Tipo de Entrega -->
+                            {% if pedido.tipo_entrega %}
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-shipping-fast me-1"></i>{{ pedido.get_tipo_entrega_display }}
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                            <!-- Observações especiais -->
+                            {% if pedido.observacoes %}
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <strong>Observações:</strong><br>
+                                        {{ pedido.observacoes|truncatechars:100 }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-success" onclick="atribuirEntregador('{{ pedido.id }}')">
+                                    <i class="fas fa-user-plus me-1"></i>Atribuir
+                                </button>
+                                <a href="{% url 'admin_loja:pedido_detalhes' pedido.id %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>Detalhes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Navegação de pedidos">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">Primeira</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-check-circle fa-4x text-success mb-4"></i>
+            <h4 class="text-success">Nenhum pedido aguardando entregador!</h4>
+            <p class="text-muted">
+                Todos os pedidos já foram atribuídos aos entregadores ou não há pedidos pendentes no momento.
+            </p>
+            <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-primary">
+                <i class="fas fa-list me-1"></i>Ver Todos os Pedidos
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Links Rápidos -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-link me-2"></i>Ações Rápidas
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                <i class="fas fa-users me-1"></i>Ver Entregadores
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:ocorrencias_entrega' %}" class="btn btn-outline-danger btn-sm w-100 mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Ocorrências
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:relatorio_entregas' %}" class="btn btn-outline-info btn-sm w-100 mb-2">
+                                <i class="fas fa-chart-bar me-1"></i>Relatórios
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                                <i class="fas fa-list me-1"></i>Todos os Pedidos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Atribuição de Entregador -->
+<div class="modal fade" id="modalAtribuirEntregador" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Atribuir Entregador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="entregador_selecionado" class="form-label">Escolha o entregador:</label>
+                    <select class="form-select" id="entregador_selecionado">
+                        <option value="">Carregando entregadores...</option>
+                    </select>
+                </div>
+                <div id="info_entregador" class="alert alert-info d-none">
+                    <strong>Informações do entregador aparecerão aqui</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarAtribuicao">
+                    <i class="fas fa-user-plus me-1"></i>Atribuir Entregador
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF Token
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+let pedidoAtual = null;
+
+function atribuirEntregador(pedidoId) {
+    pedidoAtual = pedidoId;
+    const modal = new bootstrap.Modal(document.getElementById('modalAtribuirEntregador'));
+    modal.show();
+    
+    // Carregar entregadores disponíveis
+    carregarEntregadores();
+    
+    // Configurar botão de confirmação
+    document.getElementById('btnConfirmarAtribuicao').onclick = function() {
+        executarAtribuicao();
+    };
+}
+
+function carregarEntregadores() {
+    fetch('/admin-loja/api/entregadores-disponiveis/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const select = document.getElementById('entregador_selecionado');
+        select.innerHTML = '<option value="">Selecione um entregador...</option>';
+        
+        data.entregadores.forEach(entregador => {
+            const option = document.createElement('option');
+            option.value = entregador.id;
+            option.textContent = `${entregador.nome} - ${entregador.telefone} (${entregador.total_entregas} entregas)`;
+            select.appendChild(option);
+        });
+        
+        // Adicionar listener para mostrar info do entregador
+        select.onchange = function() {
+            mostrarInfoEntregador(this.value, data.entregadores);
+        };
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao carregar entregadores disponíveis.');
+    });
+}
+
+function mostrarInfoEntregador(entregadorId, entregadores) {
+    const infoDiv = document.getElementById('info_entregador');
+    
+    if (!entregadorId) {
+        infoDiv.classList.add('d-none');
+        return;
+    }
+    
+    const entregador = entregadores.find(e => e.id == entregadorId);
+    if (entregador) {
+        infoDiv.innerHTML = `
+            <strong>${entregador.nome}</strong><br>
+            📱 ${entregador.telefone}<br>
+            ⭐ Nota: ${entregador.nota_media}/5<br>
+            🚚 ${entregador.total_entregas} entregas realizadas
+        `;
+        infoDiv.classList.remove('d-none');
+    }
+}
+
+function executarAtribuicao() {
+    const entregadorId = document.getElementById('entregador_selecionado').value;
+    
+    if (!entregadorId) {
+        alert('Por favor, selecione um entregador.');
+        return;
+    }
+    
+    if (!pedidoAtual) {
+        alert('Erro: ID do pedido não encontrado.');
+        return;
+    }
+    
+    // Fazer requisição AJAX
+    fetch(`/admin-loja/pedidos/${pedidoAtual}/atribuir-entregador/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `entregador_id=${entregadorId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(`Erro: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atribuir entregador. Tente novamente.');
+    });
+}
+
+// Auto-refresh da página a cada 2 minutos para ver novos pedidos
+setTimeout(function() {
+    location.reload();
+}, 120000);
+</script>
+{% endblock %}

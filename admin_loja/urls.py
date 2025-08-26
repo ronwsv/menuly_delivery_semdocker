@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_entregadores
 
 app_name = 'admin_loja'
 
@@ -67,6 +68,15 @@ urlpatterns = [
     path('planos/api/restaurantes-sem-plano/', views.listar_restaurantes_sem_plano, name='listar_restaurantes_sem_plano'),
     path('planos/historico/', views.planos_historico_uso, name='planos_historico_uso'),
     path('planos/api/verificar-limite/', views.planos_api_verificar_limite, name='planos_api_verificar_limite'),
+    
+    # URLs para gestão de entregadores
+    path('entregadores/', views_entregadores.listar_entregadores, name='entregadores_listar'),
+    path('entregadores/<int:entregador_id>/', views_entregadores.detalhe_entregador, name='entregadores_detalhe'),
+    path('entregadores/pedidos-aguardando/', views_entregadores.pedidos_aguardando_entregador, name='pedidos_aguardando_entregador'),
+    path('entregadores/atribuir/<int:pedido_id>/', views_entregadores.atribuir_entregador_manual, name='atribuir_entregador_manual'),
+    path('entregadores/ocorrencias/', views_entregadores.ocorrencias_entrega, name='ocorrencias_entrega'),
+    path('entregadores/ocorrencias/<int:ocorrencia_id>/resolver/', views_entregadores.resolver_ocorrencia, name='resolver_ocorrencia'),
+    path('entregadores/relatorio/', views_entregadores.relatorio_entregas, name='relatorio_entregas'),
     
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),

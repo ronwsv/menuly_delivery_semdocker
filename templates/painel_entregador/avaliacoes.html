@@ -1,0 +1,197 @@
+{% extends 'painel_entregador/base.html' %}
+
+{% block title %}Minhas Avaliações{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-star me-2"></i>Minhas Avaliações
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-chart-line me-1"></i>
+        {{ total_avaliacoes }} avaliações
+    </div>
+</div>
+
+<!-- Resumo das Avaliações -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="h2 text-warning">{{ nota_media|floatformat:1 }}</div>
+                        <small class="text-muted">Nota Média Geral</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h2 text-primary">{{ total_avaliacoes }}</div>
+                        <small class="text-muted">Total de Avaliações</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center justify-content-center">
+                            {% for i in "12345" %}
+                                {% if nota_media >= i|add:"0" %}
+                                    <i class="fas fa-star text-warning fs-3 me-1"></i>
+                                {% elif nota_media >= i|add:"-0.5" %}
+                                    <i class="fas fa-star-half-alt text-warning fs-3 me-1"></i>
+                                {% else %}
+                                    <i class="far fa-star text-warning fs-3 me-1"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Avaliações -->
+{% if page_obj %}
+    <div class="row">
+        {% for avaliacao in page_obj %}
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong>Pedido #{{ avaliacao.pedido.numero }}</strong>
+                        </span>
+                        <div class="d-flex align-items-center">
+                            {% for i in "12345" %}
+                                {% if avaliacao.nota >= i|add:"0" %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% else %}
+                                    <i class="far fa-star text-muted"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="ms-2 badge bg-warning">{{ avaliacao.nota }}/5</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>{{ avaliacao.data|date:"d/m/Y H:i" }}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-primary">{{ avaliacao.pedido.restaurante.nome }}</h6>
+                            <p class="mb-1">
+                                <i class="fas fa-user me-1"></i>{{ avaliacao.pedido.cliente_nome }}
+                            </p>
+                            <p class="mb-0">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {{ avaliacao.pedido.endereco_bairro }}, {{ avaliacao.pedido.endereco_cidade }}
+                            </p>
+                        </div>
+                        
+                        {% if avaliacao.comentario %}
+                        <div class="border-start border-3 border-primary ps-3">
+                            <p class="mb-0 fst-italic">"{{ avaliacao.comentario }}"</p>
+                        </div>
+                        {% else %}
+                        <div class="text-muted fst-italic">
+                            <small>Sem comentário adicional</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Valor da entrega:</small>
+                                <div class="fw-bold text-success">R$ {{ avaliacao.pedido.valor_entrega|floatformat:2 }}</div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <a href="{% url 'painel_entregador:detalhe_pedido' avaliacao.pedido.id %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Ver Pedido
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+        <div class="d-flex justify-content-center mt-4">
+            <nav aria-label="Navegação de avaliações">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">Primeira</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-star fa-4x text-muted mb-4"></i>
+        <h4 class="text-muted">Nenhuma avaliação ainda</h4>
+        <p class="text-muted">Suas avaliações aparecerão aqui após concluir suas primeiras entregas.</p>
+        <a href="{% url 'painel_entregador:pedidos_disponiveis' %}" class="btn btn-primary">
+            <i class="fas fa-search me-1"></i>Ver Pedidos Disponíveis
+        </a>
+    </div>
+{% endif %}
+
+<!-- Dicas para Melhorar as Avaliações -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Dicas para Melhores Avaliações
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-clock text-primary fa-2x mb-2"></i>
+                            <h6>Pontualidade</h6>
+                            <small>Seja sempre pontual na retirada e entrega dos pedidos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-smile text-success fa-2x mb-2"></i>
+                            <h6>Atendimento</h6>
+                            <small>Seja educado e cordial com clientes e lojistas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-shield-alt text-warning fa-2x mb-2"></i>
+                            <h6>Cuidado</h6>
+                            <small>Mantenha os pedidos seguros e em boas condições</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

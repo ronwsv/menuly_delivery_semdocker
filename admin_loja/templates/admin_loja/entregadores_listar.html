@@ -1,0 +1,283 @@
+{% extends "admin_loja/base_admin_loja.html" %}
+{% block title %}Gestão de Entregadores{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: rgba(13,110,253,.1);
+        border-bottom: 1px solid rgba(13,110,253,.25);
+    }
+    
+    .badge {
+        font-weight: 600;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .text-primary {
+        color: #0d6efd !important;
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-motorcycle me-2"></i>Gestão de Entregadores
+        </h1>
+        <div class="text-muted">
+            <i class="fas fa-users me-1"></i>
+            {{ total_entregadores }} entregadores cadastrados
+        </div>
+    </div>
+
+    <!-- Resumo de Status -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                    <h3 class="text-success">{{ disponiveis }}</h3>
+                    <small class="text-muted">Disponíveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="fas fa-pause-circle text-warning fa-2x mb-2"></i>
+                    <h3 class="text-warning">{{ em_pausa }}</h3>
+                    <small class="text-muted">Em Pausa</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
+                    <h3 class="text-danger">{{ indisponiveis }}</h3>
+                    <small class="text-muted">Indisponíveis</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="fas fa-motorcycle text-primary fa-2x mb-2"></i>
+                    <h3 class="text-primary">{{ total_entregadores }}</h3>
+                    <small class="text-muted">Total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Buscar</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ search }}" placeholder="Nome, telefone ou usuário...">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="all" {% if status == 'all' %}selected{% endif %}>Todos</option>
+                                <option value="disponivel" {% if status == 'disponivel' %}selected{% endif %}>Disponíveis</option>
+                                <option value="em_pausa" {% if status == 'em_pausa' %}selected{% endif %}>Em Pausa</option>
+                                <option value="indisponivel" {% if status == 'indisponivel' %}selected{% endif %}>Indisponíveis</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i>Filtrar
+                            </button>
+                            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo me-1"></i>Limpar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Entregadores -->
+    {% if page_obj %}
+        <div class="row">
+            {% for entregador in page_obj %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">{{ entregador.nome }}</h6>
+                            <span class="badge bg-{% if entregador.disponivel and not entregador.em_pausa %}success{% elif entregador.em_pausa %}warning{% else %}danger{% endif %}">
+                                {% if entregador.disponivel and not entregador.em_pausa %}
+                                    Disponível
+                                {% elif entregador.em_pausa %}
+                                    Em Pausa
+                                {% else %}
+                                    Indisponível
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Avaliação:</small>
+                                    <div class="fw-bold text-warning">
+                                        {{ entregador.nota_media|floatformat:1 }} ⭐
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Entregas:</small>
+                                    <div class="fw-bold text-primary">{{ entregador.total_entregas }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <p class="mb-1">
+                                    <i class="fas fa-phone me-1"></i>{{ entregador.telefone }}
+                                </p>
+                                <p class="mb-1">
+                                    <i class="fas fa-user me-1"></i>{{ entregador.usuario.username }}
+                                </p>
+                                {% if entregador.veiculo %}
+                                    <p class="mb-0">
+                                        <i class="fas fa-motorcycle me-1"></i>{{ entregador.veiculo }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Status de Pedidos -->
+                            {% if entregador.pedidos_entrega.em_entrega.exists %}
+                                <div class="alert alert-info mb-2">
+                                    <i class="fas fa-truck me-1"></i>
+                                    <strong>Em entrega</strong> - Pedido ativo
+                                </div>
+                            {% endif %}
+                            
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                Cadastrado em {{ entregador.created_at|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'admin_loja:entregadores_detalhe' entregador.id %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-eye me-1"></i>Ver Detalhes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Navegação de entregadores">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status != 'all' %}&status={{ status }}{% endif %}">Primeira</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status != 'all' %}&status={{ status }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status != 'all' %}&status={{ status }}{% endif %}">Próxima</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status != 'all' %}&status={{ status }}{% endif %}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-4x text-muted mb-4"></i>
+            <h4 class="text-muted">Nenhum entregador encontrado</h4>
+            <p class="text-muted">
+                {% if search or status != 'all' %}
+                    Tente alterar os filtros de busca.
+                {% else %}
+                    Não há entregadores cadastrados no sistema.
+                {% endif %}
+            </p>
+            {% if search or status != 'all' %}
+                <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-primary">
+                    <i class="fas fa-undo me-1"></i>Limpar Filtros
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Links Rápidos -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-link me-2"></i>Links Úteis
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:pedidos_aguardando_entregador' %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                                <i class="fas fa-clock me-1"></i>Pedidos Aguardando
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:ocorrencias_entrega' %}" class="btn btn-outline-danger btn-sm w-100 mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Ocorrências
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:relatorio_entregas' %}" class="btn btn-outline-info btn-sm w-100 mb-2">
+                                <i class="fas fa-chart-bar me-1"></i>Relatórios
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                <i class="fas fa-list me-1"></i>Todos os Pedidos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh da página a cada 3 minutos para atualizar status
+setTimeout(function() {
+    location.reload();
+}, 180000);
+</script>
+{% endblock %}

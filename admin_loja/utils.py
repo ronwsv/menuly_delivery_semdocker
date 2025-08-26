@@ -10,6 +10,15 @@ def painel_loja_required(view_func):
         )
     return user_passes_test(check_user, login_url='login')(view_func)
 
+def admin_loja_required(view_func):
+    """Decorator para views do admin da loja"""
+    def check_user(user):
+        return (
+            getattr(user, 'tipo_usuario', None) in ['lojista', 'gerente', 'funcionario']
+            or user.groups.filter(name='Atendente').exists()
+        )
+    return user_passes_test(check_user, login_url='admin_loja:login')(view_func)
+
 def verificar_permissao_gerencial(request, recurso="esta funcionalidade"):
     """
     Verifica se o usuário tem permissão para funcionalidades gerenciais

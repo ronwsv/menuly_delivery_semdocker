@@ -1,0 +1,273 @@
+{% extends 'painel_entregador/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-clock me-1"></i>
+        Última atualização: agora
+    </div>
+</div>
+
+<!-- Status do Entregador -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="card-title mb-0">
+                            Olá, {{ entregador.nome }}! 
+                            <span class="badge bg-{% if entregador.disponivel and not entregador.em_pausa %}success{% elif entregador.em_pausa %}warning{% else %}danger{% endif %} ms-2">
+                                {{ entregador.status_display }}
+                            </span>
+                        </h5>
+                        <p class="card-text text-muted">
+                            {% if entregador.disponivel and not entregador.em_pausa %}
+                                Você está disponível para receber pedidos
+                            {% elif entregador.em_pausa %}
+                                Você está em pausa
+                            {% else %}
+                                Você está indisponível
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <i class="fas fa-star text-warning me-2"></i>
+                            <span class="h5 mb-0">{{ entregador.nota_media|floatformat:1 }}/5.0</span>
+                            <small class="text-muted ms-2">({{ entregador.total_avaliacoes }} avaliações)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas do Dia -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="text-primary">{{ entregas_hoje }}</h4>
+                        <small class="text-muted">Entregas hoje</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-box text-primary fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="text-success">R$ {{ valor_hoje|floatformat:2 }}</h4>
+                        <small class="text-muted">Ganhos hoje</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-money-bill text-success fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="text-info">{{ total_entregas }}</h4>
+                        <small class="text-muted">Total de entregas</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line text-info fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card card-stats">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="text-warning">{{ nota_media|floatformat:1 }}</h4>
+                        <small class="text-muted">Nota média</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-star text-warning fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pedido Atual -->
+{% if pedido_atual %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-motorcycle me-2"></i>Entrega em Andamento
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Pedido #{{ pedido_atual.numero }}</h6>
+                        <p class="mb-1"><strong>Restaurante:</strong> {{ pedido_atual.restaurante.nome }}</p>
+                        <p class="mb-1"><strong>Cliente:</strong> {{ pedido_atual.cliente_nome }}</p>
+                        <p class="mb-1"><strong>Telefone:</strong> {{ pedido_atual.cliente_celular }}</p>
+                        <p class="mb-1"><strong>Endereço:</strong> {{ pedido_atual.endereco_completo }}</p>
+                        <p class="mb-0"><strong>Valor da entrega:</strong> R$ {{ pedido_atual.valor_entrega|floatformat:2 }}</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="mb-2">
+                            <span class="badge bg-primary">{{ pedido_atual.get_status_display }}</span>
+                        </div>
+                        <a href="{% url 'painel_entregador:detalhe_pedido' pedido_atual.id %}" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>Ver Detalhes
+                        </a>
+                        <button class="btn btn-success" onclick="marcarComoEntregue('{{ pedido_atual.id }}')">
+                            <i class="fas fa-check me-1"></i>Marcar como Entregue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Pedidos Disponíveis -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Pedidos Disponíveis
+                </h5>
+                <a href="{% url 'painel_entregador:pedidos_disponiveis' %}" class="btn btn-sm btn-outline-primary">
+                    Ver Todos
+                </a>
+            </div>
+            <div class="card-body">
+                {% if pedidos_disponiveis %}
+                    <div class="row">
+                        {% for pedido in pedidos_disponiveis %}
+                            <div class="col-lg-6 mb-3">
+                                <div class="card pedido-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">Pedido #{{ pedido.numero }}</h6>
+                                            <span class="badge bg-success">R$ {{ pedido.valor_entrega|floatformat:2 }}</span>
+                                        </div>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <i class="fas fa-store me-1"></i>{{ pedido.restaurante.nome }}
+                                            </small><br>
+                                            <small class="text-muted">
+                                                <i class="fas fa-map-marker-alt me-1"></i>{{ pedido.endereco_bairro }}, {{ pedido.endereco_cidade }}
+                                            </small><br>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user me-1"></i>{{ pedido.cliente_nome }}
+                                            </small>
+                                        </p>
+                                        {% if not pedido_atual %}
+                                        <button class="btn btn-primary btn-aceitar w-100" onclick="aceitarPedido('{{ pedido.id }}')">
+                                            <i class="fas fa-handshake me-1"></i>Aceitar Entrega
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            Finalize a entrega atual primeiro
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum pedido disponível no momento.</p>
+                        <small class="text-muted">Novos pedidos aparecerão aqui automaticamente.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function aceitarPedido(pedidoId) {
+    if (confirm('Deseja aceitar este pedido?')) {
+        fetch(`/entregador/aceitar-pedido/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao aceitar pedido. Tente novamente.');
+        });
+    }
+}
+
+function marcarComoEntregue(pedidoId) {
+    if (confirm('Confirma que o pedido foi entregue?')) {
+        fetch(`/entregador/alterar-status/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=entregue'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao alterar status. Tente novamente.');
+        });
+    }
+}
+</script>
+{% endblock %}

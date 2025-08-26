@@ -35,6 +35,7 @@ class Usuario(AbstractUser):
         ('funcionario', 'Funcionário'),
         ('gerente', 'Gerente'),
         ('lojista', 'Lojista'),
+        ('entregador', 'Entregador'),
         ('superadmin', 'Super Admin'),
     ]
     
@@ -572,7 +573,8 @@ class Pedido(models.Model):
         ('confirmado', 'Confirmado'),
         ('preparando', 'Preparando'),
         ('pronto', 'Pronto'),
-        ('saiu_entrega', 'Saiu para Entrega'),
+        ('aguardando_entregador', 'Aguardando Entregador'),
+        ('em_entrega', 'Em Entrega'),
         ('entregue', 'Entregue'),
         ('cancelado', 'Cancelado'),
         ('devolvido', 'Devolvido'),
@@ -596,6 +598,7 @@ class Pedido(models.Model):
     numero = models.CharField(max_length=20, unique=True, blank=True)
     restaurante = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='pedidos')
     cliente = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='pedidos', null=True, blank=True)
+    entregador = models.ForeignKey('Entregador', null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos_entrega')
     
     # Dados do cliente (para guest checkout)
     cliente_nome = models.CharField(max_length=200)
@@ -621,11 +624,12 @@ class Pedido(models.Model):
     # Valores
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     taxa_entrega = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    valor_entrega = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Valor pago ao entregador")
     desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     # Status e controle
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='carrinho')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='carrinho')
     observacoes = models.TextField(blank=True)
     observacoes_internas = models.TextField(blank=True)
     
@@ -753,8 +757,8 @@ class HistoricoStatusPedido(models.Model):
     """Histórico de mudanças de status do pedido"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='historico_status')
-    status_anterior = models.CharField(max_length=20, choices=Pedido.STATUS_CHOICES, blank=True, null=True)
-    status_novo = models.CharField(max_length=20, choices=Pedido.STATUS_CHOICES)
+    status_anterior = models.CharField(max_length=30, choices=Pedido.STATUS_CHOICES, blank=True, null=True)
+    status_novo = models.CharField(max_length=30, choices=Pedido.STATUS_CHOICES)
     usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
     observacoes = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -851,3 +855,126 @@ class Notificacao(models.Model):
             'urgente': 'danger',
         }
         return cores.get(self.prioridade, 'info')
+
+
+# ====================== MODELOS DE ENTREGA/MOTOBOYS ======================
+
+class Entregador(models.Model):
+    """Modelo para entregadores/motoboys"""
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
+    nome = models.CharField(max_length=100)
+    telefone = models.CharField(max_length=20)
+    cnh = models.CharField(max_length=20, blank=True, help_text="Número da CNH")
+    veiculo = models.CharField(max_length=50, blank=True, help_text="Ex: Moto Honda CG 160")
+    dados_bancarios = models.CharField(max_length=100, blank=True, help_text="Dados para pagamento")
+    disponivel = models.BooleanField(default=True, help_text="Disponível para receber pedidos")
+    em_pausa = models.BooleanField(default=False, help_text="Em pausa temporária")
+    nota_media = models.FloatField(default=0, help_text="Média das avaliações")
+    total_avaliacoes = models.PositiveIntegerField(default=0)
+    total_entregas = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'entregadores'
+        verbose_name = 'Entregador'
+        verbose_name_plural = 'Entregadores'
+
+    def __str__(self):
+        return self.nome
+
+    @property
+    def status_display(self):
+        """Status formatado para exibição"""
+        if self.em_pausa:
+            return "Em pausa"
+        elif self.disponivel:
+            return "Disponível"
+        else:
+            return "Indisponível"
+
+    def atualizar_nota_media(self):
+        """Atualiza a nota média baseada nas avaliações"""
+        avaliacoes = self.avaliacoes.all()
+        if avaliacoes.exists():
+            total_notas = sum(av.nota for av in avaliacoes)
+            self.nota_media = total_notas / avaliacoes.count()
+            self.total_avaliacoes = avaliacoes.count()
+            self.save()
+
+
+class AceitePedido(models.Model):
+    """Registro de aceite de pedidos pelos entregadores"""
+    STATUS_CHOICES = [
+        ('aceito', 'Aceito'),
+        ('recusado', 'Recusado'),
+        ('expirado', 'Expirado'),
+    ]
+    
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='aceites')
+    entregador = models.ForeignKey(Entregador, on_delete=models.CASCADE, related_name='aceites')
+    data_aceite = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aceito')
+    observacoes = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'aceite_pedidos'
+        verbose_name = 'Aceite de Pedido'
+        verbose_name_plural = 'Aceites de Pedidos'
+        unique_together = ['pedido', 'entregador']
+
+    def __str__(self):
+        return f"{self.entregador.nome} - Pedido #{self.pedido.numero} - {self.get_status_display()}"
+
+
+class AvaliacaoEntregador(models.Model):
+    """Avaliações dos entregadores pelos clientes"""
+    pedido = models.OneToOneField(Pedido, on_delete=models.CASCADE, related_name='avaliacao_entregador')
+    entregador = models.ForeignKey(Entregador, on_delete=models.CASCADE, related_name='avaliacoes')
+    nota = models.PositiveSmallIntegerField(choices=[(i, i) for i in range(1, 6)])
+    comentario = models.TextField(blank=True)
+    data = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'avaliacoes_entregador'
+        verbose_name = 'Avaliação do Entregador'
+        verbose_name_plural = 'Avaliações dos Entregadores'
+
+    def __str__(self):
+        return f"Avaliação {self.nota}/5 - {self.entregador.nome} - Pedido #{self.pedido.numero}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Atualiza a nota média do entregador
+        self.entregador.atualizar_nota_media()
+
+
+class OcorrenciaEntrega(models.Model):
+    """Registro de ocorrências durante a entrega"""
+    TIPO_CHOICES = [
+        ('cliente_ausente', 'Cliente ausente'),
+        ('endereco_errado', 'Endereço incorreto'),
+        ('pagamento_recusado', 'Pagamento recusado'),
+        ('produto_danificado', 'Produto danificado'),
+        ('atraso_restaurante', 'Atraso do restaurante'),
+        ('transito_intenso', 'Trânsito intenso'),
+        ('veiculo_quebrado', 'Problema com veículo'),
+        ('outro', 'Outro'),
+    ]
+    
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='ocorrencias')
+    entregador = models.ForeignKey(Entregador, on_delete=models.CASCADE, related_name='ocorrencias')
+    tipo = models.CharField(max_length=50, choices=TIPO_CHOICES)
+    descricao = models.TextField(help_text="Descreva detalhadamente a ocorrência")
+    data = models.DateTimeField(auto_now_add=True)
+    resolvido = models.BooleanField(default=False)
+    observacoes_resolucao = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'ocorrencias_entrega'
+        verbose_name = 'Ocorrência de Entrega'
+        verbose_name_plural = 'Ocorrências de Entrega'
+        ordering = ['-data']
+
+    def __str__(self):
+        return f"Ocorrência: {self.get_tipo_display()} - Pedido #{self.pedido.numero}"

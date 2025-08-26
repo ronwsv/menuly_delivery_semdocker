@@ -1,0 +1,293 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block title %}{{ entregador.nome }} - Detalhes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: rgba(13,110,253,.1);
+        border-bottom: 1px solid rgba(13,110,253,.25);
+    }
+    
+    .badge {
+        font-weight: 600;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .text-primary {
+        color: #0d6efd !important;
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        background-color: #fff;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-user me-2"></i>{{ entregador.nome }}
+        </h1>
+        <div>
+            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Voltar à Lista
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações Principais -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Informações Pessoais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nome:</strong> {{ entregador.nome }}</p>
+                    <p><strong>Telefone:</strong> {{ entregador.telefone }}</p>
+                    <p><strong>Usuário:</strong> {{ entregador.usuario.username }}</p>
+                    <p><strong>Email:</strong> {{ entregador.usuario.email|default:"Não informado" }}</p>
+                    {% if entregador.cnh %}
+                        <p><strong>CNH:</strong> {{ entregador.cnh }}</p>
+                    {% endif %}
+                    {% if entregador.veiculo %}
+                        <p><strong>Veículo:</strong> {{ entregador.veiculo }}</p>
+                    {% endif %}
+                    <p><strong>Cadastrado em:</strong> {{ entregador.created_at|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Estatísticas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="h3 text-primary">{{ total_entregas }}</div>
+                            <small class="text-muted">Total de<br>Entregas</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h3 text-warning">{{ entregador.nota_media|floatformat:1 }}</div>
+                            <small class="text-muted">Nota<br>Média</small>
+                        </div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-success">{{ total_avaliacoes }}</div>
+                            <small class="text-muted">Total de<br>Avaliações</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-danger">{{ ocorrencias_nao_resolvidas }}</div>
+                            <small class="text-muted">Ocorrências<br>Pendentes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-toggle-on me-2"></i>Status Atual
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <span class="badge bg-{% if entregador.disponivel and not entregador.em_pausa %}success{% elif entregador.em_pausa %}warning{% else %}danger{% endif %} fs-5 px-3 py-2">
+                            {% if entregador.disponivel and not entregador.em_pausa %}
+                                <i class="fas fa-check-circle me-1"></i>Disponível
+                            {% elif entregador.em_pausa %}
+                                <i class="fas fa-pause-circle me-1"></i>Em Pausa
+                            {% else %}
+                                <i class="fas fa-times-circle me-1"></i>Indisponível
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if entregador.pedidos_entrega.em_entrega.exists %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-motorcycle me-1"></i>
+                            <strong>Em entrega</strong><br>
+                            <small>Tem pedido ativo no momento</small>
+                        </div>
+                    {% endif %}
+                    
+                    {% if entregador.dados_bancarios %}
+                        <div class="mt-3">
+                            <small class="text-muted">Dados bancários:</small>
+                            <div class="small">{{ entregador.dados_bancarios }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs de Conteúdo -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="detalheTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pedidos-tab" data-bs-toggle="tab" data-bs-target="#pedidos" type="button">
+                        <i class="fas fa-box me-1"></i>Últimas Entregas ({{ ultimos_pedidos.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="avaliacoes-tab" data-bs-toggle="tab" data-bs-target="#avaliacoes" type="button">
+                        <i class="fas fa-star me-1"></i>Avaliações ({{ ultimas_avaliacoes.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ocorrencias-tab" data-bs-toggle="tab" data-bs-target="#ocorrencias" type="button">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Ocorrências ({{ ultimas_ocorrencias.count }})
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content mt-3" id="detalheTabsContent">
+                <!-- Tab de Pedidos -->
+                <div class="tab-pane fade show active" id="pedidos" role="tabpanel">
+                    {% if ultimos_pedidos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Pedido</th>
+                                        <th>Restaurante</th>
+                                        <th>Cliente</th>
+                                        <th>Data</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pedido in ultimos_pedidos %}
+                                    <tr>
+                                        <td>
+                                            <strong>#{{ pedido.numero }}</strong>
+                                        </td>
+                                        <td>{{ pedido.restaurante.nome }}</td>
+                                        <td>{{ pedido.cliente_nome }}</td>
+                                        <td>{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td class="text-success">R$ {{ pedido.valor_entrega|floatformat:2 }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if pedido.status == 'entregue' %}success{% elif pedido.status == 'em_entrega' %}primary{% else %}secondary{% endif %}">
+                                                {{ pedido.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Nenhuma entrega realizada ainda</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab de Avaliações -->
+                <div class="tab-pane fade" id="avaliacoes" role="tabpanel">
+                    {% if ultimas_avaliacoes %}
+                        <div class="row">
+                            {% for avaliacao in ultimas_avaliacoes %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <strong>Pedido #{{ avaliacao.pedido.numero }}</strong>
+                                                <br><small class="text-muted">{{ avaliacao.data|date:"d/m/Y H:i" }}</small>
+                                            </div>
+                                            <div class="text-warning">
+                                                {% for i in "12345" %}
+                                                    {% if avaliacao.nota >= i|add:"0" %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <span class="ms-1">({{ avaliacao.nota }})</span>
+                                            </div>
+                                        </div>
+                                        {% if avaliacao.comentario %}
+                                            <p class="mb-0 small">{{ avaliacao.comentario }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Nenhuma avaliação recebida ainda</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab de Ocorrências -->
+                <div class="tab-pane fade" id="ocorrencias" role="tabpanel">
+                    {% if ultimas_ocorrencias %}
+                        <div class="row">
+                            {% for ocorrencia in ultimas_ocorrencias %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-{% if ocorrencia.resolvido %}success{% else %}warning{% endif %}">
+                                    <div class="card-header">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong>{{ ocorrencia.get_tipo_display }}</strong>
+                                            <span class="badge bg-{% if ocorrencia.resolvido %}success{% else %}warning{% endif %}">
+                                                {% if ocorrencia.resolvido %}Resolvida{% else %}Pendente{% endif %}
+                                            </span>
+                                        </div>
+                                        <small class="text-muted">Pedido #{{ ocorrencia.pedido.numero }} - {{ ocorrencia.data|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-2">{{ ocorrencia.descricao }}</p>
+                                        {% if ocorrencia.resolvido and ocorrencia.observacoes_resolucao %}
+                                            <div class="mt-2 p-2 bg-light rounded">
+                                                <small><strong>Resolução:</strong> {{ ocorrencia.observacoes_resolucao }}</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <p class="text-muted">Nenhuma ocorrência registrada</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
