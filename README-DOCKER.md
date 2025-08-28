@@ -244,3 +244,40 @@ Para problemas específicos do Docker:
 ---
 
 **Desenvolvido com ❤️ para o Menuly Delivery**
+
+
+ ✅ Credenciais disponíveis:
+
+  🔑 Superusuário (Django Admin)
+
+  - Username: admin
+  - Password: admin123
+  - URL: http://localhost:8000/admin/
+
+  🏪 Lojista de Teste
+
+  - Username: lojista_teste
+  - Password: senha123
+  - URL: http://localhost:8000/admin-loja/login/
+
+  🏍️ Entregador de Teste
+
+  - Username: entregador_teste
+  - Password: kkcZLzYg1Z
+  - URL: http://localhost:8000/entregador/login/
+
+  Username:  antonio-depaula95@soespodonto.com.br
+  Antonio Miguel de Paula
+  - Password: kkcZLzYg1Z
+
+  👤 Cliente de Teste
+
+  - Username: cliente_teste
+  - Password: senha123
+  - URL: http://localhost:8000/
+
+  🍕 Dados de demonstração criados:
+
+  - Restaurante: "Pizzaria Teste" (vinculado ao lojista_teste)
+  - Produtos: Pizza Margherita
+  - Pedido de teste: TEST001 (aguardando entregador)

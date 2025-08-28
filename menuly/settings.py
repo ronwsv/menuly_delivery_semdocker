@@ -196,3 +196,34 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%d/%m/%Y %H:%M',
     'DATE_FORMAT': '%d/%m/%Y',
 }
+
+# =============================================================================
+# Celery Configuration
+# =============================================================================
+
+# Broker settings
+CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
+
+# Task settings
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Sao_Paulo'
+CELERY_ENABLE_UTC = True
+
+# Worker settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+
+# Beat schedule
+CELERY_BEAT_SCHEDULE = {
+    'limpeza-pedidos-expirados': {
+        'task': 'core.tasks.limpar_pedidos_expirados',
+        'schedule': 300.0,  # A cada 5 minutos
+    },
+    'atualizar-status-entregas': {
+        'task': 'core.tasks.atualizar_status_entregas',
+        'schedule': 60.0,   # A cada 1 minuto
+    },
+}
