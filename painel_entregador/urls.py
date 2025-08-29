@@ -7,6 +7,7 @@ app_name = 'painel_entregador'
 urlpatterns = [
     # Autenticação
     path('login/', views.login_view, name='login'),
+    path('cadastro/', views.cadastro_view, name='cadastro'),
     path('logout/', LogoutView.as_view(next_page='painel_entregador:login'), name='logout'),
     
     # Dashboard

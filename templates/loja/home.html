@@ -464,8 +464,8 @@ window.produtosDjango = {{ produtos_js|default:'{}'|safe }};
 
 // Configurar eventos quando DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🏠 Home DOM carregado, configurando carrinho...');
-    console.log('📦 Produtos disponíveis:', Object.keys(window.produtosDjango).length);
+    console.log('Home DOM carregado, configurando carrinho...');
+    console.log('Produtos disponíveis:', Object.keys(window.produtosDjango).length);
     
     // Aguardar as funções globais carregarem
     setTimeout(() => {

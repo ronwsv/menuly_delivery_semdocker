@@ -239,7 +239,7 @@ class HomeView(BaseLojaView):
                 }
             
             context['produtos_js'] = produtos_js
-            print(f"🏠 HomeView: {len(produtos_populares)} produtos populares, dados JS preparados")
+            print(f"HomeView: {len(produtos_populares)} produtos populares, dados JS preparados")
         
         return context
 

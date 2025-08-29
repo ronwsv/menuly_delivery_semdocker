@@ -11,7 +11,7 @@ Estrutura de URLs:
 - /admin/ -> Django Admin
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from core.views import LandingView, SobreView, ContatoView
@@ -37,9 +37,13 @@ urlpatterns = [
     # Superadmin - Painel global
     path("superadmin/", include("superadmin.urls")),
 
+    # Login geral - redireciona para admin-loja/login/
+    path("login/", LandingView.as_view(template_name="redirect_login.html"), name="login"),
+    
     # Loja - Frontend para clientes (estrutura hierárquica)
     # Esta deve ser a ÚLTIMA das URLs principais para não capturar as outras.
-    path("<slug:restaurante_slug>/", include("loja.urls")),
+    # Usar regex para excluir URLs reservadas como admin, api, etc.
+    re_path(r'^(?!admin|api|admin-loja|entregador|superadmin|sobre|contato|login)(?P<restaurante_slug>[a-zA-Z0-9_-]+)/', include("loja.urls")),
 ]
 
 # Servir arquivos de media em desenvolvimento

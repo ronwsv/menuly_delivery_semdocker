@@ -14,6 +14,7 @@ from core.models import (
 from core.notifications import (
     notificar_pedido_aceito, notificar_ocorrencia_entrega
 )
+from .forms import CadastroEntregadorForm
 import json
 
 
@@ -40,10 +41,20 @@ def entregador_required(view_func):
 def login_view(request):
     """Página de login para entregadores"""
     if request.method == 'POST':
-        username = request.POST.get('username')
+        email_or_username = request.POST.get('username')  # Pode ser email ou username
         password = request.POST.get('password')
         
-        user = authenticate(request, username=username, password=password)
+        # Tentar primeiro com o valor como está (pode ser username)
+        user = authenticate(request, username=email_or_username, password=password)
+        
+        # Se não funcionou e parece ser um email, tentar buscar pelo email
+        if user is None and '@' in email_or_username:
+            try:
+                usuario_obj = Usuario.objects.get(email=email_or_username)
+                user = authenticate(request, username=usuario_obj.username, password=password)
+            except Usuario.DoesNotExist:
+                user = None
+        
         if user is not None and user.tipo_usuario == 'entregador':
             try:
                 entregador = user.entregador
@@ -56,6 +67,41 @@ def login_view(request):
             messages.error(request, 'Credenciais inválidas ou usuário não é um entregador.')
     
     return render(request, 'painel_entregador/login.html')
+
+
+def cadastro_view(request):
+    """Página de cadastro para novos entregadores"""
+    print(f"[DEBUG] cadastro_view chamada - método: {request.method}")
+    
+    if request.method == 'POST':
+        print("[DEBUG] POST recebido")
+        print(f"[DEBUG] POST data: {request.POST}")
+        
+        form = CadastroEntregadorForm(request.POST)
+        print(f"[DEBUG] Form criado")
+        
+        if form.is_valid():
+            print("[DEBUG] Form é válido")
+            try:
+                user = form.save()
+                print(f"[DEBUG] Usuário criado: {user}")
+                messages.success(request, 'Cadastro realizado com sucesso! Agora você pode fazer login.')
+                return redirect('painel_entregador:login')
+            except Exception as e:
+                print(f"[DEBUG] Erro ao salvar: {e}")
+                messages.error(request, f'Erro ao criar cadastro: {str(e)}')
+        else:
+            print(f"[DEBUG] Form inválido - erros: {form.errors}")
+            # Adicionar erros específicos para debug
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+    else:
+        print("[DEBUG] GET request")
+        form = CadastroEntregadorForm()
+    
+    print("[DEBUG] Renderizando template")
+    return render(request, 'painel_entregador/cadastro.html', {'form': form})
 
 
 @entregador_required
