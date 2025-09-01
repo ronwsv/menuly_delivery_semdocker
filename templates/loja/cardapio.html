@@ -171,7 +171,9 @@
                                                         data-produto-id="{{ produto.id }}"
                                                         data-nome="{{ produto.nome }}"
                                                         data-preco="{{ produto.preco_final }}"
-                                                        data-categoria="{{ categoria.nome }}">
+                                                        data-categoria="{{ categoria.nome }}"
+                                                        data-tem-opcoes="{% if produto.opcoes_personalizacao.exists %}true{% else %}false{% endif %}"
+                                                        data-produto-slug="{{ produto.slug }}">
                                                     <i class="bi bi-cart-plus"></i> Adicionar
                                                 </button>
                                             {% else %}

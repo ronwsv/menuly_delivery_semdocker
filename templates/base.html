@@ -329,7 +329,57 @@
             console.log('- atualizarContadorCarrinho:', typeof window.atualizarContadorCarrinho);
             console.log('- mostrarToast:', typeof window.mostrarToast);
             console.log('- carrinho:', window.carrinho);
+            
+            // Configurar eventos para produtos com opções
+            configurarEventosProdutoComOpcoes();
         }, 500);
+
+        // Função para interceptar cliques em produtos com opções
+        function configurarEventosProdutoComOpcoes() {
+            // Remover listeners anteriores para evitar duplicação
+            document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
+                botao.removeEventListener('click', verificarOpcoesProduto);
+                botao.addEventListener('click', verificarOpcoesProduto);
+            });
+        }
+
+        function verificarOpcoesProduto(evento) {
+            const botao = evento.currentTarget;
+            const temOpcoes = botao.getAttribute('data-tem-opcoes') === 'true';
+            const produtoNome = botao.getAttribute('data-nome');
+            const produtoSlug = botao.getAttribute('data-produto-slug');
+
+            if (temOpcoes) {
+                // Prevenir comportamento padrão
+                evento.preventDefault();
+                evento.stopPropagation();
+
+                // Mostrar modal
+                document.getElementById('produtoNomeModal').textContent = produtoNome;
+                
+                // Configurar botão "Ver Opções" para redirecionar para a página do produto
+                const btnVerOpcoes = document.getElementById('btnVerOpcoes');
+                btnVerOpcoes.onclick = function() {
+                    // Construir URL dinamicamente usando o slug do restaurante atual
+                    const restauranteSlug = window.location.pathname.split('/')[1];
+                    window.location.href = `/${restauranteSlug}/produto/${produtoSlug}/`;
+                };
+
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('modalProdutoOpcoes'));
+                modal.show();
+
+                return false; // Prevenir processamento adicional
+            }
+            
+            // Se não tem opções, deixar o comportamento padrão seguir
+            return true;
+        }
+
+        // Reconfigurar eventos quando conteúdo for carregado dinamicamente
+        document.addEventListener('DOMContentLoaded', function() {
+            configurarEventosProdutoComOpcoes();
+        });
     </script>
     
     {% block extra_js %}{% endblock %}
@@ -399,6 +449,42 @@
             <i class="bi bi-whatsapp fs-4"></i>
         </a>
     {% endif %}
+    
+    <!-- Modal de Produto com Opções -->
+    <div class="modal fade" id="modalProdutoOpcoes" tabindex="-1" aria-labelledby="modalProdutoOpcoesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProdutoOpcoesLabel">
+                        <i class="bi bi-gear-fill text-primary me-2"></i>
+                        Produto com Opções
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-info-circle-fill text-info" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="fw-bold mb-3" id="produtoNomeModal"></h6>
+                    <p class="text-muted mb-4">
+                        Este produto possui opções de personalização disponíveis. 
+                        <br>
+                        <strong>Você deseja ver e escolher as opções?</strong>
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-primary" id="btnVerOpcoes">
+                            <i class="bi bi-gear me-1"></i>
+                            Ver Opções
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
 </body>
 </html>

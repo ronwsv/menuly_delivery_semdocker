@@ -159,6 +159,10 @@
                                             
                                             <!-- Action Buttons -->
                                             <div class="btn-group" role="group">
+                                                <a href="{% url 'admin_loja:produto_personalizar' produto.id %}" 
+                                                   class="btn btn-sm btn-outline-info" title="Personalizar">
+                                                    <i class="fas fa-cog"></i>
+                                                </a>
                                                 <a href="{% url 'admin_loja:produto_editar' produto.id %}" 
                                                    class="btn btn-sm btn-outline-primary" title="Editar">
                                                     <i class="fas fa-edit"></i>

@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+{% load static %}
+{% load loja_extras %}
+
+{% block title %}{{ produto.nome }} - {{ restaurante.nome }}{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="{{ produto.nome }} - {{ restaurante.nome }}">
+<meta property="og:description" content="{{ produto.descricao }}">
+{% if produto.imagem_principal %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ produto.imagem_principal.url }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% loja_url 'home' %}">Início</a></li>
+            <li class="breadcrumb-item"><a href="{% loja_url 'cardapio' %}">Cardápio</a></li>
+            {% if produto.categoria %}
+            <li class="breadcrumb-item">
+                <a href="{% loja_url 'categoria' categoria_slug=produto.categoria.slug %}">
+                    {{ produto.categoria.nome }}
+                </a>
+            </li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{{ produto.nome }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Imagem do produto -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                {% if produto.imagem_principal %}
+                <img src="{{ produto.imagem_principal.url }}" 
+                     class="card-img-top" 
+                     alt="{{ produto.nome }}"
+                     style="height: 400px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                     style="height: 400px;">
+                    <i class="bi bi-image fs-1 text-muted"></i>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Imagens adicionais (se houver) -->
+            {% if produto.imagens.exists %}
+            <div class="row mt-3">
+                {% for imagem in produto.imagens.all %}
+                <div class="col-3">
+                    <img src="{{ imagem.imagem.url }}" 
+                         class="img-thumbnail" 
+                         alt="{{ produto.nome }}" 
+                         style="height: 80px; object-fit: cover; cursor: pointer;"
+                         onclick="document.querySelector('.card-img-top').src = this.src">
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Detalhes do produto -->
+        <div class="col-lg-6">
+            <div class="sticky-top" style="top: 100px;">
+                <!-- Título e preço -->
+                <div class="mb-4">
+                    <h1 class="h2 mb-3">{{ produto.nome }}</h1>
+                    
+                    <!-- Categoria -->
+                    {% if produto.categoria %}
+                    <span class="badge bg-primary mb-3">{{ produto.categoria.nome }}</span>
+                    {% endif %}
+                    
+                    <!-- Preço -->
+                    <div class="mb-3">
+                        {% if produto.preco_promocional %}
+                        <span class="text-muted text-decoration-line-through me-2">
+                            R$ {{ produto.preco|floatformat:2 }}
+                        </span>
+                        <span class="h4 text-success fw-bold">
+                            R$ {{ produto.preco_final|floatformat:2 }}
+                        </span>
+                        {% else %}
+                        <span class="h4 text-primary fw-bold">
+                            R$ {{ produto.preco_final|floatformat:2 }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Descrição -->
+                    <p class="lead text-muted">{{ produto.descricao }}</p>
+                    
+                    <!-- Informações adicionais -->
+                    {% if produto.tempo_preparo %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-clock me-2 text-muted"></i>
+                        <small class="text-muted">Tempo de preparo: {{ produto.tempo_preparo }} min</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if produto.calorias %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-activity me-2 text-muted"></i>
+                        <small class="text-muted">{{ produto.calorias }} kcal</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if produto.ingredientes %}
+                    <div class="mb-3">
+                        <strong class="d-block mb-1">Ingredientes:</strong>
+                        <small class="text-muted">{{ produto.ingredientes }}</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if produto.alergicos %}
+                    <div class="mb-3">
+                        <div class="alert alert-warning py-2">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <small><strong>Alérgicos:</strong> {{ produto.alergicos }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Formulário de personalização -->
+                <form id="produto-form" class="mb-4">
+                    {% csrf_token %}
+                    
+                    <!-- Opções de personalização -->
+                    {% for opcao in opcoes_personalizacao %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                {{ opcao.nome }}
+                                {% if opcao.obrigatorio %}
+                                <span class="text-danger">*</span>
+                                {% endif %}
+                            </h6>
+                            
+                            {% if opcao.tipo == 'radio' %}
+                                <!-- Seleção única -->
+                                {% for item in opcao.itens.all %}
+                                <div class="form-check">
+                                    <input class="form-check-input" 
+                                           type="radio" 
+                                           name="opcao_{{ opcao.id }}" 
+                                           id="item_{{ item.id }}"
+                                           value="{{ item.id }}"
+                                           data-preco="{{ item.preco_adicional }}"
+                                           {% if opcao.obrigatorio and forloop.first %}checked{% endif %}
+                                           onchange="atualizarPreco()">
+                                    <label class="form-check-label d-flex justify-content-between w-100" 
+                                           for="item_{{ item.id }}">
+                                        <span>{{ item.nome }}</span>
+                                        {% if item.preco_adicional > 0 %}
+                                        <span class="text-muted">+ R$ {{ item.preco_adicional|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                                
+                            {% elif opcao.tipo == 'checkbox' %}
+                                <!-- Múltipla escolha -->
+                                {% for item in opcao.itens.all %}
+                                <div class="form-check">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           name="opcao_{{ opcao.id }}[]" 
+                                           id="item_{{ item.id }}"
+                                           value="{{ item.id }}"
+                                           data-preco="{{ item.preco_adicional }}"
+                                           onchange="atualizarPreco()">
+                                    <label class="form-check-label d-flex justify-content-between w-100" 
+                                           for="item_{{ item.id }}">
+                                        <span>{{ item.nome }}</span>
+                                        {% if item.preco_adicional > 0 %}
+                                        <span class="text-muted">+ R$ {{ item.preco_adicional|floatformat:2 }}</span>
+                                        {% elif item.preco_adicional < 0 %}
+                                        <span class="text-success">R$ {{ item.preco_adicional|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                                
+                            {% elif opcao.tipo == 'select' %}
+                                <!-- Lista suspensa -->
+                                <select class="form-select" 
+                                        name="opcao_{{ opcao.id }}" 
+                                        {% if opcao.obrigatorio %}required{% endif %}
+                                        onchange="atualizarPreco()">
+                                    {% if not opcao.obrigatorio %}
+                                    <option value="">Selecione uma opção</option>
+                                    {% endif %}
+                                    {% for item in opcao.itens.all %}
+                                    <option value="{{ item.id }}" 
+                                            data-preco="{{ item.preco_adicional }}"
+                                            {% if opcao.obrigatorio and forloop.first %}selected{% endif %}>
+                                        {{ item.nome }}
+                                        {% if item.preco_adicional != 0 %}
+                                        ({% if item.preco_adicional > 0 %}+{% endif %}R$ {{ item.preco_adicional|floatformat:2 }})
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Observações -->
+                    {% if produto.permite_observacoes %}
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações especiais</label>
+                        <textarea class="form-control" 
+                                  id="observacoes" 
+                                  name="observacoes" 
+                                  rows="3" 
+                                  placeholder="Alguma observação especial? (opcional)"></textarea>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quantidade e adicionar ao carrinho -->
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label for="quantidade" class="form-label">Quantidade</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" onclick="alterarQuantidade(-1)">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" 
+                                       class="form-control text-center" 
+                                       id="quantidade" 
+                                       name="quantidade" 
+                                       value="1" 
+                                       min="1" 
+                                       max="99"
+                                       onchange="atualizarPreco()">
+                                <button class="btn btn-outline-secondary" type="button" onclick="alterarQuantidade(1)">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Total</label>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="h4 text-success fw-bold" id="preco-total">
+                                    R$ {{ produto.preco_final|floatformat:2 }}
+                                </span>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-cart-plus me-2"></i>
+                                    Adicionar ao Carrinho
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos relacionados -->
+    {% if produtos_relacionados %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Produtos Relacionados</h3>
+            <div class="row">
+                {% for produto_relacionado in produtos_relacionados %}
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        {% if produto_relacionado.imagem_principal %}
+                        <img src="{{ produto_relacionado.imagem_principal.url }}" 
+                             class="card-img-top" 
+                             alt="{{ produto_relacionado.nome }}"
+                             style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                             style="height: 200px;">
+                            <i class="bi bi-image fs-3 text-muted"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ produto_relacionado.nome }}</h6>
+                            <p class="card-text text-muted small flex-grow-1">
+                                {{ produto_relacionado.descricao|truncatewords:10 }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-primary fw-bold">
+                                    R$ {{ produto_relacionado.preco_final|floatformat:2 }}
+                                </span>
+                                <a href="{% url 'loja:produto_detalhe' restaurante_slug=restaurante.slug produto_slug=produto_relacionado.slug %}" 
+                                   class="btn btn-outline-primary btn-sm">Ver</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Toast de sucesso -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast-sucesso" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <strong class="me-auto">Sucesso</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Produto adicionado ao carrinho!
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados do produto para JavaScript
+window.produtoData = {
+    id: '{{ produto.id }}',
+    nome: '{{ produto.nome|escapejs }}',
+    preco_base: {{ produto.preco_final }},
+    categoria: '{{ produto.categoria.nome|default:""|escapejs }}',
+    imagem: '{% if produto.imagem_principal %}{{ produto.imagem_principal.url }}{% endif %}'
+};
+
+// Função para alterar quantidade
+function alterarQuantidade(delta) {
+    const input = document.getElementById('quantidade');
+    const novaQuantidade = parseInt(input.value) + delta;
+    
+    if (novaQuantidade >= 1 && novaQuantidade <= 99) {
+        input.value = novaQuantidade;
+        atualizarPreco();
+    }
+}
+
+// Função para atualizar preço total
+function atualizarPreco() {
+    const precoBase = window.produtoData.preco_base;
+    const quantidade = parseInt(document.getElementById('quantidade').value);
+    let precoAdicional = 0;
+    
+    // Somar preços adicionais das personalizações selecionadas
+    const inputs = document.querySelectorAll('#produto-form input:checked, #produto-form select');
+    
+    inputs.forEach(input => {
+        const preco = parseFloat(input.dataset.preco || input.options?.[input.selectedIndex]?.dataset?.preco || 0);
+        if (!isNaN(preco)) {
+            precoAdicional += preco;
+        }
+    });
+    
+    const precoTotal = (precoBase + precoAdicional) * quantidade;
+    document.getElementById('preco-total').textContent = `R$ ${precoTotal.toFixed(2)}`;
+}
+
+// Função para adicionar ao carrinho
+document.getElementById('produto-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validar opções obrigatórias
+    let valid = true;
+    const opcoesObrigatorias = document.querySelectorAll('[data-obrigatorio="true"]');
+    
+    opcoesObrigatorias.forEach(opcao => {
+        const nome = opcao.getAttribute('name');
+        const selecionados = document.querySelectorAll(`[name="${nome}"]:checked`);
+        
+        if (selecionados.length === 0) {
+            valid = false;
+            opcao.classList.add('is-invalid');
+        } else {
+            opcao.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!valid) {
+        alert('Por favor, selecione todas as opções obrigatórias.');
+        return;
+    }
+    
+    // Coletar dados do formulário
+    const formData = new FormData(this);
+    const quantidade = parseInt(formData.get('quantidade'));
+    const observacoes = formData.get('observacoes') || '';
+    
+    // Coletar personalizações
+    const personalizacoes = [];
+    const inputs = document.querySelectorAll('#produto-form input:checked, #produto-form select');
+    
+    inputs.forEach(input => {
+        if (input.value && input.value !== '') {
+            personalizacoes.push({
+                opcao_id: input.name.replace('opcao_', '').replace('[]', ''),
+                item_id: input.value,
+                nome: input.labels?.[0]?.textContent?.split('+')[0]?.trim() || input.options?.[input.selectedIndex]?.text?.split('(')[0]?.trim(),
+                preco_adicional: parseFloat(input.dataset.preco || input.options?.[input.selectedIndex]?.dataset?.preco || 0)
+            });
+        }
+    });
+    
+    // Calcular preço final
+    const precoBase = window.produtoData.preco_base;
+    const precoAdicional = personalizacoes.reduce((total, p) => total + p.preco_adicional, 0);
+    const precoUnitario = precoBase + precoAdicional;
+    
+    // Dados do item para o carrinho
+    const itemCarrinho = {
+        produto_id: window.produtoData.id,
+        nome: window.produtoData.nome,
+        categoria: window.produtoData.categoria,
+        preco: precoUnitario,
+        quantidade: quantidade,
+        personalizacoes: personalizacoes,
+        observacoes: observacoes,
+        imagem: window.produtoData.imagem
+    };
+    
+    // Adicionar ao carrinho (via localStorage tempor�rio)
+    adicionarAoCarrinho(itemCarrinho);
+    
+    // Mostrar toast de sucesso
+    const toast = new bootstrap.Toast(document.getElementById('toast-sucesso'));
+    toast.show();
+    
+    // Resetar formul�rio (opcional)
+    // this.reset();
+    // atualizarPreco();
+});
+
+// Função auxiliar para adicionar ao carrinho
+function adicionarAoCarrinho(item) {
+    // Por enquanto, vamos simular adição ao carrinho
+    // Em implementação real, isso seria uma requisição AJAX
+    console.log('Adicionando ao carrinho:', item);
+    
+    // Enviar para o backend
+    fetch('{% loja_url "adicionar_carrinho" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(item)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Atualizar contador do carrinho se existir
+            const contador = document.querySelector('.carrinho-count');
+            if (contador && data.total_itens) {
+                contador.textContent = data.total_itens;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao adicionar ao carrinho:', error);
+        alert('Erro ao adicionar produto ao carrinho. Tente novamente.');
+    });
+}
+
+// Inicializar preço na carga da página
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarPreco();
+});
+</script>
+{% endblock %}

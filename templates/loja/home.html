@@ -153,7 +153,10 @@
                                     <i class="bi bi-eye"></i> Ver Detalhes
                                 </a>
                                 <button class="btn btn-primary btn-sm btn-adicionar-carrinho" 
-                                        data-produto-id="{{ produto.id }}">
+                                        data-produto-id="{{ produto.id }}"
+                                        data-nome="{{ produto.nome }}"
+                                        data-tem-opcoes="{% if produto.opcoes_personalizacao.exists %}true{% else %}false{% endif %}"
+                                        data-produto-slug="{{ produto.slug }}">
                                     <i class="bi bi-cart-plus"></i> Adicionar
                                 </button>
                             </div>

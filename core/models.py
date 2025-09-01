@@ -508,6 +508,18 @@ class OpcaoPersonalizacao(models.Model):
     nome = models.CharField(max_length=100, help_text="Ex: Tamanho, Sabor, Adicionais")
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='radio')
     obrigatorio = models.BooleanField(default=False)
+    
+    # Controle de quantidade para opções checkbox
+    quantidade_minima = models.PositiveIntegerField(
+        default=0, 
+        help_text="Quantidade mínima de itens que devem ser selecionados (apenas para checkbox)"
+    )
+    quantidade_maxima = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Quantidade máxima de itens que podem ser selecionados (apenas para checkbox). Deixe vazio para ilimitado"
+    )
+    
     ordem = models.PositiveIntegerField(default=0)
     ativo = models.BooleanField(default=True)
 

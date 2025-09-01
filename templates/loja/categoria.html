@@ -113,7 +113,10 @@
                                 
                                 {% if produto.disponivel %}
                                     <button class="btn btn-adicionar-carrinho btn-sm" 
-                                            data-produto-id="{{ produto.id }}">
+                                            data-produto-id="{{ produto.id }}"
+                                            data-nome="{{ produto.nome }}"
+                                            data-tem-opcoes="{% if produto.opcoes_personalizacao.exists %}true{% else %}false{% endif %}"
+                                            data-produto-slug="{{ produto.slug }}">
                                         <i class="bi bi-cart-plus"></i> Adicionar
                                     </button>
                                 {% else %}

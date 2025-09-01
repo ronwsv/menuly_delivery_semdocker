@@ -44,7 +44,7 @@ services:
       - DATABASE_USER=menuly
       - DATABASE_PASSWORD=menuly123
       - REDIS_URL=redis://redis:6379/1
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - ALLOWED_HOSTS= ["localhost", "127.0.0.1", "192.168.0,74"]
     ports:
       - "8000:8000"
     volumes:

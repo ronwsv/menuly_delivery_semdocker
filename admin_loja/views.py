@@ -1318,3 +1318,120 @@ def admin_loja_produto_reorder(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+
+@painel_loja_required
+def admin_loja_produto_personalizar(request, produto_id):
+    """View para gerenciar personalizações de um produto"""
+    from core.models import Produto, OpcaoPersonalizacao, ItemPersonalizacao
+    
+    produto = get_object_or_404(
+        Produto, 
+        id=produto_id, 
+        restaurante__proprietario=request.user
+    )
+    
+    if request.method == 'POST':
+        # Processar formulários de personalização
+        action = request.POST.get('action')
+        
+        if action == 'adicionar_opcao':
+            nome = request.POST.get('nome')
+            tipo = request.POST.get('tipo', 'radio')
+            obrigatorio = request.POST.get('obrigatorio') == 'on'
+            
+            if nome:
+                # Determinar próxima ordem
+                max_ordem = produto.opcoes_personalizacao.aggregate(
+                    models.Max('ordem')
+                )['ordem__max'] or 0
+                
+                OpcaoPersonalizacao.objects.create(
+                    produto=produto,
+                    nome=nome,
+                    tipo=tipo,
+                    obrigatorio=obrigatorio,
+                    ordem=max_ordem + 1
+                )
+        
+        elif action == 'editar_opcao':
+            opcao_id = request.POST.get('opcao_id')
+            nome = request.POST.get('nome')
+            tipo = request.POST.get('tipo', 'radio')
+            obrigatorio = request.POST.get('obrigatorio') == 'on'
+            
+            if opcao_id and nome:
+                opcao = get_object_or_404(
+                    OpcaoPersonalizacao,
+                    id=opcao_id,
+                    produto=produto
+                )
+                opcao.nome = nome
+                opcao.tipo = tipo
+                opcao.obrigatorio = obrigatorio
+                opcao.save()
+        
+        elif action == 'deletar_opcao':
+            opcao_id = request.POST.get('opcao_id')
+            if opcao_id:
+                OpcaoPersonalizacao.objects.filter(
+                    id=opcao_id,
+                    produto=produto
+                ).delete()
+        
+        elif action == 'adicionar_item':
+            opcao_id = request.POST.get('opcao_id')
+            nome = request.POST.get('nome')
+            preco_adicional = request.POST.get('preco_adicional', '0')
+            
+            if opcao_id and nome:
+                opcao = get_object_or_404(
+                    OpcaoPersonalizacao,
+                    id=opcao_id,
+                    produto=produto
+                )
+                
+                # Determinar próxima ordem
+                max_ordem = opcao.itens.aggregate(
+                    models.Max('ordem')
+                )['ordem__max'] or 0
+                
+                ItemPersonalizacao.objects.create(
+                    opcao=opcao,
+                    nome=nome,
+                    preco_adicional=float(preco_adicional),
+                    ordem=max_ordem + 1
+                )
+        
+        elif action == 'editar_item':
+            item_id = request.POST.get('item_id')
+            nome = request.POST.get('nome')
+            preco_adicional = request.POST.get('preco_adicional', '0')
+            
+            if item_id and nome:
+                item = get_object_or_404(
+                    ItemPersonalizacao,
+                    id=item_id,
+                    opcao__produto=produto
+                )
+                item.nome = nome
+                item.preco_adicional = float(preco_adicional)
+                item.save()
+        
+        elif action == 'deletar_item':
+            item_id = request.POST.get('item_id')
+            if item_id:
+                ItemPersonalizacao.objects.filter(
+                    id=item_id,
+                    opcao__produto=produto
+                ).delete()
+        
+        return redirect('admin_loja:produto_personalizar', produto_id=produto.id)
+    
+    # Buscar opções de personalização existentes
+    opcoes_personalizacao = produto.opcoes_personalizacao.all().prefetch_related('itens')
+    
+    return render(request, 'admin_loja/produto_personalizar.html', {
+        'produto': produto,
+        'opcoes_personalizacao': opcoes_personalizacao,
+    })
+

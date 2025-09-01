@@ -1,0 +1,324 @@
+{% extends 'admin_loja/base_admin_loja.html' %}
+
+{% block header %}
+<div class="d-flex justify-content-between align-items-center">
+    <div>
+        <h2>Personalizar Produto</h2>
+        <p class="text-muted mb-0">{{ produto.nome }}</p>
+    </div>
+    <a href="{% url 'admin_loja:produtos' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Produtos
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<div class="row">
+    <div class="col-md-4">
+        <!-- Informações do Produto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-utensils"></i> Produto</h5>
+            </div>
+            <div class="card-body">
+                {% if produto.imagem_principal %}
+                    <img src="{{ produto.imagem_principal.url }}" alt="{{ produto.nome }}" class="img-fluid rounded mb-3">
+                {% endif %}
+                <h6>{{ produto.nome }}</h6>
+                <p class="text-muted small">{{ produto.descricao|truncatewords:20 }}</p>
+                <div class="d-flex justify-content-between">
+                    <span class="badge badge-info">R$ {{ produto.preco_final }}</span>
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i> {{ produto.tempo_preparo }}min
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adicionar Nova Opção -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus"></i> Nova Opção</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="adicionar_opcao">
+                    
+                    <div class="form-group">
+                        <label for="nome">Nome da Opção</label>
+                        <input type="text" class="form-control" name="nome" placeholder="Ex: Tamanho, Sabor, Adicionais" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Seleção</label>
+                        <select name="tipo" class="form-control" id="tipo-opcao">
+                            <option value="radio">Seleção Única (Radio)</option>
+                            <option value="checkbox">Múltipla Escolha (Checkbox)</option>
+                            <option value="select">Lista Suspensa (Select)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Campos de quantidade (apenas para checkbox) -->
+                    <div id="campos-quantidade" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="quantidade_minima">Quantidade Mínima</label>
+                                    <input type="number" class="form-control" name="quantidade_minima" 
+                                           value="0" min="0" placeholder="Ex: 2">
+                                    <small class="form-text text-muted">Mínimo de itens que devem ser selecionados</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="quantidade_maxima">Quantidade Máxima</label>
+                                    <input type="number" class="form-control" name="quantidade_maxima" 
+                                           min="1" placeholder="Ex: 4">
+                                    <small class="form-text text-muted">Máximo de itens (vazio = ilimitado)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" name="obrigatorio" id="obrigatorio">
+                        <label class="form-check-label" for="obrigatorio">
+                            Opção obrigatória
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- Opções Existentes -->
+        {% if opcoes_personalizacao %}
+            {% for opcao in opcoes_personalizacao %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            {{ opcao.nome }}
+                            {% if opcao.obrigatorio %}
+                                <span class="badge badge-warning">Obrigatório</span>
+                            {% endif %}
+                            <small class="text-muted">({{ opcao.get_tipo_display }})</small>
+                        </h5>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                data-toggle="modal" data-target="#editarOpcaoModal{{ opcao.id }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="post" class="d-inline" onsubmit="return confirm('Deletar esta opção e todos seus itens?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="deletar_opcao">
+                            <input type="hidden" name="opcao_id" value="{{ opcao.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Itens da Opção -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Itens</h6>
+                            {% if opcao.itens.all %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Preço Adicional</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in opcao.itens.all %}
+                                            <tr>
+                                                <td>{{ item.nome }}</td>
+                                                <td>
+                                                    {% if item.preco_adicional > 0 %}
+                                                        +R$ {{ item.preco_adicional|floatformat:2 }}
+                                                    {% elif item.preco_adicional < 0 %}
+                                                        R$ {{ item.preco_adicional|floatformat:2 }}
+                                                    {% else %}
+                                                        Grátis
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-xs btn-outline-primary"
+                                                            data-toggle="modal" data-target="#editarItemModal{{ item.id }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('Deletar este item?')">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="deletar_item">
+                                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">Nenhum item adicionado ainda.</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <!-- Adicionar Item -->
+                            <h6>Adicionar Item</h6>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="adicionar_item">
+                                <input type="hidden" name="opcao_id" value="{{ opcao.id }}">
+                                
+                                <div class="form-group">
+                                    <input type="text" class="form-control form-control-sm" 
+                                           name="nome" placeholder="Nome do item" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <input type="number" class="form-control form-control-sm" 
+                                           name="preco_adicional" step="0.01" value="0.00"
+                                           placeholder="Preço adicional">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success btn-sm btn-block">
+                                    <i class="fas fa-plus"></i> Adicionar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Editar Opção -->
+            <div class="modal fade" id="editarOpcaoModal{{ opcao.id }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="editar_opcao">
+                            <input type="hidden" name="opcao_id" value="{{ opcao.id }}">
+                            
+                            <div class="modal-header">
+                                <h5 class="modal-title">Editar Opção</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>Nome da Opção</label>
+                                    <input type="text" class="form-control" name="nome" value="{{ opcao.nome }}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Tipo de Seleção</label>
+                                    <select name="tipo" class="form-control">
+                                        <option value="radio" {% if opcao.tipo == 'radio' %}selected{% endif %}>Seleção Única</option>
+                                        <option value="checkbox" {% if opcao.tipo == 'checkbox' %}selected{% endif %}>Múltipla Escolha</option>
+                                        <option value="select" {% if opcao.tipo == 'select' %}selected{% endif %}>Lista Suspensa</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="obrigatorio" 
+                                           {% if opcao.obrigatorio %}checked{% endif %}>
+                                    <label class="form-check-label">Opção obrigatória</label>
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modals Editar Itens -->
+            {% for item in opcao.itens.all %}
+            <div class="modal fade" id="editarItemModal{{ item.id }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="editar_item">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            
+                            <div class="modal-header">
+                                <h5 class="modal-title">Editar Item</h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>Nome do Item</label>
+                                    <input type="text" class="form-control" name="nome" value="{{ item.nome }}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Preço Adicional</label>
+                                    <input type="number" class="form-control" name="preco_adicional" 
+                                           step="0.01" value="{{ item.preco_adicional }}">
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-cog fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhuma opção de personalização</h5>
+                    <p class="text-muted">Adicione opções de personalização como tamanho, sabor, adicionais, etc.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+.btn-xs {
+    padding: 0.15rem 0.25rem;
+    font-size: 0.675rem;
+    line-height: 1.2;
+    border-radius: 0.15rem;
+}
+</style>
+{% endblock %}
