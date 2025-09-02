@@ -1338,6 +1338,9 @@ def admin_loja_produto_personalizar(request, produto_id):
             nome = request.POST.get('nome')
             tipo = request.POST.get('tipo', 'radio')
             obrigatorio = request.POST.get('obrigatorio') == 'on'
+            quantidade_minima = int(request.POST.get('quantidade_minima', 0))
+            quantidade_maxima = request.POST.get('quantidade_maxima')
+            quantidade_maxima = int(quantidade_maxima) if quantidade_maxima else None
             
             if nome:
                 # Determinar próxima ordem
@@ -1350,6 +1353,8 @@ def admin_loja_produto_personalizar(request, produto_id):
                     nome=nome,
                     tipo=tipo,
                     obrigatorio=obrigatorio,
+                    quantidade_minima=quantidade_minima,
+                    quantidade_maxima=quantidade_maxima,
                     ordem=max_ordem + 1
                 )
         
@@ -1358,6 +1363,9 @@ def admin_loja_produto_personalizar(request, produto_id):
             nome = request.POST.get('nome')
             tipo = request.POST.get('tipo', 'radio')
             obrigatorio = request.POST.get('obrigatorio') == 'on'
+            quantidade_minima = int(request.POST.get('quantidade_minima', 0))
+            quantidade_maxima = request.POST.get('quantidade_maxima')
+            quantidade_maxima = int(quantidade_maxima) if quantidade_maxima else None
             
             if opcao_id and nome:
                 opcao = get_object_or_404(
@@ -1368,6 +1376,8 @@ def admin_loja_produto_personalizar(request, produto_id):
                 opcao.nome = nome
                 opcao.tipo = tipo
                 opcao.obrigatorio = obrigatorio
+                opcao.quantidade_minima = quantidade_minima
+                opcao.quantidade_maxima = quantidade_maxima
                 opcao.save()
         
         elif action == 'deletar_opcao':

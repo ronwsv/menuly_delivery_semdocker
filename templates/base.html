@@ -1,4 +1,5 @@
 {% load loja_extras %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -28,11 +29,10 @@
     {% if restaurante_atual.favicon %}
         <link rel="icon" type="image/x-icon" href="{{ restaurante_atual.favicon.url }}">
     {% else %}
-        <link rel="icon" type="image/x-icon" href="{% load static %}{% static 'img/favicon/favicon.ico' %}">
+        <link rel="icon" type="image/x-icon" href="{% static 'img/favicon/favicon.ico' %}">
     {% endif %}
     
     <!-- CSS -->
-    {% load static %}
     
     <!-- Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

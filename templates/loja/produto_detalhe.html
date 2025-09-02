@@ -127,17 +127,26 @@
                 </div>
 
                 <!-- Formulário de personalização -->
-                <form id="produto-form" class="mb-4">
+                <form id="produto-form" class="mb-4" method="POST" action="">
                     {% csrf_token %}
                     
                     <!-- Opções de personalização -->
                     {% for opcao in opcoes_personalizacao %}
-                    <div class="card mb-3">
+                    <div class="card mb-3" data-opcao-id="{{ opcao.id }}" data-obrigatorio="{{ opcao.obrigatorio }}" 
+                         {% if opcao.tipo == 'checkbox' %}data-tipo="checkbox" data-min="{{ opcao.quantidade_minima|default:0 }}" data-max="{{ opcao.quantidade_maxima|default:'' }}"{% endif %}>
                         <div class="card-body">
                             <h6 class="card-title">
                                 {{ opcao.nome }}
                                 {% if opcao.obrigatorio %}
                                 <span class="text-danger">*</span>
+                                {% endif %}
+                                {% if opcao.tipo == 'checkbox' and opcao.quantidade_minima > 0 or opcao.quantidade_maxima %}
+                                    <small class="text-muted">
+                                        ({% if opcao.quantidade_minima > 0 %}Escolha no mínimo {{ opcao.quantidade_minima }}{% endif %}
+                                        {% if opcao.quantidade_maxima %}
+                                            {% if opcao.quantidade_minima > 0 %} e no máximo {% else %}Escolha no máximo {% endif %}{{ opcao.quantidade_maxima }}
+                                        {% endif %})
+                                    </small>
                                 {% endif %}
                             </h6>
                             
@@ -173,7 +182,7 @@
                                            id="item_{{ item.id }}"
                                            value="{{ item.id }}"
                                            data-preco="{{ item.preco_adicional }}"
-                                           onchange="atualizarPreco()">
+                                           onchange="atualizarPreco(); validarQuantidade('{{ opcao.id }}')">
                                     <label class="form-check-label d-flex justify-content-between w-100" 
                                            for="item_{{ item.id }}">
                                         <span>{{ item.nome }}</span>
@@ -362,28 +371,126 @@ function atualizarPreco() {
     document.getElementById('preco-total').textContent = `R$ ${precoTotal.toFixed(2)}`;
 }
 
+// Função para validar quantidade de opções checkbox
+function validarQuantidade(opcaoId) {
+    console.log('🔢 Validando quantidade para opção:', opcaoId);
+    
+    const opcaoCard = document.querySelector(`[data-opcao-id="${opcaoId}"]`);
+    if (!opcaoCard) {
+        console.log('❌ Opção não encontrada:', opcaoId);
+        return;
+    }
+    
+    const tipo = opcaoCard.getAttribute('data-tipo');
+    if (tipo !== 'checkbox') {
+        console.log('ℹ️ Não é checkbox, pulando validação');
+        return;
+    }
+    
+    const min = parseInt(opcaoCard.getAttribute('data-min')) || 0;
+    const max = parseInt(opcaoCard.getAttribute('data-max')) || 0;
+    
+    const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}[]"]:checked`);
+    const quantidadeSelecionada = selecionados.length;
+    
+    console.log(`📊 Opção ${opcaoId}: ${quantidadeSelecionada}/${max} selecionados (mín: ${min})`);
+    
+    // Limpar estilos anteriores
+    opcaoCard.classList.remove('border-danger', 'border-warning', 'border-success');
+    
+    // Limpar estilos dos labels
+    const todosCheckboxes = document.querySelectorAll(`[name="opcao_${opcaoId}[]"]`);
+    todosCheckboxes.forEach(checkbox => {
+        const label = checkbox.closest('.form-check');
+        if (label) {
+            label.classList.remove('text-muted', 'opacity-50');
+        }
+    });
+    
+    // Desabilitar outras opções se atingiu o máximo
+    if (max > 0) {
+        todosCheckboxes.forEach(checkbox => {
+            if (!checkbox.checked && quantidadeSelecionada >= max) {
+                checkbox.disabled = true;
+                const label = checkbox.closest('.form-check');
+                if (label) {
+                    label.classList.add('text-muted', 'opacity-50');
+                }
+                console.log('🚫 Desabilitando checkbox:', checkbox.value);
+            } else {
+                checkbox.disabled = false;
+            }
+        });
+    }
+    
+    // Feedback visual do card
+    if (max > 0 && quantidadeSelecionada >= max) {
+        opcaoCard.classList.add('border-success');
+        console.log('✅ Limite máximo atingido');
+    } else if (min > 0 && quantidadeSelecionada < min) {
+        opcaoCard.classList.add('border-warning');
+        console.log('⚠️ Abaixo do mínimo');
+    } else if (quantidadeSelecionada > 0) {
+        opcaoCard.classList.add('border-info');
+        console.log('ℹ️ Seleção válida');
+    }
+}
+
 // Função para adicionar ao carrinho
 document.getElementById('produto-form').addEventListener('submit', function(e) {
+    console.log('🛒 Formulário submetido - interceptando...');
     e.preventDefault();
     
-    // Validar opções obrigatórias
+    // Validar opções obrigatórias e quantidade
     let valid = true;
-    const opcoesObrigatorias = document.querySelectorAll('[data-obrigatorio="true"]');
+    let mensagemErro = '';
+    const opcoes = document.querySelectorAll('[data-opcao-id]');
     
-    opcoesObrigatorias.forEach(opcao => {
-        const nome = opcao.getAttribute('name');
-        const selecionados = document.querySelectorAll(`[name="${nome}"]:checked`);
+    opcoes.forEach(opcaoCard => {
+        const opcaoId = opcaoCard.getAttribute('data-opcao-id');
+        const obrigatorio = opcaoCard.getAttribute('data-obrigatorio') === 'True';
+        const tipo = opcaoCard.getAttribute('data-tipo');
+        const min = parseInt(opcaoCard.getAttribute('data-min')) || 0;
+        const max = parseInt(opcaoCard.getAttribute('data-max')) || 0;
         
-        if (selecionados.length === 0) {
-            valid = false;
-            opcao.classList.add('is-invalid');
+        const nomeOpcao = opcaoCard.querySelector('h6').textContent.trim();
+        
+        if (tipo === 'checkbox') {
+            // Validação para checkbox com quantidade
+            const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}[]"]:checked`);
+            const quantidadeSelecionada = selecionados.length;
+            
+            if (obrigatorio && quantidadeSelecionada === 0) {
+                valid = false;
+                mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
+                opcaoCard.classList.add('border-danger');
+            } else if (min > 0 && quantidadeSelecionada < min) {
+                valid = false;
+                mensagemErro += `• ${nomeOpcao}: selecione pelo menos ${min} opções\n`;
+                opcaoCard.classList.add('border-warning');
+            } else if (max > 0 && quantidadeSelecionada > max) {
+                valid = false;
+                mensagemErro += `• ${nomeOpcao}: selecione no máximo ${max} opções\n`;
+                opcaoCard.classList.add('border-warning');
+            } else {
+                opcaoCard.classList.remove('border-danger', 'border-warning');
+            }
         } else {
-            opcao.classList.remove('is-invalid');
+            // Validação para radio/select
+            const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`);
+            
+            if (obrigatorio && selecionados.length === 0) {
+                valid = false;
+                mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
+                opcaoCard.classList.add('border-danger');
+            } else {
+                opcaoCard.classList.remove('border-danger');
+            }
         }
     });
     
     if (!valid) {
-        alert('Por favor, selecione todas as opções obrigatórias.');
+        alert('Por favor, corrija os seguintes problemas:\n\n' + mensagemErro);
         return;
     }
     
@@ -438,9 +545,11 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
 
 // Função auxiliar para adicionar ao carrinho
 function adicionarAoCarrinho(item) {
-    // Por enquanto, vamos simular adição ao carrinho
-    // Em implementação real, isso seria uma requisição AJAX
-    console.log('Adicionando ao carrinho:', item);
+    console.log('🛒 Função adicionarAoCarrinho chamada:', item);
+    
+    // Verificar se a URL está disponível
+    const url = '{% loja_url "adicionar_carrinho" %}';
+    console.log('📡 URL para requisição:', url);
     
     // Enviar para o backend
     fetch('{% loja_url "adicionar_carrinho" %}', {
@@ -451,19 +560,34 @@ function adicionarAoCarrinho(item) {
         },
         body: JSON.stringify(item)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📥 Resposta recebida:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('✅ Dados da resposta:', data);
         if (data.success) {
             // Atualizar contador do carrinho se existir
             const contador = document.querySelector('.carrinho-count');
             if (contador && data.total_itens) {
                 contador.textContent = data.total_itens;
+                console.log('🔢 Contador atualizado:', data.total_itens);
             }
+            
+            // Redirecionar para o carrinho ou mostrar mensagem de sucesso
+            alert('Produto adicionado ao carrinho com sucesso!');
+            
+        } else {
+            console.error('❌ Erro no servidor:', data.error);
+            alert('Erro: ' + (data.error || 'Falha ao adicionar produto.'));
         }
     })
     .catch(error => {
-        console.error('Erro ao adicionar ao carrinho:', error);
-        alert('Erro ao adicionar produto ao carrinho. Tente novamente.');
+        console.error('💥 Erro na requisição:', error);
+        alert('Erro ao adicionar produto ao carrinho. Verifique o console para mais detalhes.');
     });
 }
 

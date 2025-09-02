@@ -112,6 +112,17 @@
                                 <span class="badge badge-warning">Obrigatório</span>
                             {% endif %}
                             <small class="text-muted">({{ opcao.get_tipo_display }})</small>
+                            {% if opcao.tipo == 'checkbox' and opcao.quantidade_minima > 0 or opcao.quantidade_maxima %}
+                                <small class="text-info">
+                                    {% if opcao.quantidade_minima > 0 %}
+                                        Min: {{ opcao.quantidade_minima }}
+                                    {% endif %}
+                                    {% if opcao.quantidade_maxima %}
+                                        {% if opcao.quantidade_minima > 0 %} | {% endif %}
+                                        Max: {{ opcao.quantidade_maxima }}
+                                    {% endif %}
+                                </small>
+                            {% endif %}
                         </h5>
                     </div>
                     <div class="btn-group" role="group">
@@ -234,11 +245,33 @@
                                 
                                 <div class="form-group">
                                     <label>Tipo de Seleção</label>
-                                    <select name="tipo" class="form-control">
+                                    <select name="tipo" class="form-control" id="tipo-opcao-edit-{{ opcao.id }}">
                                         <option value="radio" {% if opcao.tipo == 'radio' %}selected{% endif %}>Seleção Única</option>
                                         <option value="checkbox" {% if opcao.tipo == 'checkbox' %}selected{% endif %}>Múltipla Escolha</option>
                                         <option value="select" {% if opcao.tipo == 'select' %}selected{% endif %}>Lista Suspensa</option>
                                     </select>
+                                </div>
+                                
+                                <!-- Campos de quantidade (apenas para checkbox) -->
+                                <div id="campos-quantidade-edit-{{ opcao.id }}" {% if opcao.tipo != 'checkbox' %}style="display: none;"{% endif %}>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Quantidade Mínima</label>
+                                                <input type="number" class="form-control" name="quantidade_minima" 
+                                                       value="{{ opcao.quantidade_minima|default:0 }}" min="0">
+                                                <small class="form-text text-muted">Mínimo de itens</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Quantidade Máxima</label>
+                                                <input type="number" class="form-control" name="quantidade_maxima" 
+                                                       value="{{ opcao.quantidade_maxima|default:'' }}" min="1">
+                                                <small class="form-text text-muted">Máximo (vazio = ilimitado)</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="form-check">
@@ -312,6 +345,34 @@
 <!-- Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Função para mostrar/ocultar campos de quantidade
+    function toggleQuantidadeFields(selectElement, targetId) {
+        const isCheckbox = selectElement.val() === 'checkbox';
+        $(targetId).toggle(isCheckbox);
+    }
+    
+    // Para o formulário de nova opção
+    $('#tipo-opcao').on('change', function() {
+        toggleQuantidadeFields($(this), '#campos-quantidade');
+    });
+    
+    // Para os modais de edição
+    {% for opcao in opcoes_personalizacao %}
+    $('#tipo-opcao-edit-{{ opcao.id }}').on('change', function() {
+        toggleQuantidadeFields($(this), '#campos-quantidade-edit-{{ opcao.id }}');
+    });
+    {% endfor %}
+    
+    // Inicializar estado dos campos ao carregar a página
+    $('#tipo-opcao').trigger('change');
+    {% for opcao in opcoes_personalizacao %}
+    $('#tipo-opcao-edit-{{ opcao.id }}').trigger('change');
+    {% endfor %}
+});
+</script>
 
 <style>
 .btn-xs {

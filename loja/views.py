@@ -474,7 +474,7 @@ class AdicionarCarrinhoView(View):
     
     def post(self, request, *args, **kwargs):
         try:
-            print(f"🛒 POST recebido para adicionar carrinho: {request.body}")
+            print(f"POST recebido para adicionar carrinho: {request.body}")
             
             data = json.loads(request.body)
             produto_id = data.get('produto_id')
@@ -482,18 +482,18 @@ class AdicionarCarrinhoView(View):
             personalizacoes = data.get('personalizacoes', [])
             observacoes = data.get('observacoes', '')
             
-            print(f"📦 Dados recebidos: produto_id={produto_id}, quantidade={quantidade}")
+            print(f"Dados recebidos: produto_id={produto_id}, quantidade={quantidade}")
             
             # Buscar o produto sem restrição de restaurante primeiro
             produto = get_object_or_404(Produto, id=produto_id, disponivel=True)
-            print(f"✅ Produto encontrado: {produto.nome} - R$ {produto.preco_final}")
+            print(f"Produto encontrado: {produto.nome} - R$ {produto.preco_final}")
             
             # Calcular preço com personalizações
             preco_base = produto.preco_final
             preco_adicional = sum(float(p.get('preco', 0)) for p in personalizacoes)
             preco_total = preco_base + preco_adicional
             
-            print(f"💰 Preços: base={preco_base}, adicional={preco_adicional}, total={preco_total}")
+            print(f"Preços: base={preco_base}, adicional={preco_adicional}, total={preco_total}")
             
             # Obter carrinho da sessão
             carrinho = request.session.get('carrinho', {})
@@ -503,7 +503,7 @@ class AdicionarCarrinhoView(View):
             
             if item_key in carrinho:
                 carrinho[item_key]['quantidade'] += quantidade
-                print(f"📦 Quantidade atualizada para produto existente: {carrinho[item_key]['quantidade']}")
+                print(f"Quantidade atualizada para produto existente: {carrinho[item_key]['quantidade']}")
             else:
                 carrinho[item_key] = {
                     'produto_id': str(produto_id),
@@ -512,7 +512,7 @@ class AdicionarCarrinhoView(View):
                     'personalizacoes': personalizacoes,
                     'observacoes': observacoes,
                 }
-                print(f"🆕 Novo item adicionado ao carrinho: {item_key}")
+                print(f"Novo item adicionado ao carrinho: {item_key}")
             
             request.session['carrinho'] = carrinho
             request.session.modified = True
@@ -520,7 +520,7 @@ class AdicionarCarrinhoView(View):
             # Calcular novo total do carrinho
             carrinho_count = sum(item['quantidade'] for item in carrinho.values())
             
-            print(f"🛒 Carrinho atualizado: {carrinho_count} itens")
+            print(f"Carrinho atualizado: {carrinho_count} itens")
             
             return JsonResponse({
                 'success': True,
@@ -529,7 +529,7 @@ class AdicionarCarrinhoView(View):
             })
             
         except Exception as e:
-            print(f"❌ Erro na AdicionarCarrinhoView: {type(e).__name__}: {str(e)}")
+            print(f"Erro na AdicionarCarrinhoView: {type(e).__name__}: {str(e)}")
             import traceback
             traceback.print_exc()
             

@@ -42,6 +42,8 @@ class Command(BaseCommand):
             nome='MISTURAS / PROTEÍNAS',
             tipo='checkbox',  # Múltipla escolha como no exemplo
             obrigatorio=True,
+            quantidade_minima=2,  # Mínimo 2 proteínas
+            quantidade_maxima=3,  # Máximo 3 proteínas
             ordem=1
         )
 
@@ -76,6 +78,8 @@ class Command(BaseCommand):
             nome='ACOMPANHAMENTOS',
             tipo='checkbox',  # Múltipla escolha
             obrigatorio=True,
+            quantidade_minima=1,  # Mínimo 1 acompanhamento
+            quantidade_maxima=4,  # Máximo 4 acompanhamentos
             ordem=2
         )
 
@@ -104,6 +108,8 @@ class Command(BaseCommand):
             nome='ADICIONAIS',
             tipo='checkbox',
             obrigatorio=False,
+            quantidade_minima=0,  # Opcional
+            quantidade_maxima=3,  # Máximo 3 adicionais
             ordem=3
         )
 
