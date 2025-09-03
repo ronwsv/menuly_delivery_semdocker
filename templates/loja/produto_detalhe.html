@@ -342,8 +342,8 @@ window.produtoData = {
  imagem: '{% if produto.imagem_principal %}{{ produto.imagem_principal.url }}{% else %}{% endif %}'
 };
 
-// Implementações COMPLETAS das funções (não temporárias!)
-window.atualizarPreco = function() {
+// DEFINIR FUNÇÕES GLOBALMENTE ANTES DE QUALQUER COISA
+function atualizarPreco() {
  console.log('💰 Atualizando preço...');
  
  try {
@@ -360,15 +360,20 @@ window.atualizarPreco = function() {
  
  inputs.forEach(input => {
  let preco = 0;
+ let precoRaw = '';
  
  if (input.type === 'checkbox' || input.type === 'radio') {
- preco = parseFloat(input.dataset.preco || 0);
+ precoRaw = input.dataset.preco || '0';
+ preco = parseFloat(precoRaw.replace(',', '.'));
  } else if (input.tagName === 'SELECT') {
  const selectedOption = input.options[input.selectedIndex];
- preco = selectedOption ? parseFloat(selectedOption.dataset.preco || 0) : 0;
+ precoRaw = selectedOption ? (selectedOption.dataset.preco || '0') : '0';
+ preco = parseFloat(precoRaw.replace(',', '.'));
  }
  
- if (!isNaN(preco) && preco > 0) {
+ console.log('🔧 Debug preço:', {raw: precoRaw, parsed: preco, isNaN: isNaN(preco), value: input.value});
+ 
+ if (!isNaN(preco) && preco !== 0) {
  precoAdicional += preco;
  console.log('💰 Adicionando preço:', preco, 'de', input.value || input.textContent);
  }
@@ -388,10 +393,9 @@ window.atualizarPreco = function() {
  } catch (error) {
  console.error('❌ Erro ao atualizar preço:', error);
  }
-};
-console.log('✅ atualizarPreco definida em', new Date().toISOString());
+}
 
-window.alterarQuantidadeProduto = function(delta) {
+function alterarQuantidadeProduto(delta) {
  console.log('🔢 Alterando quantidade do produto:', delta);
  
  const input = document.getElementById('quantidade');
@@ -412,10 +416,9 @@ window.alterarQuantidadeProduto = function(delta) {
  } else {
  console.log('⚠️ Quantidade fora dos limites (1-99)');
  }
-};
-console.log('✅ alterarQuantidadeProduto definida em', new Date().toISOString());
+}
 
-window.validarQuantidade = function(opcaoId) {
+function validarQuantidade(opcaoId) {
  console.log('✅ Validando quantidade para opção:', opcaoId);
  
  const opcaoCard = document.querySelector(`[data-opcao-id="${opcaoId}"]`);
@@ -432,7 +435,7 @@ window.validarQuantidade = function(opcaoId) {
  
  if (tipo !== 'checkbox') {
  console.log('ℹ️ Não é checkbox, pulando validação de quantidade');
- atualizarPreco(); // Ainda atualiza o preço
+ atualizarPreco(); 
  return;
  }
  
@@ -456,7 +459,6 @@ window.validarQuantidade = function(opcaoId) {
  
  // Aplicar regras de limite máximo
  if (max > 0 && quantidadeSelecionada >= max) {
- // Desabilitar checkboxes não selecionados
  todosCheckboxes.forEach(checkbox => {
  if (!checkbox.checked) {
  checkbox.disabled = true;
@@ -478,106 +480,19 @@ window.validarQuantidade = function(opcaoId) {
  
  // Sempre atualizar o preço após validação
  atualizarPreco();
-};
-console.log('✅ validarQuantidade definida em', new Date().toISOString());
+}
 
-// Teste imediato das funções
-console.log('🧪 Testando funções imediatamente...');
-console.log('🧪 typeof atualizarPreco:', typeof window.atualizarPreco);
-console.log('🧪 typeof alterarQuantidadeProduto:', typeof window.alterarQuantidadeProduto);
-console.log('🧪 typeof validarQuantidade:', typeof window.validarQuantidade);
+// Disponibilizar as funções globalmente
+window.atualizarPreco = atualizarPreco;
+window.alterarQuantidadeProduto = alterarQuantidadeProduto;
+window.validarQuantidade = validarQuantidade;
 
-// Aguardar DOM e re-testar
-document.addEventListener('DOMContentLoaded', function() {
- console.log('🏁 DOM carregado, re-testando funções...');
- console.log('🧪 typeof atualizarPreco:', typeof window.atualizarPreco);
- console.log('🧪 typeof alterarQuantidadeProduto:', typeof window.alterarQuantidadeProduto);
- console.log('🧪 typeof validarQuantidade:', typeof window.validarQuantidade);
- 
- // Testar acesso direto
- if (typeof window.atualizarPreco === 'function') {
- console.log('✅ atualizarPreco acessível via window');
- } else {
- console.error('❌ atualizarPreco NÃO acessível via window');
- }
-});
+console.log('✅ Funções definidas globalmente:', typeof atualizarPreco, typeof alterarQuantidadeProduto, typeof validarQuantidade);
 
-// Implementação completa da função adicionarAoCarrinho
-window.adicionarAoCarrinho = function(item) {
-    console.log('🛒 adicionarAoCarrinho chamada (template):', item);
-    
-    // Obter slug do restaurante da URL atual
-    var currentPath = window.location.pathname;
-    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
-    
-    if (!slugMatch) {
-        console.error('❌ Slug do restaurante não encontrado na URL');
-        alert('Erro: não foi possível identificar o restaurante');
-        return;
-    }
-    
-    var restauranteSlug = slugMatch[1];
-    var url = '/' + restauranteSlug + '/carrinho/adicionar/';
-    
-    // Obter CSRF token
-    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (!csrfToken) {
-        console.error('❌ CSRF token não encontrado');
-        alert('Erro: token de segurança não encontrado');
-        return;
-    }
-    
-    // Enviar para o backend
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken.value
-        },
-        body: JSON.stringify(item)
-    })
-    .then(function(response) {
-        console.log('📡 Resposta recebida:', response.status, response.statusText);
-        if (!response.ok) {
-            throw new Error('HTTP error! status: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(function(data) {
-        console.log('📦 Dados da resposta:', data);
-        if (data.success) {
-            // Atualizar contador do carrinho se a função existe
-            if (typeof atualizarContadorCarrinho === 'function') {
-                atualizarContadorCarrinho();
-            }
-            
-            // Mostrar toast de sucesso
-            if (typeof mostrarToast === 'function') {
-                mostrarToast('Produto adicionado ao carrinho!', 'success');
-            }
-            
-            // Mostrar toast do Bootstrap se existe
-            if (typeof bootstrap !== 'undefined') {
-                var toastEl = document.getElementById('toast-sucesso');
-                if (toastEl) {
-                    var toast = new bootstrap.Toast(toastEl);
-                    toast.show();
-                }
-            } else {
-                // Fallback para alert
-                alert('Produto adicionado ao carrinho!');
-            }
-            
-        } else {
-            console.error('❌ Erro no servidor:', data.error);
-            alert('Erro: ' + (data.error || 'Falha ao adicionar produto.'));
-        }
-    })
-    .catch(function(error) {
-        console.error('❌ Erro na requisição:', error);
-        alert('Erro ao adicionar produto ao carrinho');
-    });
-};
+// Teste das funções definidas
+console.log('🧪 Testando funções:', typeof atualizarPreco, typeof alterarQuantidadeProduto, typeof validarQuantidade);
+
+// Função adicionarAoCarrinho será usada do carrinho-novo.js
 
 console.log('🔍 SEARCH: Verificando funções globais:');
 console.log('- adicionarAoCarrinho:', typeof window.adicionarAoCarrinho);
@@ -668,17 +583,18 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  const precoAdicional = personalizacoes.reduce((total, p) => total + p.preco_adicional, 0);
  const precoUnitario = precoBase + precoAdicional;
  
- // Dados do item para o carrinho
+ // Dados do item para o carrinho (formato compatível com Django view)
  const itemCarrinho = {
  produto_id: window.produtoData.id,
- nome: window.produtoData.nome,
- categoria: window.produtoData.categoria,
- preco: precoUnitario,
  quantidade: quantidade,
- personalizacoes: personalizacoes,
- observacoes: observacoes,
- imagem: window.produtoData.imagem
+ personalizacoes: personalizacoes.map(p => ({
+     nome: p.nome,
+     preco: p.preco_adicional  // Campo correto para a view Django
+ })),
+ observacoes: observacoes || ''
  };
+ 
+ console.log('📦 Item preparado para carrinho:', itemCarrinho);
  
  // Adicionar ao carrinho
  adicionarAoCarrinho(itemCarrinho);
