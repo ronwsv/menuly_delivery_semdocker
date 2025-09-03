@@ -90,7 +90,7 @@
 </div>
 
 <script>
-console.log('🔧 [DEBUG] Script do checkout iniciado');
+console.log('DEBUG [DEBUG] Script do checkout iniciado');
 
 // Teste direto na página
 window.testarCEPDireto = function() {
@@ -108,7 +108,7 @@ window.testarCEPDireto = function() {
     fetch('https://viacep.com.br/ws/01310100/json/')
         .then(response => response.json())
         .then(data => {
-            console.log('✅ API Response:', data);
+            console.log('OK API Response:', data);
             if (loadingEl) loadingEl.style.display = 'none';
             
             if (!data.erro) {
@@ -122,27 +122,27 @@ window.testarCEPDireto = function() {
                 if (cidade) cidade.value = data.localidade || '';
                 if (estado) estado.value = data.uf || '';
                 
-                if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado: ' + data.logradouro + '</span>';
+                if (errorEl) errorEl.innerHTML = '<span style="color: green;">OK CEP encontrado: ' + data.logradouro + '</span>';
                 
-                console.log('✅ Campos preenchidos!');
+                console.log('OK Campos preenchidos!');
             }
         })
         .catch(error => {
-            console.error('❌ Erro:', error);
+            console.error('ERROR Erro:', error);
             if (loadingEl) loadingEl.style.display = 'none';
             if (errorEl) errorEl.textContent = 'Erro: ' + error.message;
         });
 };
 
 function buscarCEP() {
-    console.log('🔍 [CEP] Função buscarCEP chamada');
+    console.log('SEARCH [CEP] Função buscarCEP chamada');
     
     const cepInput = document.getElementById('cep');
     const loadingEl = document.querySelector('.loading-cep');
     const errorEl = document.querySelector('.cep-error');
     
     if (!cepInput) {
-        console.error('❌ Campo CEP não encontrado');
+        console.error('ERROR Campo CEP não encontrado');
         return;
     }
     
@@ -159,20 +159,20 @@ function buscarCEP() {
     if (loadingEl) loadingEl.style.display = 'block';
     if (errorEl) errorEl.innerHTML = '';
     
-    console.log('🌐 Fazendo requisição para ViaCEP...');
+    console.log('NETWORK Fazendo requisição para ViaCEP...');
     
     fetch(`https://viacep.com.br/ws/${cep}/json/`)
         .then(response => {
-            console.log('📡 Response recebido:', response.status);
+            console.log('SIGNAL Response recebido:', response.status);
             return response.json();
         })
         .then(data => {
-            console.log('📦 Dados recebidos:', data);
+            console.log('PACKAGE Dados recebidos:', data);
             
             if (loadingEl) loadingEl.style.display = 'none';
             
             if (data.erro) {
-                console.error('❌ CEP não encontrado');
+                console.error('ERROR CEP não encontrado');
                 if (errorEl) errorEl.textContent = 'CEP não encontrado';
                 return;
             }
@@ -188,19 +188,19 @@ function buscarCEP() {
             if (cidade) cidade.value = data.localidade || '';
             if (estado) estado.value = data.uf || '';
             
-            if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado com sucesso!</span>';
+            if (errorEl) errorEl.innerHTML = '<span style="color: green;">OK CEP encontrado com sucesso!</span>';
             
-            console.log('✅ Campos preenchidos com sucesso!');
+            console.log('OK Campos preenchidos com sucesso!');
         })
         .catch(error => {
-            console.error('❌ Erro na requisição:', error);
+            console.error('ERROR Erro na requisição:', error);
             if (loadingEl) loadingEl.style.display = 'none';
             if (errorEl) errorEl.textContent = 'Erro ao buscar CEP: ' + error.message;
         });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 [INIT] DOM carregado, inicializando checkout...');
+    console.log('ROCKET [INIT] DOM carregado, inicializando checkout...');
     
     const buscarBtn = document.getElementById('buscar-cep');
     const cepInput = document.getElementById('cep');
@@ -210,12 +210,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (buscarBtn) {
         buscarBtn.addEventListener('click', function() {
-            console.log('🔴 [CLICK] Botão clicado!');
+            console.log('RED [CLICK] Botão clicado!');
             buscarCEP();
         });
-        console.log('✅ Event listener adicionado ao botão');
+        console.log('OK Event listener adicionado ao botão');
     } else {
-        console.error('❌ Botão buscar não encontrado!');
+        console.error('ERROR Botão buscar não encontrado!');
     }
     
     if (cepInput) {
@@ -232,18 +232,18 @@ document.addEventListener('DOMContentLoaded', function() {
         cepInput.addEventListener('blur', function() {
             const cep = this.value.replace(/\D/g, '');
             if (cep.length === 8) {
-                console.log('🔍 [AUTO] Buscando CEP automaticamente:', cep);
+                console.log('SEARCH [AUTO] Buscando CEP automaticamente:', cep);
                 buscarCEP();
             }
         });
         
-        console.log('✅ Event listeners adicionados ao campo CEP');
+        console.log('OK Event listeners adicionados ao campo CEP');
     } else {
-        console.error('❌ Campo CEP não encontrado!');
+        console.error('ERROR Campo CEP não encontrado!');
     }
     
-    console.log('✅ [INIT] Checkout inicializado com sucesso!');
-    console.log('💡 [INFO] Digite testarCEPDireto() no console para testar');
+    console.log('OK [INIT] Checkout inicializado com sucesso!');
+    console.log('IDEA [INFO] Digite testarCEPDireto() no console para testar');
 });
 </script>
 {% endblock %}

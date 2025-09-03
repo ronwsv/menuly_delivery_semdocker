@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Configurar eventos do carrinho na home
 function configurarEventosCarrinhoHome() {
-    console.log('🛒 Configurando eventos do carrinho na home...');
+    console.log('CART Configurando eventos do carrinho na home...');
     
     document.querySelectorAll('.btn-adicionar-carrinho').forEach(botao => {
         botao.addEventListener('click', function(e) {
@@ -524,23 +524,23 @@ function configurarEventosCarrinhoHome() {
         });
     });
     
-    console.log('✅ Configurados', document.querySelectorAll('.btn-adicionar-carrinho').length, 'botões da home');
+    console.log('OK Configurados', document.querySelectorAll('.btn-adicionar-carrinho').length, 'botões da home');
 }
 
 // Função para adicionar ao carrinho na home
 function adicionarAoCarrinhoHome(produtoId) {
-    console.log('🛒 Tentando adicionar produto:', produtoId);
+    console.log('CART Tentando adicionar produto:', produtoId);
     
     const produto = window.produtosDjango[produtoId];
     
     if (!produto) {
-        console.error('❌ Produto não encontrado:', produtoId);
-        console.log('📋 Produtos disponíveis:', Object.keys(window.produtosDjango));
+        console.error('ERROR Produto não encontrado:', produtoId);
+        console.log('LIST Produtos disponíveis:', Object.keys(window.produtosDjango));
         mostrarNotificacao('Produto não encontrado!', 'error');
         return false;
     }
     
-    console.log('✅ Produto encontrado:', produto);
+    console.log('OK Produto encontrado:', produto);
     
     // Inicializar carrinho
     if (!window.carrinho) {
@@ -552,7 +552,7 @@ function adicionarAoCarrinhoHome(produtoId) {
     
     if (itemExistente) {
         itemExistente.quantidade += 1;
-        console.log('📦 Quantidade atualizada:', itemExistente);
+        console.log('PACKAGE Quantidade atualizada:', itemExistente);
     } else {
         const novoItem = {
             id: produto.id,
@@ -565,7 +565,7 @@ function adicionarAoCarrinhoHome(produtoId) {
         };
         
         window.carrinho.push(novoItem);
-        console.log('🆕 Novo item adicionado:', novoItem);
+        console.log('NEW Novo item adicionado:', novoItem);
     }
     
     // Salvar no localStorage
@@ -597,7 +597,7 @@ function atualizarContadorCarrinhoHome() {
         }
     });
     
-    console.log('🔢 Contador atualizado:', total);
+    console.log('COUNT Contador atualizado:', total);
 }
 
 // Notificação simples

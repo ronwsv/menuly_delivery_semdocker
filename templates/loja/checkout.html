@@ -293,7 +293,7 @@
                                 <input class="form-check-input" type="radio" name="forma_pagamento" 
                                        id="pix" value="pix">
                                 <label class="form-check-label" for="pix">
-                                    📱 PIX
+                                    PHONE PIX
                                 </label>
                             </div>
                         </div>
@@ -369,16 +369,16 @@
 </div>
 
 <script>
-console.log('🔧 [DEBUG] Script do checkout iniciado');
+console.log('DEBUG [DEBUG] Script do checkout iniciado');
 
 // Função para buscar CEP
 function buscarCEP() {
-    console.log('🔍 [CEP] Função buscarCEP chamada');
+    console.log('SEARCH [CEP] Função buscarCEP chamada');
     const cepInput = document.getElementById('cep');
     const loadingEl = document.querySelector('.loading-cep');
     const errorEl = document.querySelector('.cep-error');
     if (!cepInput) {
-        console.error('❌ Campo CEP não encontrado');
+        console.error('ERROR Campo CEP não encontrado');
         return;
     }
     const cep = cepInput.value.replace(/\D/g, '');
@@ -394,14 +394,14 @@ function buscarCEP() {
     console.log('🌐 Fazendo requisição para ViaCEP...');
     fetch(`https://viacep.com.br/ws/${cep}/json/`)
         .then(response => {
-            console.log('📡 Response recebido:', response.status);
+            console.log('SIGNAL Response recebido:', response.status);
             return response.json();
         })
         .then(data => {
-            console.log('📦 Dados recebidos:', data);
+            console.log('PACKAGE Dados recebidos:', data);
             if (loadingEl) loadingEl.style.display = 'none';
             if (data.erro) {
-                console.error('❌ CEP não encontrado');
+                console.error('ERROR CEP não encontrado');
                 if (errorEl) errorEl.textContent = 'CEP não encontrado';
                 return;
             }
@@ -414,16 +414,16 @@ function buscarCEP() {
             if (bairro) bairro.value = data.bairro || '';
             if (cidade) cidade.value = data.localidade || '';
             if (estado) estado.value = data.uf || '';
-            if (errorEl) errorEl.innerHTML = '<span style="color: green;">✅ CEP encontrado com sucesso!</span>';
+            if (errorEl) errorEl.innerHTML = '<span style="color: green;">OK CEP encontrado com sucesso!</span>';
             // Focar no número
             const numeroInput = document.getElementById('numero');
             if (numeroInput) numeroInput.focus();
-            console.log('✅ Campos preenchidos com sucesso!');
+            console.log('OK Campos preenchidos com sucesso!');
             // Chamar AJAX para calcular frete
             calcularFreteAjax(cep);
         })
         .catch(error => {
-            console.error('❌ Erro na requisição:', error);
+            console.error('ERROR Erro na requisição:', error);
             if (loadingEl) loadingEl.style.display = 'none';
             if (errorEl) errorEl.textContent = 'Erro ao buscar CEP: ' + error.message;
         });
@@ -495,14 +495,14 @@ const taxaEntrega = parseFloat('{{ restaurante.taxa_entrega|default:0 }}') || 0;
 // Função para carregar dados do carrinho
 function carregarCarrinho() {
     try {
-        console.log('🛒 Carregando carrinho via API...');
+        console.log('CART Carregando carrinho via API...');
         
         // Extrair slug do restaurante da URL
         const currentPath = window.location.pathname;
         const slugMatch = currentPath.match(/^\/([^\/]+)\//);
         
         if (!slugMatch) {
-            console.warn('⚠️ Não foi possível identificar o restaurante');
+            console.warn('WARN Não foi possível identificar o restaurante');
             carrinhoData = [];
             atualizarResumo();
             return;
@@ -523,7 +523,7 @@ function carregarCarrinho() {
             throw new Error('Erro na resposta: ' + response.status);
         })
         .then(data => {
-            console.log('📦 Dados do carrinho recebidos:', data);
+            console.log('PACKAGE Dados do carrinho recebidos:', data);
             carrinhoData = data.items || [];
             
             // Atualizar resumo
@@ -532,16 +532,16 @@ function carregarCarrinho() {
             // Preencher campo hidden para envio
             const carrinhoJson = JSON.stringify(carrinhoData);
             document.getElementById('carrinho_json').value = carrinhoJson;
-            console.log('📦 Campo carrinho_json preenchido:', carrinhoJson);
+            console.log('PACKAGE Campo carrinho_json preenchido:', carrinhoJson);
         })
         .catch(error => {
-            console.error('❌ Erro ao carregar carrinho:', error);
+            console.error('ERROR Erro ao carregar carrinho:', error);
             carrinhoData = [];
             atualizarResumo();
         });
         
     } catch (error) {
-        console.error('❌ Erro ao carregar carrinho:', error);
+        console.error('ERROR Erro ao carregar carrinho:', error);
     }
 }
 
@@ -599,7 +599,7 @@ function atualizarResumo() {
     if (taxaEl) taxaEl.textContent = `R$ ${taxa.toFixed(2).replace('.', ',')}`;
     if (totalEl) totalEl.textContent = `R$ ${(total + taxa).toFixed(2).replace('.', ',')}`;
     
-    console.log('💰 Resumo atualizado - Itens:', carrinhoData.length, 'Total:', total);
+    console.log('MONEY Resumo atualizado - Itens:', carrinhoData.length, 'Total:', total);
 }
 
 // Função para controlar exibição do endereço
@@ -638,7 +638,7 @@ function controlarTroco() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 [INIT] DOM carregado, inicializando checkout...');
+    console.log('ROCKET [INIT] DOM carregado, inicializando checkout...');
     
     // Carregar dados do carrinho
     carregarCarrinho();
@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Se após 2 segundos o carrinho ainda estiver vazio, tentar novamente
     setTimeout(() => {
         if (carrinhoData.length === 0) {
-            console.log('⚠️ Carrinho ainda vazio após 2s, tentando recarregar...');
+            console.log('WARN Carrinho ainda vazio após 2s, tentando recarregar...');
             carregarCarrinho();
         }
     }, 2000);
@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔴 [CLICK] Botão buscar CEP clicado!');
             buscarCEP();
         });
-        console.log('✅ Event listener adicionado ao botão buscar CEP');
+        console.log('OK Event listener adicionado ao botão buscar CEP');
     }
     
     if (cepInput) {
@@ -677,12 +677,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cepInput.addEventListener('blur', function() {
             const cep = this.value.replace(/\D/g, '');
             if (cep.length === 8) {
-                console.log('🔍 [AUTO] Buscando CEP automaticamente:', cep);
+                console.log('SEARCH [AUTO] Buscando CEP automaticamente:', cep);
                 buscarCEP();
             }
         });
         
-        console.log('✅ Event listeners adicionados ao campo CEP');
+        console.log('OK Event listeners adicionados ao campo CEP');
     }
     
     // Máscara para celular
@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Verificar se carrinho_json foi preenchido
             const carrinhoJsonField = document.getElementById('carrinho_json');
             const carrinhoJsonValue = carrinhoJsonField.value;
-            console.log('🔍 Verificando carrinho_json antes do envio:', carrinhoJsonValue);
+            console.log('SEARCH Verificando carrinho_json antes do envio:', carrinhoJsonValue);
             
             if (!carrinhoJsonValue || carrinhoJsonValue === '[]') {
                 e.preventDefault();
@@ -769,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Gerar código único do pedido será feito no backend Django
             
-            console.log('✅ Formulário validado, enviando...');
+            console.log('OK Formulário validado, enviando...');
             
             // Após envio bem-sucedido, limpar carrinho
             // (será chamado quando a página for redirecionada ou recarregada)
@@ -805,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            console.error('⚠️ Erro ao limpar carrinho:', error);
+            console.error('WARN Erro ao limpar carrinho:', error);
         });
     }
     
@@ -825,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return cookieValue;
     }
     
-    console.log('✅ [INIT] Checkout inicializado com sucesso!');
+    console.log('OK [INIT] Checkout inicializado com sucesso!');
 });
 </script>
 {% endblock %}
