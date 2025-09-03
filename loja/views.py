@@ -484,8 +484,46 @@ class AdicionarCarrinhoView(View):
             
             print(f"Dados recebidos: produto_id={produto_id}, quantidade={quantidade}")
             
-            # Buscar o produto sem restrição de restaurante primeiro
-            produto = get_object_or_404(Produto, id=produto_id, disponivel=True)
+            # Obter restaurante do slug da URL
+            restaurante_slug = kwargs.get('restaurante_slug')
+            print(f"DEBUG: restaurante_slug={restaurante_slug}")
+            print(f"DEBUG: kwargs completos={kwargs}")
+            
+            if not restaurante_slug:
+                print("DEBUG: restaurante_slug não encontrado nos kwargs")
+                raise Http404("Restaurante não encontrado.")
+            
+            # Verificar se restaurante existe primeiro
+            restaurante_existe = Restaurante.objects.filter(slug=restaurante_slug).first()
+            print(f"DEBUG: Restaurante com slug '{restaurante_slug}' existe? {restaurante_existe}")
+            
+            if restaurante_existe:
+                print(f"DEBUG: status={restaurante_existe.status}")
+            else:
+                # Mostrar alguns restaurantes para debug
+                alguns_restaurantes = Restaurante.objects.all()[:3]
+                print(f"DEBUG: Alguns restaurantes existentes:")
+                for r in alguns_restaurantes:
+                    print(f"  - Slug: {r.slug}, Nome: {r.nome}, Status: {r.status}")
+            
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+            print(f"DEBUG: restaurante={restaurante.nome}")
+            
+            # Debug: verificar se o produto existe para este restaurante
+            produto_existe = Produto.objects.filter(id=produto_id, restaurante=restaurante).first()
+            print(f"DEBUG: Produto ID {produto_id} existe para restaurante {restaurante.nome}? {produto_existe}")
+            
+            if produto_existe:
+                print(f"DEBUG: nome='{produto_existe.nome}', disponivel={produto_existe.disponivel}")
+            else:
+                # Mostrar alguns produtos do restaurante para debug
+                alguns_produtos = Produto.objects.filter(restaurante=restaurante)[:3]
+                print(f"DEBUG: Alguns produtos do restaurante {restaurante.nome}:")
+                for p in alguns_produtos:
+                    print(f"  - ID: {p.id}, Nome: {p.nome}, Disponível: {p.disponivel}")
+            
+            # Buscar o produto filtrando por restaurante
+            produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
             print(f"Produto encontrado: {produto.nome} - R$ {produto.preco_final}")
             
             # Calcular preço com personalizações
@@ -530,8 +568,6 @@ class AdicionarCarrinhoView(View):
             
         except Exception as e:
             print(f"Erro na AdicionarCarrinhoView: {type(e).__name__}: {str(e)}")
-            import traceback
-            traceback.print_exc()
             
             return JsonResponse({
                 'success': False,

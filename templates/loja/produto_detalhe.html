@@ -371,7 +371,7 @@ function atualizarPreco() {
  preco = parseFloat(precoRaw.replace(',', '.'));
  }
  
- console.log('🔧 Debug preço:', {raw: precoRaw, parsed: preco, isNaN: isNaN(preco), value: input.value});
+ // console.log('🔧 Debug preço:', {raw: precoRaw, parsed: preco, isNaN: isNaN(preco), value: input.value});
  
  if (!isNaN(preco) && preco !== 0) {
  precoAdicional += preco;
@@ -595,6 +595,7 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  };
  
  console.log('📦 Item preparado para carrinho:', itemCarrinho);
+ console.log('📦 JSON stringified:', JSON.stringify(itemCarrinho, null, 2));
  
  // Adicionar ao carrinho
  adicionarAoCarrinho(itemCarrinho);

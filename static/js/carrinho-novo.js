@@ -54,8 +54,20 @@ window.adicionarAoCarrinho = function(item) {
     })
     .then(function(response) {
         console.log('📡 Resposta recebida:', response.status, response.statusText);
+        console.log('🔧 Usando nova versão do código de erro!');
         if (!response.ok) {
-            throw new Error('HTTP error! status: ' + response.status);
+            // Tentar ler o corpo da resposta para ver detalhes do erro
+            return response.text().then(function(errorText) {
+                console.error('❌ Erro do servidor (texto completo):', errorText);
+                try {
+                    var errorData = JSON.parse(errorText);
+                    console.error('❌ Erro JSON parseado:', errorData);
+                    throw new Error('Erro ' + response.status + ': ' + (errorData.error || errorData.message || errorText));
+                } catch (e) {
+                    console.error('❌ Erro ao parsear JSON:', e);
+                    throw new Error('Erro ' + response.status + ': ' + errorText);
+                }
+            });
         }
         return response.json();
     })
@@ -232,4 +244,4 @@ if (!document.getElementById('menuly-toast-styles')) {
     document.head.appendChild(toastStyles);
 }
 
-console.log('✅ Carrinho Menuly inicializado');
+console.log('✅ Carrinho Menuly inicializado - v2.0 ' + new Date().toISOString());

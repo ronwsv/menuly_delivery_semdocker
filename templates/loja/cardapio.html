@@ -161,21 +161,36 @@
                                         
                                         <!-- Botões -->
                                         <div class="d-flex gap-2">
-                                            <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
-                                               class="btn btn-outline-primary btn-sm">
-                                                <i class="bi bi-eye"></i> Ver
-                                            </a>
-                                            
                                             {% if produto.disponivel %}
-                                                <button class="btn btn-adicionar-carrinho btn-sm" 
-                                                        data-produto-id="{{ produto.id }}"
-                                                        data-nome="{{ produto.nome }}"
-                                                        data-preco="{{ produto.preco_final }}"
-                                                        data-categoria="{{ categoria.nome }}"
-                                                        data-tem-opcoes="{% if produto.opcoes_personalizacao.exists %}true{% else %}false{% endif %}"
-                                                        data-produto-slug="{{ produto.slug }}">
-                                                    <i class="bi bi-cart-plus"></i> Adicionar
-                                                </button>
+                                                {% if produto.opcoes_personalizacao.exists %}
+                                                    <!-- Produto com opções: mostrar botão "Personalizar" -->
+                                                    <button class="btn btn-adicionar-carrinho btn-sm btn-primary" 
+                                                            data-produto-id="{{ produto.id }}"
+                                                            data-nome="{{ produto.nome }}"
+                                                            data-preco="{{ produto.preco_final }}"
+                                                            data-categoria="{{ categoria.nome }}"
+                                                            data-tem-opcoes="true"
+                                                            data-produto-slug="{{ produto.slug }}">
+                                                        <i class="bi bi-sliders"></i> Personalizar
+                                                    </button>
+                                                {% else %}
+                                                    <!-- Produto simples: mostrar botão "Adicionar" -->
+                                                    <button class="btn btn-adicionar-carrinho btn-sm btn-success" 
+                                                            data-produto-id="{{ produto.id }}"
+                                                            data-nome="{{ produto.nome }}"
+                                                            data-preco="{{ produto.preco_final }}"
+                                                            data-categoria="{{ categoria.nome }}"
+                                                            data-tem-opcoes="false"
+                                                            data-produto-slug="{{ produto.slug }}">
+                                                        <i class="bi bi-cart-plus"></i> Adicionar
+                                                    </button>
+                                                {% endif %}
+                                                
+                                                <!-- Botão Ver detalhes sempre disponível -->
+                                                <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-eye"></i> Ver
+                                                </a>
                                             {% else %}
                                                 <button class="btn btn-secondary btn-sm" disabled>
                                                     <i class="bi bi-x-circle"></i> Indisponível
