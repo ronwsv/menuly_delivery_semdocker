@@ -432,8 +432,28 @@ function buscarCEP() {
 // Função AJAX para calcular frete
 let freteCalculado = 0;
 function calcularFreteAjax(cep_destino) {
+    // Extrair slug do restaurante da URL
+    const currentPath = window.location.pathname;
+    const slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    
+    if (!slugMatch) {
+        console.warn('Não foi possível identificar o restaurante para calcular frete');
+        return;
+    }
+    
+    const restauranteSlug = slugMatch[1];
     const restauranteId = document.getElementById('restaurante_id').value;
-    const cep_origem = '{{ restaurante.cep }}';
+    
+    // Limpar CEPs removendo hífen e outros caracteres
+    const cep_destino_limpo = cep_destino.replace(/\D/g, '');
+    const cep_origem_limpo = '{{ restaurante.cep }}'.replace(/\D/g, '');
+    
+    console.log('🚚 Calculando frete:', {
+        cep_origem: cep_origem_limpo,
+        cep_destino: cep_destino_limpo,
+        restauranteSlug: restauranteSlug
+    });
+    
     const taxaEl = document.getElementById('taxa-value');
     const taxaDeliveryLabel = document.getElementById('taxa-delivery-label');
     const totalEl = document.getElementById('total-final');
@@ -443,15 +463,23 @@ function calcularFreteAjax(cep_destino) {
     if (subtotalEl) {
         subtotal = parseFloat(subtotalEl.textContent.replace('R$', '').replace(',', '.')) || 0;
     }
-    fetch('/{{ restaurante.slug }}/calcular-frete/', {
+    fetch('/' + restauranteSlug + '/calcular-frete/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: `cep_origem=${encodeURIComponent(cep_origem)}&cep_destino=${encodeURIComponent(cep_destino)}&restaurante_id=${encodeURIComponent(restauranteId)}`
+        body: `cep_origem=${encodeURIComponent(cep_origem_limpo)}&cep_destino=${encodeURIComponent(cep_destino_limpo)}&restaurante_id=${encodeURIComponent(restauranteId)}`
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                console.error('Erro HTTP', response.status, ':', errorData);
+                throw new Error(`HTTP ${response.status}: ${errorData.erro || errorData.erro_tecnico || 'Erro desconhecido'}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.frete !== undefined) {
             freteCalculado = parseFloat(data.frete);

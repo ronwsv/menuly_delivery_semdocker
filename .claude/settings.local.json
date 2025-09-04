@@ -7,7 +7,9 @@
       "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\menuly/**)",
       "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\static\\js/**)",
       "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\templates/**)",
-      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\templates/**)"
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\templates/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\loja/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\loja/**)"
     ],
     "deny": [],
     "ask": []
