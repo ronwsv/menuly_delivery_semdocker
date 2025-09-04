@@ -381,7 +381,9 @@ class CarrinhoView(BaseLojaView):
         # Se for requisição AJAX, retornar JSON
         if request.headers.get('Accept') == 'application/json':
             carrinho = request.session.get('carrinho', {})
+            print(f"DEBUG CarrinhoView: Carrinho da sessão = {carrinho}")
             carrinho_count = sum(item['quantidade'] for item in carrinho.values())
+            print(f"DEBUG CarrinhoView: Carrinho count = {carrinho_count}")
             
             # Buscar detalhes dos produtos e preparar lista de itens
             itens_carrinho = []
@@ -404,16 +406,20 @@ class CarrinhoView(BaseLojaView):
                         'personalizacoes': item.get('personalizacoes', []),
                         'observacoes': item.get('observacoes', ''),
                         'item_key': item_key,
+                        # Adicionar campos que o frontend precisa
+                        'preco': item['preco'],  # Compatibilidade
+                        'imagem': produto.imagem_principal.url if produto.imagem_principal else None,
                     })
                 except Produto.DoesNotExist:
                     continue
             
-            # Dados do restaurante
+            # Dados do restaurante - CORRIGIDO
             restaurante_data = None
-            if hasattr(self, 'get_context_data'):
-                context = super().get_context_data(**kwargs)
-                restaurante = context.get('restaurante')
-                if restaurante:
+            restaurante_slug = kwargs.get('restaurante_slug') or self.request.resolver_match.kwargs.get('restaurante_slug')
+            
+            if restaurante_slug:
+                try:
+                    restaurante = Restaurante.objects.get(slug=restaurante_slug, status='ativo')
                     endereco_completo = f"{restaurante.logradouro}, {restaurante.numero}"
                     if restaurante.complemento:
                         endereco_completo += f", {restaurante.complemento}"
@@ -424,14 +430,22 @@ class CarrinhoView(BaseLojaView):
                         'endereco': endereco_completo,
                         'slug': restaurante.slug
                     }
+                    print(f"DEBUG CarrinhoView: Restaurante encontrado = {restaurante.nome}")
+                except Restaurante.DoesNotExist:
+                    print(f"DEBUG CarrinhoView: Restaurante {restaurante_slug} não encontrado")
+            else:
+                print("DEBUG CarrinhoView: Slug do restaurante não encontrado")
             
-            return JsonResponse({
+            response_data = {
                 'carrinho_count': carrinho_count,
                 'total_items': len(carrinho),
                 'items': itens_carrinho,
                 'total': total_valor,
                 'restaurante': restaurante_data
-            })
+            }
+            print(f"DEBUG CarrinhoView: Resposta = {response_data}")
+            
+            return JsonResponse(response_data)
         
         # Caso contrário, renderizar template normal
         return super().get(request, *args, **kwargs)
@@ -474,74 +488,52 @@ class AdicionarCarrinhoView(View):
     
     def post(self, request, *args, **kwargs):
         try:
-            print(f"POST recebido para adicionar carrinho: {request.body}")
-            
             data = json.loads(request.body)
             produto_id = data.get('produto_id')
             quantidade = int(data.get('quantidade', 1))
             personalizacoes = data.get('personalizacoes', [])
             observacoes = data.get('observacoes', '')
             
-            print(f"Dados recebidos: produto_id={produto_id}, quantidade={quantidade}")
+            # Validar se produto_id foi fornecido
+            if not produto_id:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'ID do produto é obrigatório'
+                }, status=400)
             
             # Obter restaurante do slug da URL
             restaurante_slug = kwargs.get('restaurante_slug')
-            print(f"DEBUG: restaurante_slug={restaurante_slug}")
-            print(f"DEBUG: kwargs completos={kwargs}")
-            
             if not restaurante_slug:
-                print("DEBUG: restaurante_slug não encontrado nos kwargs")
-                raise Http404("Restaurante não encontrado.")
-            
-            # Verificar se restaurante existe primeiro
-            restaurante_existe = Restaurante.objects.filter(slug=restaurante_slug).first()
-            print(f"DEBUG: Restaurante com slug '{restaurante_slug}' existe? {restaurante_existe}")
-            
-            if restaurante_existe:
-                print(f"DEBUG: status={restaurante_existe.status}")
-            else:
-                # Mostrar alguns restaurantes para debug
-                alguns_restaurantes = Restaurante.objects.all()[:3]
-                print(f"DEBUG: Alguns restaurantes existentes:")
-                for r in alguns_restaurantes:
-                    print(f"  - Slug: {r.slug}, Nome: {r.nome}, Status: {r.status}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Restaurante não identificado'
+                }, status=400)
             
             restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
-            print(f"DEBUG: restaurante={restaurante.nome}")
-            
-            # Debug: verificar se o produto existe para este restaurante
-            produto_existe = Produto.objects.filter(id=produto_id, restaurante=restaurante).first()
-            print(f"DEBUG: Produto ID {produto_id} existe para restaurante {restaurante.nome}? {produto_existe}")
-            
-            if produto_existe:
-                print(f"DEBUG: nome='{produto_existe.nome}', disponivel={produto_existe.disponivel}")
-            else:
-                # Mostrar alguns produtos do restaurante para debug
-                alguns_produtos = Produto.objects.filter(restaurante=restaurante)[:3]
-                print(f"DEBUG: Alguns produtos do restaurante {restaurante.nome}:")
-                for p in alguns_produtos:
-                    print(f"  - ID: {p.id}, Nome: {p.nome}, Disponível: {p.disponivel}")
             
             # Buscar o produto filtrando por restaurante
             produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
-            print(f"Produto encontrado: {produto.nome} - R$ {produto.preco_final}")
             
             # Calcular preço com personalizações
             preco_base = produto.preco_final
-            preco_adicional = sum(float(p.get('preco', 0)) for p in personalizacoes)
+            preco_adicional = sum(Decimal(str(p.get('preco_adicional', p.get('preco', 0)))) for p in personalizacoes)
             preco_total = preco_base + preco_adicional
-            
-            print(f"Preços: base={preco_base}, adicional={preco_adicional}, total={preco_total}")
             
             # Obter carrinho da sessão
             carrinho = request.session.get('carrinho', {})
             
             # Chave única para o item (incluindo personalizações)
-            item_key = f"{produto_id}_{hash(str(sorted(personalizacoes)))}"
+            # Criar uma string única das personalizações para identificar itens únicos
+            personalizacoes_str = ""
+            if personalizacoes:
+                # Ordenar personalizações por uma chave específica para consistência
+                personalizacoes_ordenadas = sorted(personalizacoes, key=lambda x: str(x.get('opcao_id', '')) + str(x.get('item_id', '')))
+                personalizacoes_str = str([(p.get('opcao_id'), p.get('item_id')) for p in personalizacoes_ordenadas])
+            
+            item_key = f"{produto_id}_{hash(personalizacoes_str + observacoes)}"
             
             if item_key in carrinho:
                 carrinho[item_key]['quantidade'] += quantidade
-                print(f"Quantidade atualizada para produto existente: {carrinho[item_key]['quantidade']}")
             else:
                 carrinho[item_key] = {
                     'produto_id': str(produto_id),
@@ -549,16 +541,17 @@ class AdicionarCarrinhoView(View):
                     'preco': float(preco_total),
                     'personalizacoes': personalizacoes,
                     'observacoes': observacoes,
+                    # Adicionar campos úteis para o frontend
+                    'nome': produto.nome,
+                    'categoria': produto.categoria.nome if produto.categoria else '',
+                    'imagem': produto.imagem_principal.url if produto.imagem_principal else None,
                 }
-                print(f"Novo item adicionado ao carrinho: {item_key}")
             
             request.session['carrinho'] = carrinho
             request.session.modified = True
             
             # Calcular novo total do carrinho
             carrinho_count = sum(item['quantidade'] for item in carrinho.values())
-            
-            print(f"Carrinho atualizado: {carrinho_count} itens")
             
             return JsonResponse({
                 'success': True,
@@ -567,11 +560,9 @@ class AdicionarCarrinhoView(View):
             })
             
         except Exception as e:
-            print(f"Erro na AdicionarCarrinhoView: {type(e).__name__}: {str(e)}")
-            
             return JsonResponse({
                 'success': False,
-                'message': f'Erro ao adicionar produto: {str(e)}'
+                'error': f'Erro ao adicionar produto: {str(e)}'
             }, status=400)
 
 

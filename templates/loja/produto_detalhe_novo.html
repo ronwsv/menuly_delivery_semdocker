@@ -335,7 +335,7 @@ console.log('🔧 DEBUG: Base template script carregado');
 
 // Dados do produto para JavaScript (definir primeiro)
 window.produtoData = {
- id: {{ produto.id|default:0 }},
+ id: '{{ produto.id|default:"" }}',
  nome: '{{ produto.nome|escapejs }}',
  preco_base: parseFloat('{{ produto.preco_final|default:0 }}') || 0,
  categoria: '{{ produto.categoria.nome|default:""|escapejs }}',

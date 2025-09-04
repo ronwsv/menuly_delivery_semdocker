@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(python manage.py startapp:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\menuly/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\menuly/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\static\\js/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\templates/**)",
+      "Read(/C:\\Users\\ron\\Documents\\other\\projects\\projetoMenuly\\templates/**)"
     ],
     "deny": [],
     "ask": []

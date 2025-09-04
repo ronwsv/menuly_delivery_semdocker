@@ -335,7 +335,7 @@ console.log('🔧 DEBUG: Base template script carregado');
 
 // Dados do produto para JavaScript (definir primeiro)
 window.produtoData = {
- id: parseInt('{{ produto.id|default:"0" }}') || 0,
+ id: '{{ produto.id|default:"" }}',
  nome: '{{ produto.nome|escapejs|default:"" }}',
  preco_base: parseFloat('{{ produto.preco_final|default:"0.00" }}') || 0.00,
  categoria: '{{ produto.categoria.nome|default:""|escapejs }}',
@@ -587,10 +587,7 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  const itemCarrinho = {
  produto_id: window.produtoData.id,
  quantidade: quantidade,
- personalizacoes: personalizacoes.map(p => ({
-     nome: p.nome,
-     preco: p.preco_adicional  // Campo correto para a view Django
- })),
+ personalizacoes: personalizacoes,  // Usar personalizacoes completas
  observacoes: observacoes || ''
  };
  
@@ -598,11 +595,12 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  console.log('📦 JSON stringified:', JSON.stringify(itemCarrinho, null, 2));
  
  // Adicionar ao carrinho
- adicionarAoCarrinho(itemCarrinho);
- 
- // Mostrar toast de sucesso
- const toast = new bootstrap.Toast(document.getElementById('toast-sucesso'));
- toast.show();
+ if (typeof window.adicionarAoCarrinho === 'function') {
+     adicionarAoCarrinho(itemCarrinho);
+ } else {
+     console.error('❌ Função adicionarAoCarrinho não encontrada');
+     alert('Erro: sistema de carrinho não carregado');
+ }
  
  // Resetar formulario (opcional)
  // this.reset();

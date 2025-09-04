@@ -571,13 +571,34 @@ function atualizarResumo() {
             const subtotalItem = item.preco_total || (item.preco_unitario * item.quantidade);
             total += subtotalItem;
             
+            // Personalizações
+            let personalizacoesHtml = '';
+            if (item.personalizacoes && item.personalizacoes.length > 0) {
+                const personalizacoesList = item.personalizacoes.map(p => {
+                    let texto = p.nome;
+                    if (p.preco_adicional && p.preco_adicional > 0) {
+                        texto += ` (+R$ ${p.preco_adicional.toFixed(2).replace('.', ',')})`;
+                    }
+                    return texto;
+                }).join(', ');
+                personalizacoesHtml = `<small class="text-primary d-block">${personalizacoesList}</small>`;
+            }
+            
+            // Observações
+            let observacoesHtml = '';
+            if (item.observacoes && item.observacoes.trim()) {
+                observacoesHtml = `<small class="text-muted d-block"><i class="bi bi-chat-dots me-1"></i>${item.observacoes}</small>`;
+            }
+
             html += `
-                <div class="item-carrinho d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <div class="item-info">
+                <div class="item-carrinho d-flex justify-content-between align-items-start py-2 border-bottom">
+                    <div class="item-info flex-grow-1">
                         <h6 class="mb-1">${item.nome}</h6>
                         <small class="text-muted">${item.quantidade}x R$ ${(item.preco_unitario || item.preco || 0).toFixed(2).replace('.', ',')}</small>
+                        ${personalizacoesHtml}
+                        ${observacoesHtml}
                     </div>
-                    <div class="item-preco fw-bold">
+                    <div class="item-preco fw-bold ms-2">
                         R$ ${subtotalItem.toFixed(2).replace('.', ',')}
                     </div>
                 </div>

@@ -1,5 +1,6 @@
 /**
- * Sistema de Carrinho Menuly - Versão Limpa
+ * Sistema de Carrinho Menuly - Versão Corrigida v2.1
+ * Última atualização: 2024-09-04 22:30 - Verificação completa de variáveis 'total' v2
  */
 
 // Variáveis de controle global
@@ -43,12 +44,17 @@ window.adicionarAoCarrinho = function(item) {
     var restauranteSlug = slugMatch[1];
     var url = '/' + restauranteSlug + '/carrinho/adicionar/';
     
+    // Obter CSRF token
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') || 
+                    document.querySelector('meta[name=csrf-token]') || 
+                    { value: getCookie('csrftoken') };
+    
     // Enviar para o backend
     fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': csrfToken.value || csrfToken.content || getCookie('csrftoken')
         },
         body: JSON.stringify(item)
     })
@@ -76,6 +82,12 @@ window.adicionarAoCarrinho = function(item) {
         if (data.success) {
             // Atualizar contador do carrinho
             atualizarContadorCarrinho();
+            
+            // Se sidebar está aberto, atualizar dados
+            const sidebar = document.getElementById('carrinho-sidebar');
+            if (sidebar && sidebar.classList.contains('show')) {
+                carregarDadosCarrinhoSidebar();
+            }
             
             // Mostrar toast de sucesso
             mostrarToast('Produto adicionado ao carrinho!', 'success');
@@ -164,8 +176,251 @@ function ocultarContadorCarrinho() {
 
 // Inicializar eventos do sidebar
 function inicializarSidebarCarrinho() {
-    // Implementação básica - pode ser expandida conforme necessário
-    console.log('🔧 Sidebar do carrinho inicializado');
+    console.log('🔧 Inicializando sidebar do carrinho...');
+    
+    // Botão para abrir carrinho
+    const btnAbrirCarrinho = document.getElementById('btn-abrir-carrinho');
+    if (btnAbrirCarrinho) {
+        btnAbrirCarrinho.addEventListener('click', function() {
+            console.log('🛒 Abrindo sidebar do carrinho');
+            abrirCarrinhoSidebar();
+        });
+    }
+    
+    // Botão para finalizar pedido
+    const btnFinalizarPedido = document.getElementById('btn-finalizar-pedido');
+    if (btnFinalizarPedido) {
+        btnFinalizarPedido.addEventListener('click', function() {
+            // Extrair slug do restaurante da URL
+            var currentPath = window.location.pathname;
+            var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+            
+            if (slugMatch) {
+                var restauranteSlug = slugMatch[1];
+                window.location.href = '/' + restauranteSlug + '/checkout/';
+            }
+        });
+    }
+    
+    // Botão para limpar carrinho
+    const btnLimparCarrinho = document.getElementById('btn-limpar-carrinho');
+    if (btnLimparCarrinho) {
+        btnLimparCarrinho.addEventListener('click', function() {
+            if (confirm('Tem certeza que deseja limpar o carrinho?')) {
+                limparCarrinho();
+            }
+        });
+    }
+    
+    console.log('✅ Sidebar do carrinho inicializado');
+}
+
+// Função para abrir sidebar do carrinho
+function abrirCarrinhoSidebar() {
+    const sidebar = document.getElementById('carrinho-sidebar');
+    if (sidebar) {
+        // Carregar dados do carrinho antes de abrir
+        carregarDadosCarrinhoSidebar();
+        
+        // Usar Bootstrap Offcanvas API
+        const offcanvas = new bootstrap.Offcanvas(sidebar);
+        offcanvas.show();
+    } else {
+        console.error('❌ Sidebar do carrinho não encontrado');
+    }
+}
+
+// Função para carregar dados do carrinho no sidebar
+function carregarDadosCarrinhoSidebar() {
+    console.log('📦 Carregando dados do carrinho no sidebar...');
+    
+    // Extrair slug do restaurante da URL
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    
+    if (!slugMatch) {
+        console.warn('⚠️ Não foi possível identificar o restaurante');
+        mostrarCarrinhoVazio();
+        return;
+    }
+    
+    var restauranteSlug = slugMatch[1];
+    
+    // Fazer requisição para carrinho do restaurante
+    fetch('/' + restauranteSlug + '/carrinho/', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(function(response) {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Erro na resposta: ' + response.status);
+        }
+    })
+    .then(function(data) {
+        console.log('📦 Carrinho carregado:', data.items ? data.items.length : 0, 'itens');
+        renderizarCarrinhoSidebar(data);
+    })
+    .catch(function(error) {
+        console.error('❌ Erro ao carregar dados do carrinho:', error);
+        mostrarCarrinhoVazio();
+    });
+}
+
+// Função para renderizar carrinho no sidebar
+function renderizarCarrinhoSidebar(data) {
+    const carrinhoHeader = document.getElementById('carrinho-header');
+    const carrinhoItems = document.getElementById('carrinho-items');
+    const carrinhoFooter = document.getElementById('carrinho-footer');
+    const carrinhoVazio = document.getElementById('carrinho-vazio');
+    const carrinhoTotal = document.getElementById('carrinho-total');
+    const restauranteNome = document.getElementById('carrinho-restaurante-nome');
+    const restauranteEndereco = document.getElementById('carrinho-restaurante-endereco');
+    
+    if (!data.items || data.items.length === 0) {
+        mostrarCarrinhoVazio();
+        return;
+    }
+    
+    // Mostrar header com info do restaurante
+    if (data.restaurante && carrinhoHeader && restauranteNome && restauranteEndereco) {
+        restauranteNome.textContent = data.restaurante.nome;
+        restauranteEndereco.textContent = data.restaurante.endereco || '';
+        carrinhoHeader.style.display = 'block';
+    }
+    
+    // Renderizar itens
+    if (carrinhoItems) {
+        let html = '';
+        let total = 0;
+        
+        data.items.forEach(function(item) {
+            const subtotal = item.preco_total || (item.preco_unitario * item.quantidade);
+            total += subtotal;
+            
+            // Personalizações
+            let personalizacoesHtml = '';
+            if (item.personalizacoes && item.personalizacoes.length > 0) {
+                const personalizacoesList = item.personalizacoes.map(p => {
+                    let texto = p.nome;
+                    if (p.preco_adicional && p.preco_adicional > 0) {
+                        texto += ` (+R$ ${p.preco_adicional.toFixed(2).replace('.', ',')})`;
+                    }
+                    return texto;
+                }).join(', ');
+                personalizacoesHtml = `<small class="text-primary d-block">${personalizacoesList}</small>`;
+            }
+            
+            // Observações
+            let observacoesHtml = '';
+            if (item.observacoes && item.observacoes.trim()) {
+                observacoesHtml = `<small class="text-muted d-block"><i class="bi bi-chat-dots me-1"></i>${item.observacoes}</small>`;
+            }
+            
+            html += `
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1 me-2">
+                            <h6 class="mb-1">${item.nome}</h6>
+                            <small class="text-muted">${item.quantidade}x R$ ${(item.preco_unitario || item.preco || 0).toFixed(2).replace('.', ',')}</small>
+                            ${personalizacoesHtml}
+                            ${observacoesHtml}
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">R$ ${subtotal.toFixed(2).replace('.', ',')}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        carrinhoItems.innerHTML = html;
+        
+        // Ocultar mensagem de carrinho vazio
+        if (carrinhoVazio) {
+            carrinhoVazio.style.display = 'none';
+        }
+    }
+    
+    // Mostrar total e footer
+    if (carrinhoTotal) {
+        const totalValue = data.total || 0;
+        carrinhoTotal.textContent = `R$ ${totalValue.toFixed(2).replace('.', ',')}`;
+    }
+    
+    if (carrinhoFooter) {
+        carrinhoFooter.style.display = 'block';
+    }
+}
+
+// Função para mostrar carrinho vazio
+function mostrarCarrinhoVazio() {
+    const carrinhoHeader = document.getElementById('carrinho-header');
+    const carrinhoItems = document.getElementById('carrinho-items');
+    const carrinhoFooter = document.getElementById('carrinho-footer');
+    const carrinhoVazio = document.getElementById('carrinho-vazio');
+    
+    if (carrinhoHeader) carrinhoHeader.style.display = 'none';
+    if (carrinhoFooter) carrinhoFooter.style.display = 'none';
+    
+    if (carrinhoVazio) {
+        carrinhoVazio.style.display = 'block';
+    }
+    
+    if (carrinhoItems) {
+        carrinhoItems.innerHTML = `
+            <div class="p-4 text-center text-muted" id="carrinho-vazio">
+                <i class="bi bi-cart-x fs-1 mb-3 d-block"></i>
+                <h6>Seu carrinho está vazio</h6>
+                <p class="small mb-0">Adicione produtos para continuar</p>
+            </div>
+        `;
+    }
+}
+
+// Função para limpar carrinho
+function limparCarrinho() {
+    // Extrair slug do restaurante da URL
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    
+    if (!slugMatch) {
+        mostrarToast('Erro: não foi possível identificar o restaurante', 'error');
+        return;
+    }
+    
+    var restauranteSlug = slugMatch[1];
+    var url = '/' + restauranteSlug + '/carrinho/limpar/';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(function(response) {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Erro na resposta: ' + response.status);
+        }
+    })
+    .then(function(data) {
+        if (data.success) {
+            mostrarCarrinhoVazio();
+            atualizarContadorCarrinho();
+            mostrarToast('Carrinho limpo com sucesso!', 'success');
+        } else {
+            mostrarToast('Erro ao limpar carrinho', 'error');
+        }
+    })
+    .catch(function(error) {
+        console.error('❌ Erro ao limpar carrinho:', error);
+        mostrarToast('Erro ao limpar carrinho', 'error');
+    });
 }
 
 // Função para obter cookie CSRF
@@ -244,4 +499,4 @@ if (!document.getElementById('menuly-toast-styles')) {
     document.head.appendChild(toastStyles);
 }
 
-console.log('✅ Carrinho Menuly inicializado - v2.0 ' + new Date().toISOString());
+console.log('✅ Carrinho Menuly inicializado - v2.1 CORRIGIDO ' + new Date().toISOString());

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+{% load loja_extras %}
+
+{% block title %}Carrinho - {{ restaurante.nome }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% loja_url 'home' %}">Início</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Carrinho</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-cart3 me-2"></i>
+                        Seu Carrinho
+                        {% if carrinho_count > 0 %}
+                            <span class="badge bg-primary ms-2">{{ carrinho_count }} item{{ carrinho_count|pluralize:"s" }}</span>
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if itens_carrinho %}
+                        <!-- Itens do carrinho -->
+                        {% for item in itens_carrinho %}
+                        <div class="row align-items-center py-3 border-bottom">
+                            <div class="col-md-2">
+                                {% if item.produto.imagem_principal %}
+                                    <img src="{{ item.produto.imagem_principal.url }}" 
+                                         alt="{{ item.produto.nome }}" 
+                                         class="img-fluid rounded">
+                                {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="height: 60px;">
+                                        <i class="bi bi-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-5">
+                                <h6 class="mb-1">{{ item.produto.nome }}</h6>
+                                <small class="text-muted">{{ item.produto.categoria.nome }}</small>
+                                
+                                <!-- Personalizações -->
+                                {% if item.personalizacoes %}
+                                    <div class="mt-2">
+                                        {% for personalizacao in item.personalizacoes %}
+                                            <small class="badge bg-light text-dark me-1">
+                                                {{ personalizacao.nome }}
+                                                {% if personalizacao.preco > 0 %}
+                                                    (+R$ {{ personalizacao.preco|floatformat:2 }})
+                                                {% endif %}
+                                            </small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Observações -->
+                                {% if item.observacoes %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">
+                                            <i class="bi bi-chat-dots me-1"></i>
+                                            {{ item.observacoes }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="input-group input-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number" class="form-control text-center" 
+                                           value="{{ item.quantidade }}" min="1" max="99">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <strong>R$ {{ item.subtotal|floatformat:2 }}</strong>
+                                <div>
+                                    <small class="text-muted">
+                                        R$ {{ item.preco|floatformat:2 }} cada
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <button class="btn btn-outline-danger btn-sm" type="button">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Limpar carrinho -->
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
+                                <form method="post" action="{% url 'loja:limpar_carrinho' restaurante_slug=restaurante.slug %}" 
+                                      style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                            onclick="return confirm('Tem certeza que deseja limpar o carrinho?')">
+                                        <i class="bi bi-trash me-2"></i>Limpar Carrinho
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                    {% else %}
+                        <!-- Carrinho vazio -->
+                        <div class="text-center py-5">
+                            <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">Seu carrinho está vazio</h5>
+                            <p class="text-muted mb-4">Adicione alguns produtos para continuar</p>
+                            <a href="{% loja_url 'cardapio' %}" class="btn btn-primary">
+                                <i class="bi bi-menu-button-wide me-2"></i>Ver Cardápio
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if itens_carrinho %}
+        <!-- Resumo do pedido -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Resumo do Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal ({{ carrinho_count }} item{{ carrinho_count|pluralize:"s" }})</span>
+                        <strong>R$ {{ total_carrinho|floatformat:2 }}</strong>
+                    </div>
+                    
+                    {% if taxa_entrega > 0 %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Taxa de entrega</span>
+                        <span>R$ {{ taxa_entrega|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong class="text-primary">R$ {{ total_final|floatformat:2 }}</strong>
+                    </div>
+                    {% else %}
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong class="text-primary">R$ {{ total_carrinho|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'loja:checkout' restaurante_slug=restaurante.slug %}" 
+                           class="btn btn-success btn-lg">
+                            <i class="bi bi-credit-card me-2"></i>Finalizar Pedido
+                        </a>
+                        <a href="{% loja_url 'cardapio' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Adicionar mais itens
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informações do restaurante -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h6>{{ restaurante.nome }}</h6>
+                    <small class="text-muted">{{ restaurante.endereco_completo }}</small>
+                    
+                    {% if restaurante.valor_minimo_pedido > 0 %}
+                        <div class="alert alert-info mt-2 py-2">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                Pedido mínimo: R$ {{ restaurante.valor_minimo_pedido|floatformat:2 }}
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scripts específicos da página de carrinho podem ir aqui
+console.log('=Ä Página de carrinho carregada');
+</script>
+{% endblock %}
