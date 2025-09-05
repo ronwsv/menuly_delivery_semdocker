@@ -262,7 +262,7 @@ Para problemas específicos do Docker:
 
   🏍️ Entregador de Teste
 
-  - Username: entregador_teste
+  - Username: entregador_teste tiagoerickcaldeira@aclnet.com.br
   - Password: kkcZLzYg1Z
   - URL: http://localhost:8000/entregador/login/
 

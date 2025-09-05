@@ -226,14 +226,22 @@
                                         {% endif %}
                                         
                                         <!-- Personalizações -->
-                                        {% for personalizacao in item.personalizacoes.all %}
-                                            <small class="text-info d-block">
-                                                <i class="bi bi-plus me-1"></i>{{ personalizacao.nome_item }}
-                                                {% if personalizacao.preco > 0 %}
-                                                    (+R$ {{ personalizacao.preco|floatformat:2 }})
-                                                {% endif %}
-                                            </small>
-                                        {% endfor %}
+                                        {% if item.personalizacoes.exists %}
+                                            {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}
+                                            {% for opcao_grupo in opcoes_agrupadas %}
+                                                <div class="mt-2">
+                                                    <small class="text-muted fw-medium d-block">{{ opcao_grupo.grouper }}:</small>
+                                                    {% for personalizacao in opcao_grupo.list %}
+                                                        <small class="text-info d-block ms-3">
+                                                            <i class="bi bi-dot"></i>{{ personalizacao.item_nome }}
+                                                            {% if personalizacao.preco_adicional > 0 %}
+                                                                <span class="text-success">(+R$ {{ personalizacao.preco_adicional|floatformat:2 }})</span>
+                                                            {% endif %}
+                                                        </small>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
                                     </div>
                                     
                                     <div class="text-end">

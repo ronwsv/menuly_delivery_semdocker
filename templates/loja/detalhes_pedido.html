@@ -17,7 +17,14 @@
         <li>
           {{ item.quantidade }}x {{ item.nome }} - R$ {{ item.preco_total }}
           {% if item.personalizacoes.all %}
-            <br><small>Personalizações: {% for p in item.personalizacoes.all %}{{ p.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>
+            <br><small>
+              <strong>Personalizações:</strong>
+              {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}
+              {% for opcao_grupo in opcoes_agrupadas %}
+                <br>&nbsp;&nbsp;<strong>{{ opcao_grupo.grouper }}:</strong>
+                {% for p in opcao_grupo.list %}{{ p.item_nome }}{% if p.preco_adicional > 0 %} (+R$ {{ p.preco_adicional|floatformat:2 }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+              {% endfor %}
+            </small>
           {% endif %}
           {% if item.observacoes %}<br><small>Obs: {{ item.observacoes }}</small>{% endif %}
         </li>
