@@ -15,7 +15,7 @@
     <ul>
       {% for item in pedido.itens.all %}
         <li>
-          {{ item.quantidade }}x {{ item.nome }} - R$ {{ item.preco_total }}
+          {% if item.meio_a_meio %}{% if item.quantidade > 1 %}{{ item.quantidade }}x {% endif %}1/2x{% else %}{{ item.quantidade }}x{% endif %} {{ item.nome }} - R$ {{ item.preco_total }}
           {% if item.personalizacoes.all %}
             <br><small>
               <strong>Personalizações:</strong>

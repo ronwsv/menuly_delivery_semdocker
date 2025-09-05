@@ -48,7 +48,7 @@
                 <tbody>
                     {% for item in itens %}
                     <tr>
-                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %}</td>
+                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.meio_a_meio %}{% if item.quantidade > 1 %} {% if item.quantidade > 1 %}{{ item.quantidade }}x {% endif %}1/2{% else %} 1/2x{% endif %}{% else %}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %}{% endif %}</td>
                     </tr>
                     {% if item.personalizacoes.exists %}
                         {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}
@@ -92,7 +92,7 @@
                 <tbody>
                     {% for item in itens %}
                     <tr>
-                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %} | Cod {{ forloop.counter0 }}</td>
+                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.meio_a_meio %}{% if item.quantidade > 1 %} {{ item.quantidade }}x 1/2{% else %} 1/2x{% endif %}{% else %}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %}{% endif %} | Cod {{ forloop.counter0 }}</td>
                     </tr>
                     {% if item.personalizacoes.exists %}
                         {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}

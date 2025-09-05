@@ -392,14 +392,26 @@ class CarrinhoView(BaseLojaView):
             for item_key, item in carrinho.items():
                 try:
                     produto_id = item['produto_id']
-                    produto = Produto.objects.get(id=produto_id)
+                    meio_a_meio = item.get('meio_a_meio')
+                    
+                    # Para pizzas meio-a-meio, usar dados salvos na sessão
+                    if meio_a_meio:
+                        produto_nome = item.get('nome', 'Pizza Meio-a-Meio')
+                        categoria_nome = item.get('categoria', 'Pizzas')
+                        imagem_url = item.get('imagem')
+                    else:
+                        produto = Produto.objects.get(id=produto_id)
+                        produto_nome = produto.nome
+                        categoria_nome = produto.categoria.nome if produto.categoria else ''
+                        imagem_url = produto.imagem_principal.url if produto.imagem_principal else None
+                    
                     subtotal = item['preco'] * item['quantidade']
                     total_valor += subtotal
                     
                     itens_carrinho.append({
                         'produto_id': produto_id,
-                        'nome': produto.nome,
-                        'categoria': produto.categoria.nome if produto.categoria else '',
+                        'nome': produto_nome,
+                        'categoria': categoria_nome,
                         'quantidade': item['quantidade'],
                         'preco_unitario': item['preco'],
                         'preco_total': subtotal,
@@ -408,7 +420,8 @@ class CarrinhoView(BaseLojaView):
                         'item_key': item_key,
                         # Adicionar campos que o frontend precisa
                         'preco': item['preco'],  # Compatibilidade
-                        'imagem': produto.imagem_principal.url if produto.imagem_principal else None,
+                        'imagem': imagem_url,
+                        'meio_a_meio': meio_a_meio,
                     })
                 except Produto.DoesNotExist:
                     continue
@@ -460,7 +473,25 @@ class CarrinhoView(BaseLojaView):
         for item_key, item in carrinho.items():
             try:
                 produto_id = item['produto_id']
-                produto = Produto.objects.get(id=produto_id)
+                meio_a_meio = item.get('meio_a_meio')
+                
+                # Para pizzas meio-a-meio, usar dados salvos na sessão
+                if meio_a_meio:
+                    produto_nome = item.get('nome', 'Pizza Meio-a-Meio')
+                    categoria_nome = item.get('categoria', 'Pizzas')
+                    imagem_url = item.get('imagem')
+                    
+                    # Criar objeto mock para compatibilidade com o template
+                    class ProdutoMock:
+                        def __init__(self, nome, categoria_nome, imagem_url):
+                            self.nome = nome
+                            self.categoria = type('obj', (object,), {'nome': categoria_nome})() if categoria_nome else None
+                            self.imagem_principal = type('obj', (object,), {'url': imagem_url})() if imagem_url else None
+                    
+                    produto = ProdutoMock(produto_nome, categoria_nome, imagem_url)
+                else:
+                    produto = Produto.objects.get(id=produto_id)
+                
                 subtotal = item['preco'] * item['quantidade']
                 total += subtotal
                 
@@ -472,6 +503,7 @@ class CarrinhoView(BaseLojaView):
                     'personalizacoes': item.get('personalizacoes', []),
                     'observacoes': item.get('observacoes', ''),
                     'item_key': item_key,
+                    'meio_a_meio': meio_a_meio,
                 })
             except Produto.DoesNotExist:
                 continue
@@ -885,7 +917,8 @@ class CheckoutView(BaseLojaView):
                         quantidade=item_data['quantidade'],
                         preco_unitario=preco_unitario,
                         subtotal=subtotal,
-                        observacoes=item_data.get('observacoes', '')
+                        observacoes=item_data.get('observacoes', ''),
+                        meio_a_meio=item_data.get('meio_a_meio')
                         # O campo 'personalizacoes' que é um JSONField foi removido, 
                         # pois o erro indica uma relação de banco de dados.
                     )

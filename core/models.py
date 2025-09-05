@@ -716,6 +716,9 @@ class ItemPedido(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     observacoes = models.TextField(blank=True)
     
+    # Campo para identificar pizzas meio-a-meio
+    meio_a_meio = models.JSONField(blank=True, null=True, help_text="Dados da pizza meio-a-meio")
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
