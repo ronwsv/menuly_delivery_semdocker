@@ -420,6 +420,7 @@ class Produto(models.Model):
     destaque = models.BooleanField(default=False, help_text="Produto em destaque na página inicial")
     disponivel = models.BooleanField(default=True)
     permite_observacoes = models.BooleanField(default=True)
+    permite_meio_a_meio = models.BooleanField(default=False, help_text="Permite vender este produto como metade de uma pizza")
     tempo_preparo = models.PositiveIntegerField(default=15, help_text="Tempo em minutos")
     
     # Controle de estoque

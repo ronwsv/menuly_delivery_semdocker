@@ -10,6 +10,58 @@
 {% if produto.imagem_principal %}
 <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ produto.imagem_principal.url }}">
 {% endif %}
+
+<style>
+/* Estilo para botão meio-a-meio */
+#btn-meio-a-meio {
+    transition: all 0.3s ease;
+    border: 2px solid #ffc107;
+}
+
+#btn-meio-a-meio:hover {
+    background-color: #ffc107;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Estilo para botão flutuante */
+#continuar-comprando-btn button {
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+#continuar-comprando-btn button:hover {
+    transform: scale(1.1);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+    }
+}
+
+/* Animação para mostrar indicador meio-a-meio */
+#meio-a-meio-ativo {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -130,7 +182,37 @@
  <form id="produto-form" class="mb-4" method="POST" action="">
  {% csrf_token %}
  
- <!-- Opções de personalização -->
+   <!-- Botão Meio-a-Meio Discreto (apenas para pizzas) -->
+   {% if produto.permite_meio_a_meio and produto.categoria.nome == 'Pizzas' %}
+   <div class="mb-3" id="meio-a-meio-section">
+    <!-- Botão discreto para ativar meio-a-meio -->
+    <button type="button" 
+            class="btn btn-outline-warning btn-sm me-2" 
+            id="btn-meio-a-meio"
+            onclick="ativarMeioAMeio()"
+            style="border-radius: 20px;">
+        <span style="font-size: 16px;">🍕</span> Quero meia pizza
+    </button>
+    
+    <!-- Indicador quando meio-a-meio está ativo -->
+    <div id="meio-a-meio-ativo" style="display: none;" class="mt-2">
+        <div class="d-flex align-items-center">
+            <span class="badge bg-warning text-dark me-2">
+                <span style="font-size: 14px;">🍕</span> Meia Pizza
+            </span>
+            <small class="text-muted">
+                Este sabor será metade da sua pizza. Escolha outro sabor para completar!
+            </small>
+            <button type="button" 
+                    class="btn btn-sm btn-link text-danger ms-auto p-0" 
+                    onclick="cancelarMeioAMeio()"
+                    title="Cancelar meia pizza">
+                ✕
+            </button>
+        </div>
+    </div>
+   </div>
+   {% endif %} <!-- Opções de personalização -->
  {% for opcao in opcoes_personalizacao %}
  <div class="card mb-3" data-opcao-id="{{ opcao.id }}" data-obrigatorio="{{ opcao.obrigatorio }}" 
  {% if opcao.tipo == 'checkbox' %}data-tipo="checkbox" data-min="{{ opcao.quantidade_minima|default:0 }}" data-max="{{ opcao.quantidade_maxima|default:'' }}"{% endif %}>
@@ -581,12 +663,41 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  // Calcular preço final
  const precoBase = window.produtoData.preco_base;
  const precoAdicional = personalizacoes.reduce((total, p) => total + p.preco_adicional, 0);
- const precoUnitario = precoBase + precoAdicional;
+ let precoUnitario = precoBase + precoAdicional;
+ 
+ // Verificar se é completação de meio-a-meio
+ const completandoMeioAMeio = localStorage.getItem('meioAMeio_ativo') === 'true';
+ let nomeCompletoItem = window.produtoData.nome;
+ 
+ if (completandoMeioAMeio && primeiroSabor) {
+     // Calcular preço baseado no sabor mais caro
+     const precoSegundoSabor = precoUnitario;
+     const precoPrimeiroSabor = primeiroSabor.preco;
+     precoUnitario = Math.max(precoPrimeiroSabor, precoSegundoSabor);
+     
+     // Nome especial para pizza meio-a-meio
+     nomeCompletoItem = `Pizza Meio-a-Meio: ${primeiroSabor.nome} / {{ produto.nome }}`;
+     
+     console.log('🍕 Completando meio-a-meio:', {
+         primeiroSabor: primeiroSabor.nome,
+         segundoSabor: '{{ produto.nome }}',
+         precoFinal: precoUnitario
+     });
+ }
  
  // Dados do item para o carrinho (formato compatível com Django view)
  const itemCarrinho = {
  produto_id: window.produtoData.id,
  quantidade: quantidade,
+ nome_customizado: completandoMeioAMeio ? nomeCompletoItem : undefined,
+ meio_a_meio: completandoMeioAMeio ? {
+     primeiro_sabor: primeiroSabor,
+     segundo_sabor: {
+         id: '{{ produto.id }}',
+         nome: '{{ produto.nome }}',
+         preco: precoBase
+     }
+ } : undefined,
  personalizacoes: personalizacoes,  // Usar personalizacoes completas
  observacoes: observacoes || ''
  };
@@ -597,6 +708,20 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  // Adicionar ao carrinho
  if (typeof window.adicionarAoCarrinho === 'function') {
      adicionarAoCarrinho(itemCarrinho);
+     
+     // Se completou meio-a-meio, limpar localStorage
+     if (completandoMeioAMeio) {
+         localStorage.removeItem('meioAMeio_ativo');
+         localStorage.removeItem('meioAMeio_primeiroSabor');
+         console.log('🍕 Meio-a-meio completado e localStorage limpo');
+     }
+     
+     // Mostrar botão continuar comprando após adicionar (se não for meio-a-meio ativo)
+     if (!meioAMeioAtivo) {
+         setTimeout(() => {
+             mostrarBotaoContinuarComprando();
+         }, 500); // Pequeno delay para dar feedback visual
+     }
  } else {
      console.error('❌ Função adicionarAoCarrinho não encontrada');
      alert('Erro: sistema de carrinho não carregado');
@@ -646,5 +771,126 @@ document.addEventListener('DOMContentLoaded', function() {
  
  console.log('✅ Sistema de produto inicializado');
 });
+
+// ===== SISTEMA MEIO-A-MEIO =====
+let meioAMeioAtivo = false;
+let primeiroSabor = null;
+
+// Ativar modo meio-a-meio
+window.ativarMeioAMeio = function() {
+    meioAMeioAtivo = true;
+    
+    // Esconder botão e mostrar indicador
+    document.getElementById('btn-meio-a-meio').style.display = 'none';
+    document.getElementById('meio-a-meio-ativo').style.display = 'block';
+    
+    // Salvar dados do produto atual como primeiro sabor
+    primeiroSabor = {
+        id: '{{ produto.id }}',
+        nome: '{{ produto.nome }}',
+        preco: parseFloat('{{ produto.preco }}'),
+        slug: '{{ produto.slug }}'
+    };
+    
+    console.log('🍕 Modo meio-a-meio ativado. Primeiro sabor:', primeiroSabor);
+    
+    // Mostrar botão continuar comprando
+    mostrarBotaoContinuarComprando();
+};
+
+// Cancelar modo meio-a-meio
+window.cancelarMeioAMeio = function() {
+    meioAMeioAtivo = false;
+    primeiroSabor = null;
+    
+    // Mostrar botão e esconder indicador
+    document.getElementById('btn-meio-a-meio').style.display = 'inline-block';
+    document.getElementById('meio-a-meio-ativo').style.display = 'none';
+    
+    // Esconder botão continuar comprando
+    esconderBotaoContinuarComprando();
+    
+    console.log('🍕 Modo meio-a-meio cancelado');
+};
+
+// ===== BOTÃO CONTINUAR COMPRANDO =====
+function mostrarBotaoContinuarComprando() {
+    const botao = document.getElementById('continuar-comprando-btn');
+    if (botao) {
+        botao.classList.remove('d-none');
+    }
+}
+
+function esconderBotaoContinuarComprando() {
+    const botao = document.getElementById('continuar-comprando-btn');
+    if (botao) {
+        botao.classList.add('d-none');
+    }
+}
+
+// Função para continuar comprando
+window.continuarComprando = function() {
+    if (meioAMeioAtivo && primeiroSabor) {
+        // Salvar no localStorage para usar na próxima página
+        localStorage.setItem('meioAMeio_primeiroSabor', JSON.stringify(primeiroSabor));
+        localStorage.setItem('meioAMeio_ativo', 'true');
+    }
+    
+    // Ir para o cardápio
+    window.location.href = '{% loja_url "cardapio" %}';
+};
+
+// Verificar se chegamos de um meio-a-meio ativo
+document.addEventListener('DOMContentLoaded', function() {
+    const meioAMeioSalvo = localStorage.getItem('meioAMeio_ativo');
+    const primeiroSaborSalvo = localStorage.getItem('meioAMeio_primeiroSabor');
+    
+    if (meioAMeioSalvo === 'true' && primeiroSaborSalvo && '{{ produto.categoria.nome }}' === 'Pizzas') {
+        // Se chegamos aqui com meio-a-meio ativo, este é o segundo sabor
+        primeiroSabor = JSON.parse(primeiroSaborSalvo);
+        
+        // Mostrar aviso de que está completando meio-a-meio
+        const avisoDiv = document.createElement('div');
+        avisoDiv.className = 'alert alert-success mb-3';
+        avisoDiv.innerHTML = `
+            <strong>🍕 Completando sua pizza meio-a-meio!</strong><br>
+            <small>1º Sabor: ${primeiroSabor.nome} | 2º Sabor: {{ produto.nome }}</small>
+        `;
+        
+        // Inserir antes do formulário
+        const form = document.getElementById('produto-form');
+        form.parentNode.insertBefore(avisoDiv, form);
+        
+        // Limpar localStorage
+        localStorage.removeItem('meioAMeio_ativo');
+        localStorage.removeItem('meioAMeio_primeiroSabor');
+    }
+});
+
+// Função para controlar meio-a-meio (manter compatibilidade)
+window.toggleMeioAMeio = function() {
+    // Esta função foi substituída pelas novas funções acima
+    console.log('Função toggleMeioAMeio() foi substituída');
+};
+
 </script>
+
+<!-- Botão Flutuante "Continuar Comprando" -->
+<div id="continuar-comprando-btn" 
+     class="position-fixed d-none" 
+     style="bottom: 20px; right: 20px; z-index: 1000;">
+    <button type="button" 
+            class="btn btn-primary rounded-circle shadow-lg"
+            onclick="continuarComprando()"
+            style="width: 60px; height: 60px; font-size: 24px;"
+            title="Continuar Comprando">
+        🛒
+    </button>
+    <div class="mt-2 text-center">
+        <small class="text-muted bg-white px-2 py-1 rounded shadow-sm">
+            Continuar Comprando
+        </small>
+    </div>
+</div>
+
 {% endblock %}

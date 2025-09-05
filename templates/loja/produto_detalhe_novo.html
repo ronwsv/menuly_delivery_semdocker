@@ -130,6 +130,65 @@
  <form id="produto-form" class="mb-4" method="POST" action="">
  {% csrf_token %}
  
+ <!-- DEBUG: Meio-a-Meio -->
+ <!-- Produto: {{ produto.nome }} | Categoria: {{ produto.categoria.nome }} | Permite: {{ produto.permite_meio_a_meio }} -->
+ 
+ <!-- Opção Meio-a-Meio (apenas para pizzas) -->
+ {% if produto.permite_meio_a_meio %}
+ <!-- Testando apenas permite_meio_a_meio primeiro -->
+ <div class="alert alert-info">
+ <strong>DEBUG:</strong> produto.permite_meio_a_meio = {{ produto.permite_meio_a_meio }} | categoria = {{ produto.categoria.nome }}
+ </div>
+ {% endif %}
+ 
+ {% if produto.permite_meio_a_meio and produto.categoria.nome == 'Pizzas' %}
+ <div class="card mb-3 border-warning" id="meio-a-meio-option">
+  <div class="card-body">
+  <h6 class="card-title">
+  <i class="bi bi-pizza text-warning me-2"></i>
+  Deseja pizza meio-a-meio?
+  </h6>
+  <p class="text-muted small mb-3">Escolha dois sabores diferentes para sua pizza!</p>
+  
+  <div class="form-check form-switch">
+  <input class="form-check-input" 
+  type="checkbox" 
+  id="meio-a-meio-toggle" 
+  name="meio_a_meio"
+  onchange="toggleMeioAMeio()">
+  <label class="form-check-label" for="meio-a-meio-toggle">
+  <strong>Sim, quero pizza meio-a-meio</strong>
+  </label>
+  </div>
+  
+  <!-- Container para seleção dos sabores -->
+  <div id="sabores-container" style="display: none;" class="mt-3">
+  <div class="row">
+  <div class="col-md-6">
+  <h6 class="text-primary">1º Sabor</h6>
+  <div class="border rounded p-2 mb-2" id="sabor1-preview">
+  <small class="text-muted">Selecione o primeiro sabor</small>
+  </div>
+  </div>
+  <div class="col-md-6">
+  <h6 class="text-primary">2º Sabor</h6>
+  <div class="border rounded p-2 mb-2" id="sabor2-preview">
+  <small class="text-muted">Selecione o segundo sabor</small>
+  </div>
+  </div>
+  </div>
+  
+  <div class="alert alert-info mt-3">
+  <small>
+  <i class="bi bi-info-circle me-1"></i>
+  <strong>Como funciona:</strong> O preço será baseado no sabor mais caro entre os dois escolhidos.
+  </small>
+  </div>
+  </div>
+  </div>
+ </div>
+ {% endif %}
+ 
  <!-- Opções de personalização -->
  {% for opcao in opcoes_personalizacao %}
  <div class="card mb-3" data-opcao-id="{{ opcao.id }}" data-obrigatorio="{{ opcao.obrigatorio }}" 
@@ -161,6 +220,7 @@
  value="{{ item.id }}"
  data-preco="{{ item.preco_adicional }}"
  {% if opcao.obrigatorio and forloop.first %}checked{% endif %}
+ data-debug="auto-selected-{{ opcao.obrigatorio|yesno:'true,false' }}-{{ forloop.first|yesno:'first,notfirst' }}"
  onchange="atualizarPreco()">
  <label class="form-check-label d-flex justify-content-between w-100" 
  for="item_{{ item.id }}">
@@ -628,17 +688,77 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  // Validação para radio/select
  const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`);
  
+ // Debug: listar todos os elementos encontrados
+ const todosElementos = document.querySelectorAll(`[name="opcao_${opcaoId}"]`);
+ console.log(`🔍 Validando opção ${opcaoId} (${nomeOpcao}):`, {
+     tipo, obrigatorio, 
+     totalElementos: todosElementos.length,
+     selecionados: selecionados.length,
+     elementos: Array.from(todosElementos).map(el => ({
+         type: el.type, 
+         checked: el.checked, 
+         value: el.value,
+         name: el.name
+     }))
+ });
+ 
  if (obrigatorio && selecionados.length === 0) {
- valid = false;
- mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
- opcaoCard.classList.add('border-danger');
+ // Para radio buttons obrigatórios, vamos verificar se há uma seleção padrão
+ if (tipo === 'radio') {
+     // Se é radio obrigatório, deve auto-selecionar o primeiro item
+     const primeiroRadio = document.querySelector(`[name="opcao_${opcaoId}"]`);
+     if (primeiroRadio) {
+         console.log(`🔧 Auto-selecionando primeira opção para ${nomeOpcao}`);
+         primeiroRadio.checked = true;
+         // Disparar evento change para atualizar o preço
+         primeiroRadio.dispatchEvent(new Event('change', { bubbles: true }));
+         // Revalidar após seleção automática
+         const novamenteSelecionados = document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`);
+         if (novamenteSelecionados.length > 0) {
+             console.log(`✅ ${nomeOpcao} auto-selecionado com sucesso`);
+             opcaoCard.classList.remove('border-danger');
+         } else {
+             valid = false;
+             mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
+             opcaoCard.classList.add('border-danger');
+             console.log(`❌ Falha ao auto-selecionar ${nomeOpcao}`);
+         }
+     } else {
+         valid = false;
+         mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
+         opcaoCard.classList.add('border-danger');
+         console.log(`❌ Nenhum radio button encontrado para ${nomeOpcao}`);
+     }
+ } else {
+     valid = false;
+     mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
+     opcaoCard.classList.add('border-danger');
+     console.log(`❌ Opção ${nomeOpcao} é obrigatória mas não foi selecionada`);
+ }
  } else {
  opcaoCard.classList.remove('border-danger');
+ console.log(`✅ Opção ${nomeOpcao} válida - ${selecionados.length} selecionado(s)`);
  }
  }
  });
  
  if (!valid) {
+ console.log('❌ Validação falhou. Mensagem de erro:', mensagemErro);
+ 
+ // Vamos dar mais detalhes sobre o que está falhando
+ opcoes.forEach(opcaoCard => {
+     const opcaoId = opcaoCard.getAttribute('data-opcao-id');
+     const tipo = opcaoCard.getAttribute('data-tipo');
+     const obrigatorio = opcaoCard.getAttribute('data-obrigatorio') === 'True';
+     const nomeOpcao = opcaoCard.querySelector('h6').textContent.trim();
+     
+     console.log(`🔍 Estado da opção ${nomeOpcao}:`, {
+         opcaoId, tipo, obrigatorio,
+         elementos: document.querySelectorAll(`[name="opcao_${opcaoId}"]`).length,
+         selecionados: document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`).length
+     });
+ });
+ 
  alert('Por favor, corrija os seguintes problemas:\n\n' + mensagemErro);
  return;
  }
@@ -731,5 +851,35 @@ document.addEventListener('DOMContentLoaded', function() {
  
  console.log('✅ Sistema de produto inicializado');
 });
+
+// Função para controlar meio-a-meio
+window.toggleMeioAMeio = function() {
+    const toggle = document.getElementById('meio-a-meio-toggle');
+    const container = document.getElementById('sabores-container');
+    
+    if (toggle && container) {
+        if (toggle.checked) {
+            container.style.display = 'block';
+            console.log('🍕 Modo meio-a-meio ativado');
+            
+            // TODO: Implementar lógica para duplicar opções de sabor
+            // Por enquanto apenas mostra o container
+            
+        } else {
+            container.style.display = 'none';
+            console.log('🍕 Modo meio-a-meio desativado');
+            
+            // Limpar seleções de sabores se houver
+            document.getElementById('sabor1-preview').innerHTML = '<small class="text-muted">Selecione o primeiro sabor</small>';
+            document.getElementById('sabor2-preview').innerHTML = '<small class="text-muted">Selecione o segundo sabor</small>';
+        }
+        
+        // Recalcular preço quando alternar modo meio-a-meio
+        if (typeof window.atualizarPreco === 'function') {
+            window.atualizarPreco();
+        }
+    }
+};
+
 </script>
 {% endblock %}

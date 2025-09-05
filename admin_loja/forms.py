@@ -102,7 +102,7 @@ class ProdutoForm(forms.ModelForm):
         fields = [
             'nome', 'descricao', 'categoria', 'preco', 'preco_promocional',
             'imagem_principal', 'destaque', 'disponivel', 'permite_observacoes',
-            'tempo_preparo', 'calorias', 'ingredientes', 'alergicos', 'ordem',
+            'permite_meio_a_meio', 'tempo_preparo', 'calorias', 'ingredientes', 'alergicos', 'ordem',
             'controlar_estoque', 'estoque_atual', 'estoque_minimo'
         ]
         widgets = {
@@ -158,6 +158,7 @@ class ProdutoForm(forms.ModelForm):
                 'class': 'form-control', 
                 'min': '0'
             }),
+            'permite_meio_a_meio': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
     def __init__(self, *args, **kwargs):

@@ -279,12 +279,21 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <div class="form-check">
                                         {{ form.permite_observacoes }}
                                         <label class="form-check-label" for="{{ form.permite_observacoes.id_for_label }}">
                                             <i class="fas fa-comment text-info"></i> {{ form.permite_observacoes.label }}
                                         </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3" id="meio-a-meio-container">
+                                    <div class="form-check">
+                                        {{ form.permite_meio_a_meio }}
+                                        <label class="form-check-label" for="{{ form.permite_meio_a_meio.id_for_label }}">
+                                            <i class="fas fa-pizza-slice text-warning"></i> {{ form.permite_meio_a_meio.label }}
+                                        </label>
+                                        <small class="form-text text-muted">Permitir pizza meio-a-meio</small>
                                     </div>
                                 </div>
                             </div>
@@ -510,6 +519,30 @@ $(document).ready(function() {
             stockControls.hide();
         }
     }).trigger('change'); // Trigger on page load
+    
+    // Show/hide meio-a-meio field based on category selection
+    function toggleMeioAMeioField() {
+        var categoriaSelecionada = $('#{{ form.categoria.id_for_label }} option:selected').text().trim();
+        var meioAMeioContainer = $('#meio-a-meio-container');
+        
+        console.log('Categoria selecionada:', categoriaSelecionada);
+        
+        if (categoriaSelecionada === 'Pizzas' || categoriaSelecionada.toLowerCase().includes('pizza')) {
+            console.log('Mostrando campo meio-a-meio');
+            meioAMeioContainer.show();
+        } else {
+            console.log('Escondendo campo meio-a-meio');
+            meioAMeioContainer.hide();
+            // Uncheck the field if hidden
+            $('#{{ form.permite_meio_a_meio.id_for_label }}').prop('checked', false);
+        }
+    }
+    
+    // Trigger on category change
+    $('#{{ form.categoria.id_for_label }}').on('change', toggleMeioAMeioField);
+    
+    // Trigger on page load
+    toggleMeioAMeioField();
 });
 </script>
 {% endblock %}

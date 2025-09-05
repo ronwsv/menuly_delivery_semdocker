@@ -79,6 +79,9 @@ urlpatterns = [
     path('entregadores/ocorrencias/<int:ocorrencia_id>/resolver/', views_entregadores.resolver_ocorrencia, name='resolver_ocorrencia'),
     path('entregadores/relatorio/', views_entregadores.relatorio_entregas, name='relatorio_entregas'),
     
+    # APIs para entregadores
+    path('api/entregadores-disponiveis/', views_entregadores.api_entregadores_disponiveis, name='api_entregadores_disponiveis'),
+    
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),
 ]

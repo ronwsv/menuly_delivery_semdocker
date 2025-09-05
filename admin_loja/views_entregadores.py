@@ -112,13 +112,46 @@ def pedidos_aguardando_entregador(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Calcular estatísticas adicionais
+    pedidos_em_entrega = Pedido.objects.filter(
+        status='em_entrega',
+        tipo_entrega='delivery'
+    ).count()
+    
     context = {
         'page_obj': page_obj,
+        'pedidos': page_obj.object_list,  # Para compatibilidade
         'entregadores_disponiveis': entregadores_disponiveis,
         'total_pedidos': paginator.count,
+        'pedidos_em_entrega': pedidos_em_entrega,
+        'tempo_medio_espera': 'N/A',  # Pode implementar cálculo depois
     }
     
     return render(request, 'admin_loja/pedidos_aguardando_entregador.html', context)
+
+
+@admin_loja_required
+def api_entregadores_disponiveis(request):
+    """API para listar entregadores disponíveis"""
+    entregadores = Entregador.objects.filter(
+        disponivel=True,
+        em_pausa=False
+    ).annotate(
+        total_entregas=Count('pedidos_entrega'),
+        nota_media=Avg('avaliacoes__nota')
+    ).order_by('-nota_media', 'nome')
+    
+    data = {
+        'entregadores': [{
+            'id': e.id,
+            'nome': e.nome,
+            'telefone': e.telefone,
+            'nota_media': float(e.nota_media) if e.nota_media else 0.0,
+            'total_entregas': e.total_entregas
+        } for e in entregadores]
+    }
+    
+    return JsonResponse(data)
 
 
 @admin_loja_required
