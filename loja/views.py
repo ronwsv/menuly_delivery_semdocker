@@ -160,7 +160,7 @@ from decimal import Decimal, InvalidOperation
 
 from core.models import (
     Restaurante, Categoria, Produto, Pedido, ItemPedido, 
-    PersonalizacaoItemPedido, Usuario, Endereco, HistoricoStatusPedido
+    PersonalizacaoItemPedido, ItemPersonalizacao, Usuario, Endereco, HistoricoStatusPedido
 )
 
 
@@ -876,12 +876,23 @@ class CheckoutView(BaseLojaView):
                     personalizacoes_data = item_data.get('personalizacoes', [])
                     if personalizacoes_data:
                         for perso_data in personalizacoes_data:
-                            PersonalizacaoItemPedido.objects.create(
-                                item_pedido=item_pedido,
-                                nome_opcao=perso_data.get('opcao', 'N/A'),
-                                nome_item=perso_data.get('nome', 'N/A'),
-                                preco=Decimal(str(perso_data.get('preco', '0')))
-                            )
+                            try:
+                                # Buscar o ItemPersonalizacao pelo ID
+                                item_personalizacao = ItemPersonalizacao.objects.get(
+                                    id=perso_data.get('item_id')
+                                )
+                                
+                                PersonalizacaoItemPedido.objects.create(
+                                    item_pedido=item_pedido,
+                                    item_personalizacao=item_personalizacao,
+                                    opcao_nome=perso_data.get('nome', 'N/A'),
+                                    item_nome=perso_data.get('nome', 'N/A'),
+                                    preco_adicional=Decimal(str(perso_data.get('preco_adicional', '0')))
+                                )
+                            except ItemPersonalizacao.DoesNotExist:
+                                # Se o item não existir, pular esta personalização
+                                print(f"ItemPersonalizacao not found for ID: {perso_data.get('item_id')}")
+                                continue
 
                 except (Produto.DoesNotExist, ValueError, InvalidOperation):
                     messages.error(request, f"Um produto no seu carrinho não foi encontrado ou tem dados inválidos (ID: {produto_id_key}).")
