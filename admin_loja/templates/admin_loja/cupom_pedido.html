@@ -48,8 +48,26 @@
                 <tbody>
                     {% for item in itens %}
                     <tr>
-                        <td>{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %}</td>
+                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %}</td>
                     </tr>
+                    {% if item.personalizacoes.exists %}
+                        {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}
+                        {% for opcao_grupo in opcoes_agrupadas %}
+                        <tr>
+                            <td style="padding-left: 8px; font-size: 0.85em; color: #666;">{{ opcao_grupo.grouper }}:</td>
+                        </tr>
+                        {% for personalizacao in opcao_grupo.list %}
+                        <tr>
+                            <td style="padding-left: 15px; font-size: 0.9em;">• {{ personalizacao.item_nome }}{% if personalizacao.preco_adicional > 0 %} (+R$ {{ personalizacao.preco_adicional|floatformat:2 }}){% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if item.observacoes %}
+                    <tr>
+                        <td style="padding-left: 10px; font-size: 0.9em; font-style: italic;">Obs: {{ item.observacoes }}</td>
+                    </tr>
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -74,8 +92,26 @@
                 <tbody>
                     {% for item in itens %}
                     <tr>
-                        <td>{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %} | Cod {{ forloop.counter0 }}</td>
+                        <td style="font-weight: bold;">{{ item.produto.nome }}{% if item.quantidade > 1 %} x{{ item.quantidade }}{% endif %} | Cod {{ forloop.counter0 }}</td>
                     </tr>
+                    {% if item.personalizacoes.exists %}
+                        {% regroup item.personalizacoes.all by opcao_nome as opcoes_agrupadas %}
+                        {% for opcao_grupo in opcoes_agrupadas %}
+                        <tr>
+                            <td style="padding-left: 8px; font-size: 0.85em; color: #666;">{{ opcao_grupo.grouper }}:</td>
+                        </tr>
+                        {% for personalizacao in opcao_grupo.list %}
+                        <tr>
+                            <td style="padding-left: 15px; font-size: 0.9em;">• {{ personalizacao.item_nome }}{% if personalizacao.preco_adicional > 0 %} (+R$ {{ personalizacao.preco_adicional|floatformat:2 }}){% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if item.observacoes %}
+                    <tr>
+                        <td style="padding-left: 10px; font-size: 0.9em; font-style: italic;">Obs: {{ item.observacoes }}</td>
+                    </tr>
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
