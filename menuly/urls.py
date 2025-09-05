@@ -43,7 +43,7 @@ urlpatterns = [
     # Loja - Frontend para clientes (estrutura hierárquica)
     # Esta deve ser a ÚLTIMA das URLs principais para não capturar as outras.
     # Usar regex para excluir URLs reservadas como admin, api, etc.
-    re_path(r'^(?!admin|api|admin-loja|entregador|superadmin|sobre|contato|login)(?P<restaurante_slug>[a-zA-Z0-9_-]+)/', include("loja.urls")),
+    re_path(r'^(?!admin|api|admin-loja|entregador|superadmin|sobre|contato|login|media|static)(?P<restaurante_slug>[a-zA-Z0-9_-]+)/', include("loja.urls")),
 ]
 
 # Servir arquivos de media em desenvolvimento

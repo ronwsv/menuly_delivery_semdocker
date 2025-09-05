@@ -173,7 +173,7 @@ class ProdutoForm(forms.ModelForm):
         # Campos opcionais
         optional_fields = [
             'preco_promocional', 'calorias', 'ingredientes', 
-            'alergicos', 'imagem_principal'
+            'alergicos', 'imagem_principal', 'estoque_atual', 'estoque_minimo'
         ]
         for field_name in optional_fields:
             self.fields[field_name].required = False
@@ -192,11 +192,21 @@ class ProdutoForm(forms.ModelForm):
         cleaned_data = super().clean()
         preco = cleaned_data.get('preco')
         preco_promocional = cleaned_data.get('preco_promocional')
+        controlar_estoque = cleaned_data.get('controlar_estoque')
+        estoque_atual = cleaned_data.get('estoque_atual')
+        estoque_minimo = cleaned_data.get('estoque_minimo')
         
         if preco_promocional and preco_promocional >= preco:
             raise forms.ValidationError(
                 'Preço promocional deve ser menor que o preço normal.'
             )
+        
+        # Validar campos de estoque se controle de estoque estiver habilitado
+        if controlar_estoque:
+            if estoque_atual is None:
+                self.add_error('estoque_atual', 'Este campo é obrigatório quando controle de estoque está ativado.')
+            if estoque_minimo is None:
+                self.add_error('estoque_minimo', 'Este campo é obrigatório quando controle de estoque está ativado.')
         
         return cleaned_data
 

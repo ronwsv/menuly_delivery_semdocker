@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Detalhes do Pedido{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h2>Detalhes do Pedido</h2>
+  {% if pedido %}
+    <div class="mb-3">
+      <strong>Código:</strong> {{ pedido.codigo }}<br>
+      <strong>Status:</strong> {{ pedido.status }}<br>
+      <strong>Cliente:</strong> {{ pedido.cliente.nome }}<br>
+      <strong>Data:</strong> {{ pedido.criado_em|date:"d/m/Y H:i" }}<br>
+      <strong>Valor Total:</strong> R$ {{ pedido.valor_total }}
+    </div>
+    <h5>Itens do Pedido</h5>
+    <ul>
+      {% for item in pedido.itens.all %}
+        <li>
+          {{ item.quantidade }}x {{ item.nome }} - R$ {{ item.preco_total }}
+          {% if item.personalizacoes.all %}
+            <br><small>Personalizações: {% for p in item.personalizacoes.all %}{{ p.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>
+          {% endif %}
+          {% if item.observacoes %}<br><small>Obs: {{ item.observacoes }}</small>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <h5>Forma de Pagamento</h5>
+    <p>{{ pedido.forma_pagamento.nome }}</p>
+    <h5>Endereço de Entrega</h5>
+    <p>{{ pedido.cliente.endereco }}, {{ pedido.cliente.bairro }}<br>{{ pedido.cliente.cidade }} - {{ pedido.cliente.estado }}<br>CEP: {{ pedido.cliente.cep }}</p>
+  {% else %}
+    <div class="alert alert-warning">Pedido não encontrado.</div>
+  {% endif %}
+</div>
+{% endblock %}

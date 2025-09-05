@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django import forms
+from django.contrib import messages
 from django.utils import timezone
 from .utils import painel_loja_required, verificar_permissao_gerencial, verificar_permissao_lojista, obter_restaurante_usuario
 from .views_perfil import perfil_visualizar, perfil_editar, perfil_alterar_senha
@@ -1191,6 +1192,10 @@ def admin_loja_produto_editar(request, produto_id):
     )
     
     if request.method == 'POST':
+        print("======== EDITANDO PRODUTO ========")
+        print(f"FILES recebidos: {request.FILES}")
+        print(f"POST recebido: {request.POST}")
+        
         form = ProdutoForm(
             request.POST, 
             request.FILES, 
@@ -1198,15 +1203,29 @@ def admin_loja_produto_editar(request, produto_id):
             restaurante=produto.restaurante
         )
         if form.is_valid():
-            form.save()
+            print("Formulário é válido, salvando...")
+            produto_salvo = form.save()
+            
+            # Forçar o salvamento explícito da imagem, caso tenha sido enviada
+            if 'imagem_principal' in request.FILES:
+                print(f"Salvando imagem: {request.FILES['imagem_principal']}")
+                produto_salvo.imagem_principal = request.FILES['imagem_principal']
+                produto_salvo.save()
+                print(f"Imagem salva em: {produto_salvo.imagem_principal.path}")
+                print(f"URL da imagem: {produto_salvo.imagem_principal.url}")
+            
+            print("Produto salvo com sucesso!")
             return redirect('admin_loja:produtos')
+        else:
+            print(f"Erro no formulário: {form.errors}")
     else:
         form = ProdutoForm(instance=produto, restaurante=produto.restaurante)
     
     return render(request, 'admin_loja/produto_form.html', {
         'form': form,
         'produto': produto,
-        'titulo': 'Editar Produto'
+        'titulo': 'Editar Produto',
+        'form_errors': form.errors if request.method == 'POST' and not form.is_valid() else None
     })
 
 @login_required
