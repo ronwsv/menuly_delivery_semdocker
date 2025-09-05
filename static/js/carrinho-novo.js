@@ -321,7 +321,7 @@ function renderizarCarrinhoSidebar(data) {
             }
             
             html += `
-                <div class="border-bottom p-3">
+                <div class="border-bottom p-3" data-item-id="${item.produto_id || item.id || i}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1 me-2">
                             <h6 class="mb-1">${item.nome}</h6>
@@ -330,7 +330,13 @@ function renderizarCarrinhoSidebar(data) {
                             ${observacoesHtml}
                         </div>
                         <div class="text-end">
-                            <div class="fw-bold">R$ ${subtotal.toFixed(2).replace('.', ',')}</div>
+                            <div class="fw-bold mb-1">R$ ${subtotal.toFixed(2).replace('.', ',')}</div>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger" 
+                                    onclick="removerItemCarrinho('${item.produto_id || item.id || i}')"
+                                    title="Remover item">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -498,5 +504,65 @@ if (!document.getElementById('menuly-toast-styles')) {
     `;
     document.head.appendChild(toastStyles);
 }
+
+// Função para remover item do carrinho
+window.removerItemCarrinho = function(itemId) {
+    console.log('🗑️ Removendo item do carrinho:', itemId);
+    
+    // Obter slug do restaurante da URL atual
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    
+    if (!slugMatch) {
+        console.error('❌ Slug do restaurante não encontrado na URL');
+        mostrarToast('Erro: não foi possível identificar o restaurante', 'error');
+        return;
+    }
+    
+    var restauranteSlug = slugMatch[1];
+    var url = '/' + restauranteSlug + '/carrinho/remover/';
+    
+    // Obter CSRF token
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') || 
+                    document.querySelector('meta[name=csrf-token]') || 
+                    { value: getCookie('csrftoken') };
+    
+    if (!csrfToken || !csrfToken.value) {
+        console.error('❌ Token CSRF não encontrado');
+        mostrarToast('Erro de segurança. Recarregue a página.', 'error');
+        return;
+    }
+    
+    // Fazer requisição para remover
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken.value
+        },
+        body: JSON.stringify({
+            'produto_id': itemId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarToast('Item removido do carrinho', 'success');
+            
+            // Atualizar contador
+            atualizarContadorCarrinho();
+            
+            // Recarregar carrinho
+            carregarCarrinho();
+        } else {
+            console.error('❌ Erro ao remover item:', data.error);
+            mostrarToast(data.error || 'Erro ao remover item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Erro na requisição:', error);
+        mostrarToast('Erro de conexão', 'error');
+    });
+};
 
 console.log('✅ Carrinho Menuly inicializado - v2.1 CORRIGIDO ' + new Date().toISOString());

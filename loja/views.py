@@ -494,6 +494,11 @@ class AdicionarCarrinhoView(View):
             personalizacoes = data.get('personalizacoes', [])
             observacoes = data.get('observacoes', '')
             
+            # Verificar se é uma pizza meio-a-meio
+            meio_a_meio = data.get('meio_a_meio')
+            nome_customizado = data.get('nome')
+            preco_customizado = data.get('preco_unitario')
+            
             # Validar se produto_id foi fornecido
             if not produto_id:
                 return JsonResponse({
@@ -511,13 +516,25 @@ class AdicionarCarrinhoView(View):
             
             restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
             
-            # Buscar o produto filtrando por restaurante
-            produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
-            
-            # Calcular preço com personalizações
-            preco_base = produto.preco_final
-            preco_adicional = sum(Decimal(str(p.get('preco_adicional', p.get('preco', 0)))) for p in personalizacoes)
-            preco_total = preco_base + preco_adicional
+            # Para pizzas meio-a-meio, não buscar produto no banco (é um ID customizado)
+            if meio_a_meio:
+                # Pizza meio-a-meio - usar dados customizados
+                produto_nome = nome_customizado
+                preco_total = Decimal(str(preco_customizado or 0))
+                categoria_nome = "Pizzas"
+                imagem_url = None
+            else:
+                # Buscar o produto filtrando por restaurante
+                produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
+                
+                # Calcular preço com personalizações
+                preco_base = produto.preco_final
+                preco_adicional = sum(Decimal(str(p.get('preco_adicional', p.get('preco', 0)))) for p in personalizacoes)
+                preco_total = preco_base + preco_adicional
+                
+                produto_nome = produto.nome
+                categoria_nome = produto.categoria.nome if produto.categoria else ''
+                imagem_url = produto.imagem_principal.url if produto.imagem_principal else None
             
             # Obter carrinho da sessão
             carrinho = request.session.get('carrinho', {})
@@ -542,9 +559,10 @@ class AdicionarCarrinhoView(View):
                     'personalizacoes': personalizacoes,
                     'observacoes': observacoes,
                     # Adicionar campos úteis para o frontend
-                    'nome': produto.nome,
-                    'categoria': produto.categoria.nome if produto.categoria else '',
-                    'imagem': produto.imagem_principal.url if produto.imagem_principal else None,
+                    'nome': produto_nome,
+                    'categoria': categoria_nome,
+                    'imagem': imagem_url,
+                    'meio_a_meio': meio_a_meio if meio_a_meio else None,
                 }
             
             request.session['carrinho'] = carrinho

@@ -215,7 +215,8 @@
    {% endif %} <!-- Opções de personalização -->
  {% for opcao in opcoes_personalizacao %}
  <div class="card mb-3" data-opcao-id="{{ opcao.id }}" data-obrigatorio="{{ opcao.obrigatorio }}" 
- {% if opcao.tipo == 'checkbox' %}data-tipo="checkbox" data-min="{{ opcao.quantidade_minima|default:0 }}" data-max="{{ opcao.quantidade_maxima|default:'' }}"{% endif %}>
+ data-tipo="{{ opcao.tipo }}"
+ {% if opcao.tipo == 'checkbox' %}data-min="{{ opcao.quantidade_minima|default:0 }}" data-max="{{ opcao.quantidade_maxima|default:'' }}"{% endif %}>
  <div class="card-body">
  <h6 class="card-title">
  {{ opcao.nome }}
@@ -601,6 +602,8 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  
  const nomeOpcao = opcaoCard.querySelector('h6').textContent.trim();
  
+ console.log(`🔍 Validando opção: ${nomeOpcao} | Tipo: ${tipo} | Obrigatório: ${obrigatorio}`);
+ 
  if (tipo === 'checkbox') {
  // Validação para checkbox com quantidade
  const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}[]"]:checked`);
@@ -623,14 +626,32 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  }
  } else {
  // Validação para radio/select
- const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`);
+ let temSelecao = false;
  
- if (obrigatorio && selecionados.length === 0) {
+ if (tipo === 'select') {
+     // Para select, verificar se tem valor selecionado
+     const selectElement = document.querySelector(`select[name="opcao_${opcaoId}"]`);
+     console.log(`🔍 Select encontrado:`, selectElement, `Valor:`, selectElement?.value);
+     if (selectElement && selectElement.value !== '') {
+         temSelecao = true;
+     }
+ } else {
+     // Para radio buttons
+     const selecionados = document.querySelectorAll(`[name="opcao_${opcaoId}"]:checked`);
+     console.log(`🔍 Radio buttons selecionados:`, selecionados.length);
+     temSelecao = selecionados.length > 0;
+ }
+ 
+ console.log(`🔍 ${nomeOpcao} - Tem seleção: ${temSelecao}, Obrigatório: ${obrigatorio}`);
+ 
+ if (obrigatorio && !temSelecao) {
  valid = false;
  mensagemErro += `• ${nomeOpcao} é obrigatório\n`;
  opcaoCard.classList.add('border-danger');
+ console.log(`❌ ${nomeOpcao} falhou na validação`);
  } else {
  opcaoCard.classList.remove('border-danger');
+ console.log(`✅ ${nomeOpcao} passou na validação`);
  }
  }
  });
@@ -647,15 +668,30 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  
  // Coletar personalizações
  const personalizacoes = [];
- const inputs = document.querySelectorAll('#produto-form input:checked, #produto-form select');
  
- inputs.forEach(input => {
+ // Coletar inputs checked (radio buttons e checkboxes)
+ const inputsChecked = document.querySelectorAll('#produto-form input:checked');
+ inputsChecked.forEach(input => {
  if (input.value && input.value !== '') {
  personalizacoes.push({
  opcao_id: input.name.replace('opcao_', '').replace('[]', ''),
  item_id: input.value,
- nome: input.labels?.[0]?.textContent?.split('+')[0]?.trim() || input.options?.[input.selectedIndex]?.text?.split('(')[0]?.trim(),
- preco_adicional: parseFloat(input.dataset.preco || input.options?.[input.selectedIndex]?.dataset?.preco || 0)
+ nome: input.labels?.[0]?.textContent?.split('+')[0]?.trim() || input.textContent?.trim(),
+ preco_adicional: parseFloat(input.dataset.preco || 0)
+ });
+ }
+ });
+ 
+ // Coletar selects com valor selecionado
+ const selects = document.querySelectorAll('#produto-form select');
+ selects.forEach(select => {
+ if (select.value && select.value !== '') {
+ const selectedOption = select.options[select.selectedIndex];
+ personalizacoes.push({
+ opcao_id: select.name.replace('opcao_', '').replace('[]', ''),
+ item_id: select.value,
+ nome: selectedOption.text.split('(')[0].trim(),
+ preco_adicional: parseFloat(selectedOption.dataset.preco || 0)
  });
  }
  });
@@ -678,26 +714,64 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
      // Nome especial para pizza meio-a-meio
      nomeCompletoItem = `Pizza Meio-a-Meio: ${primeiroSabor.nome} / {{ produto.nome }}`;
      
+     // ID especial para pizza meio-a-meio (combinar os dois IDs)
+     const idMeioAMeio = `meio-${primeiroSabor.id}-${window.produtoData.id}`;
+     
      console.log('🍕 Completando meio-a-meio:', {
          primeiroSabor: primeiroSabor.nome,
          segundoSabor: '{{ produto.nome }}',
-         precoFinal: precoUnitario
+         precoFinal: precoUnitario,
+         idMeioAMeio: idMeioAMeio
      });
+     
+     // Dados especiais para pizza meio-a-meio
+     const itemCarrinho = {
+         produto_id: idMeioAMeio, // ID único para meio-a-meio
+         quantidade: quantidade,
+         nome: nomeCompletoItem,
+         preco_unitario: precoUnitario,
+         meio_a_meio: {
+             primeiro_sabor: primeiroSabor,
+             segundo_sabor: {
+                 id: '{{ produto.id }}',
+                 nome: '{{ produto.nome }}',
+                 preco: precoBase
+             }
+         },
+         personalizacoes: personalizacoes,
+         observacoes: observacoes || ''
+     };
+     
+     console.log('📦 Item meio-a-meio preparado:', itemCarrinho);
+     
+     // Adicionar ao carrinho e limpar localStorage
+     if (typeof window.adicionarAoCarrinho === 'function') {
+         adicionarAoCarrinho(itemCarrinho);
+         
+         // Limpar localStorage
+         localStorage.removeItem('meioAMeio_ativo');
+         localStorage.removeItem('meioAMeio_primeiroSabor');
+         console.log('🍕 Meio-a-meio completado e localStorage limpo');
+         
+         // Mostrar toast especial
+         if (typeof window.mostrarToast === 'function') {
+             mostrarToast('🍕 Pizza meio-a-meio adicionada ao carrinho!', 'success');
+         }
+         
+         // Mostrar botão continuar comprando
+         setTimeout(() => {
+             mostrarBotaoContinuarComprando();
+         }, 500);
+     }
+     
+     return; // Interromper aqui para não adicionar pizza normal
  }
  
+ // Se chegou aqui, é uma pizza normal (não meio-a-meio)
  // Dados do item para o carrinho (formato compatível com Django view)
  const itemCarrinho = {
  produto_id: window.produtoData.id,
  quantidade: quantidade,
- nome_customizado: completandoMeioAMeio ? nomeCompletoItem : undefined,
- meio_a_meio: completandoMeioAMeio ? {
-     primeiro_sabor: primeiroSabor,
-     segundo_sabor: {
-         id: '{{ produto.id }}',
-         nome: '{{ produto.nome }}',
-         preco: precoBase
-     }
- } : undefined,
  personalizacoes: personalizacoes,  // Usar personalizacoes completas
  observacoes: observacoes || ''
  };
@@ -705,16 +779,9 @@ document.getElementById('produto-form').addEventListener('submit', function(e) {
  console.log('📦 Item preparado para carrinho:', itemCarrinho);
  console.log('📦 JSON stringified:', JSON.stringify(itemCarrinho, null, 2));
  
- // Adicionar ao carrinho
+ // Adicionar ao carrinho (pizza normal)
  if (typeof window.adicionarAoCarrinho === 'function') {
      adicionarAoCarrinho(itemCarrinho);
-     
-     // Se completou meio-a-meio, limpar localStorage
-     if (completandoMeioAMeio) {
-         localStorage.removeItem('meioAMeio_ativo');
-         localStorage.removeItem('meioAMeio_primeiroSabor');
-         console.log('🍕 Meio-a-meio completado e localStorage limpo');
-     }
      
      // Mostrar botão continuar comprando após adicionar (se não for meio-a-meio ativo)
      if (!meioAMeioAtivo) {
