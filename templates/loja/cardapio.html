@@ -380,7 +380,15 @@ function testarAdicionar(produtoId) {
     
     console.log('KEY CSRF Token:', csrfToken);
     
-    fetch('/pizzaria-roma/carrinho/adicionar/', {
+    // Obter slug do restaurante da URL atual
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    var restauranteSlug = slugMatch ? slugMatch[1] : 'pizzaria-teste';
+    var url = '/' + restauranteSlug + '/carrinho/adicionar/';
+    
+    console.log('URL dinâmica:', url);
+    
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -539,7 +547,20 @@ function adicionarAoCarrinhoCardapio(produtoId) {
     
     console.log('OK Produto encontrado:', produto);
     
-    // Obter CSRF token
+    // Obter slug do restaurante da URL atual
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    
+    if (!slugMatch) {
+        console.error('ERROR Slug do restaurante não encontrado na URL');
+        showToast('Erro: não foi possível identificar o restaurante', 'error');
+        return Promise.resolve(false);
+    }
+    
+    var restauranteSlug = slugMatch[1];
+    var url = '/' + restauranteSlug + '/carrinho/adicionar/';
+    
+    console.log('URL gerada:', url);
     var csrfToken = null;
     var csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
     if (csrfElement) {
@@ -554,7 +575,7 @@ function adicionarAoCarrinhoCardapio(produtoId) {
     }
     
     // Fazer requisição AJAX
-    return fetch('/pizzaria-roma/carrinho/adicionar/', {
+    return fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -616,8 +637,14 @@ function getCookie(name) {
 
 // Atualizar contador do carrinho
 function updateCarrinhoCounter() {
+    // Obter slug do restaurante da URL atual
+    var currentPath = window.location.pathname;
+    var slugMatch = currentPath.match(/^\/([^\/]+)\//);
+    var restauranteSlug = slugMatch ? slugMatch[1] : 'pizzaria-teste';
+    var url = '/' + restauranteSlug + '/carrinho/';
+    
     // Tentar carregar contador do servidor
-    fetch('/pizzaria-roma/carrinho/', {
+    fetch(url, {
         method: 'GET',
         headers: {
             'Accept': 'application/json'
