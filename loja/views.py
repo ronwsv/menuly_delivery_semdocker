@@ -661,8 +661,26 @@ class CheckoutView(BaseLojaView):
                     produto_id = produto_id_key.split('_')[0]
                 else:
                     produto_id = produto_id_key
+                
+                meio_a_meio = item.get('meio_a_meio')
+                
+                # Para pizzas meio-a-meio, usar dados salvos na sessão
+                if meio_a_meio:
+                    produto_nome = item.get('nome', 'Pizza Meio-a-Meio')
+                    categoria_nome = item.get('categoria', 'Pizzas')
+                    imagem_url = item.get('imagem')
                     
-                produto = Produto.objects.get(id=produto_id)
+                    # Criar objeto mock para compatibilidade com o template
+                    class ProdutoMock:
+                        def __init__(self, nome, categoria_nome, imagem_url):
+                            self.nome = nome
+                            self.categoria = type('obj', (object,), {'nome': categoria_nome})() if categoria_nome else None
+                            self.imagem_principal = type('obj', (object,), {'url': imagem_url})() if imagem_url else None
+                    
+                    produto = ProdutoMock(produto_nome, categoria_nome, imagem_url)
+                else:
+                    produto = Produto.objects.get(id=produto_id)
+                
                 subtotal = item['preco'] * item['quantidade']
                 total += subtotal
                 
@@ -673,6 +691,7 @@ class CheckoutView(BaseLojaView):
                     'subtotal': subtotal,
                     'personalizacoes': item.get('personalizacoes', []),
                     'observacoes': item.get('observacoes', ''),
+                    'meio_a_meio': meio_a_meio,
                 })
             except Produto.DoesNotExist:
                 continue
@@ -709,6 +728,8 @@ class CheckoutView(BaseLojaView):
     def post(self, request, *args, **kwargs):
         """Processa o pedido do checkout."""
         print(f"🛒 POST recebido no checkout: {request.POST}")
+        print(f"🛒 Headers: {dict(request.headers)}")
+        print(f"🛒 Body: {request.body[:500]}...")  # Primeiros 500 chars
         
         data = request.POST
         carrinho_json = data.get('carrinho_json')
@@ -902,7 +923,20 @@ class CheckoutView(BaseLojaView):
                     else:
                         produto_id = produto_id_key
                     
-                    produto = Produto.objects.get(id=produto_id)
+                    meio_a_meio = item_data.get('meio_a_meio')
+                    print(f"🔍 DEBUG: produto_id_key={produto_id_key}, produto_id={produto_id}, meio_a_meio={bool(meio_a_meio)}")
+                    
+                    # Para pizzas meio-a-meio, usar o primeiro sabor como produto base
+                    if meio_a_meio and isinstance(meio_a_meio, dict):
+                        primeiro_sabor = meio_a_meio.get('primeiro_sabor', {})
+                        produto_id_real = primeiro_sabor.get('id')
+                        if produto_id_real:
+                            produto = Produto.objects.get(id=produto_id_real)
+                        else:
+                            print(f"❌ Erro: ID do primeiro sabor não encontrado em meio_a_meio")
+                            continue
+                    else:
+                        produto = Produto.objects.get(id=produto_id)
                     
                     # Garantir que os cálculos são feitos com Decimal
                     preco_unitario = Decimal(str(item_data.get('preco', '0')))
@@ -910,17 +944,23 @@ class CheckoutView(BaseLojaView):
                     subtotal = preco_unitario * quantidade
                     total_pedido += subtotal
 
+                    # Definir nome do produto para pizzas meio-a-meio
+                    produto_nome_customizado = item_data.get('nome')
+                    if meio_a_meio and produto_nome_customizado:
+                        produto_nome_final = produto_nome_customizado
+                    else:
+                        produto_nome_final = produto.nome
+                    
                     # 1. Cria o ItemPedido sem as personalizações
                     item_pedido = ItemPedido.objects.create(
                         pedido=pedido,
                         produto=produto,
+                        produto_nome=produto_nome_final,
                         quantidade=item_data['quantidade'],
                         preco_unitario=preco_unitario,
                         subtotal=subtotal,
                         observacoes=item_data.get('observacoes', ''),
                         meio_a_meio=item_data.get('meio_a_meio')
-                        # O campo 'personalizacoes' que é um JSONField foi removido, 
-                        # pois o erro indica uma relação de banco de dados.
                     )
 
                     # 2. Itera sobre as personalizações do carrinho e cria os objetos
@@ -1368,10 +1408,17 @@ class AcessarPedidosView(BaseLojaView):
 class RemoverItemCarrinhoView(View):
     """Remover item específico do carrinho via AJAX"""
     
+    def get(self, request, *args, **kwargs):
+        print(f"🗑️ GET recebido na RemoverItemCarrinhoView - URL está funcionando!")
+        return JsonResponse({'method': 'GET', 'status': 'working'})
+    
     def post(self, request, *args, **kwargs):
+        print(f"🗑️ RemoverItemCarrinhoView POST recebido")
+        print(f"🗑️ Body: {request.body}")
         try:
             data = json.loads(request.body)
             produto_id = data.get('produto_id')
+            print(f"🗑️ Produto ID para remover: {produto_id}")
             
             if not produto_id:
                 return JsonResponse({

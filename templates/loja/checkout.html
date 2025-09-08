@@ -621,7 +621,7 @@ function atualizarResumo() {
             html += `
                 <div class="item-carrinho d-flex justify-content-between align-items-start py-2 border-bottom">
                     <div class="item-info flex-grow-1">
-                        <h6 class="mb-1">${item.nome}</h6>
+                        <h6 class="mb-1">${item.meio_a_meio ? '1/2x ' : ''}${item.nome}</h6>
                         <small class="text-muted">${item.meio_a_meio ? '1/2' : item.quantidade}x R$ ${(item.preco_unitario || item.preco || 0).toFixed(2).replace('.', ',')}</small>
                         ${personalizacoesHtml}
                         ${observacoesHtml}
@@ -764,8 +764,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkoutForm = document.getElementById('checkout-form');
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', function(e) {
+            console.log('🚀 [SUBMIT] Formulário sendo enviado!');
+            console.log('🚀 [SUBMIT] Dados do carrinho:', carrinhoData);
+            
             // Validar carrinho não vazio
             if (carrinhoData.length === 0) {
+                console.log('❌ [ERROR] Carrinho vazio, impedindo envio');
                 e.preventDefault();
                 alert('Seu carrinho está vazio! Adicione alguns produtos antes de finalizar.');
                 return;
@@ -773,10 +777,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Verificar se carrinho_json foi preenchido
             const carrinhoJsonField = document.getElementById('carrinho_json');
-            const carrinhoJsonValue = carrinhoJsonField.value;
-            console.log('SEARCH Verificando carrinho_json antes do envio:', carrinhoJsonValue);
+            const carrinhoJsonValue = carrinhoJsonField ? carrinhoJsonField.value : 'CAMPO_NAO_ENCONTRADO';
+            console.log('🔍 [CHECK] Verificando carrinho_json antes do envio:', carrinhoJsonValue);
+            
+            if (!carrinhoJsonField) {
+                console.log('❌ [ERROR] Campo carrinho_json não encontrado no DOM');
+                e.preventDefault();
+                alert('Erro: campo carrinho_json não encontrado. Recarregue a página e tente novamente.');
+                return;
+            }
             
             if (!carrinhoJsonValue || carrinhoJsonValue === '[]') {
+                console.log('❌ [ERROR] carrinho_json vazio ou inválido:', carrinhoJsonValue);
                 e.preventDefault();
                 alert('Erro: dados do carrinho não foram carregados. Recarregue a página e tente novamente.');
                 return;
@@ -784,22 +796,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validar CEP se delivery
             const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked');
+            console.log('📍 [CHECK] Tipo de entrega selecionado:', tipoEntrega ? tipoEntrega.value : 'nenhum');
+            
             if (tipoEntrega && tipoEntrega.value === 'delivery') {
-                const cep = document.getElementById('cep').value.replace(/\D/g, '');
+                const cepField = document.getElementById('cep');
+                const cep = cepField ? cepField.value.replace(/\D/g, '') : '';
+                console.log('📍 [CHECK] CEP informado:', cep);
+                
                 if (cep.length !== 8) {
+                    console.log('❌ [ERROR] CEP inválido:', cep);
                     e.preventDefault();
                     alert('Por favor, informe um CEP válido para a entrega.');
-                    document.getElementById('cep').focus();
+                    if (cepField) cepField.focus();
                     return;
                 }
             }
             
             // Validar troco
             const formaPagamento = document.querySelector('input[name="forma_pagamento"]:checked');
+            console.log('💳 [CHECK] Forma de pagamento selecionada:', formaPagamento ? formaPagamento.value : 'nenhum');
+            
             if (formaPagamento && formaPagamento.value === 'dinheiro') {
                 const trocoInput = document.getElementById('troco_para');
                 if (trocoInput && trocoInput.value) {
                     const trocoValue = parseFloat(trocoInput.value) || 0;
+                    console.log('💰 [CHECK] Valor do troco informado:', trocoValue);
+                    
                     // Usar preco_total ou calcular baseado na estrutura do Django
                     const totalPedido = carrinhoData.reduce((acc, item) => {
                         return acc + (item.preco_total || (item.preco_unitario || item.preco || 0) * item.quantidade);
@@ -807,7 +829,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const taxa = tipoEntrega && tipoEntrega.value === 'delivery' ? taxaEntrega : 0;
                     const total = totalPedido + taxa;
                     
+                    console.log('💰 [CHECK] Total do pedido calculado:', total);
+                    
                     if (trocoValue > 0 && trocoValue < total) {
+                        console.log('❌ [ERROR] Troco menor que total do pedido');
                         e.preventDefault();
                         alert('O valor do troco deve ser maior que o total do pedido.');
                         trocoInput.focus();
@@ -818,7 +843,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Gerar código único do pedido será feito no backend Django
             
-            console.log('OK Formulário validado, enviando...');
+            console.log('✅ [SUCCESS] Formulário validado, enviando...');
+            console.log('📋 [DEBUG] Dados do carrinho a serem enviados:', carrinhoData);
+            console.log('📋 [DEBUG] Campos preenchidos:');
+            console.log('- Nome:', document.getElementById('nome') ? document.getElementById('nome').value : 'CAMPO_NAO_ENCONTRADO');
+            console.log('- Celular:', document.getElementById('celular') ? document.getElementById('celular').value : 'CAMPO_NAO_ENCONTRADO');
+            console.log('- Tipo entrega:', tipoEntrega ? tipoEntrega.value : 'nenhum');
+            console.log('- Forma pagamento:', formaPagamento ? formaPagamento.value : 'nenhum');
+            console.log('🚀 [FINAL] Permitindo envio do formulário (não chamando preventDefault)...');
             
             // Após envio bem-sucedido, limpar carrinho
             // (será chamado quando a página for redirecionada ou recarregada)

@@ -861,6 +861,10 @@ window.ativarMeioAMeio = function() {
     
     console.log('🍕 Modo meio-a-meio ativado. Primeiro sabor:', primeiroSabor);
     
+    // Salvar no localStorage para persisitir entre páginas
+    localStorage.setItem('meioAMeio_ativo', 'true');
+    localStorage.setItem('meioAMeio_primeiroSabor', JSON.stringify(primeiroSabor));
+    
     // Mostrar botão continuar comprando
     mostrarBotaoContinuarComprando();
 };
@@ -873,6 +877,10 @@ window.cancelarMeioAMeio = function() {
     // Mostrar botão e esconder indicador
     document.getElementById('btn-meio-a-meio').style.display = 'inline-block';
     document.getElementById('meio-a-meio-ativo').style.display = 'none';
+    
+    // Limpar localStorage
+    localStorage.removeItem('meioAMeio_ativo');
+    localStorage.removeItem('meioAMeio_primeiroSabor');
     
     // Esconder botão continuar comprando
     esconderBotaoContinuarComprando();
@@ -928,9 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('produto-form');
         form.parentNode.insertBefore(avisoDiv, form);
         
-        // Limpar localStorage
-        localStorage.removeItem('meioAMeio_ativo');
-        localStorage.removeItem('meioAMeio_primeiroSabor');
+        // localStorage será limpo após adicionar ao carrinho
     }
 });
 

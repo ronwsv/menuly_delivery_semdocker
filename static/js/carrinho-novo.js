@@ -553,7 +553,7 @@ window.removerItemCarrinho = function(itemId) {
             atualizarContadorCarrinho();
             
             // Recarregar carrinho
-            carregarCarrinho();
+            carregarDadosCarrinhoSidebar();
         } else {
             console.error('❌ Erro ao remover item:', data.error);
             mostrarToast(data.error || 'Erro ao remover item', 'error');

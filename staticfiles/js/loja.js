@@ -400,6 +400,28 @@ const Carrinho = {
             return;
         }
         
+        // Verificar se o produto tem opções de personalização
+        const temOpcoes = btn.dataset.temOpcoes === 'true';
+        const produtoSlug = btn.dataset.produtoSlug;
+        
+        if (temOpcoes) {
+            // Produto complexo: redirecionar para página de detalhes
+            console.log('🔧 Produto com opções, redirecionando para detalhes:', produtoId);
+            
+            // Construir URL correta com base na URL atual
+            const currentPath = window.location.pathname;
+            const slugMatch = currentPath.match(/^\/([^\/]+)\//);
+            const restauranteSlug = slugMatch ? slugMatch[1] : '';
+            const detailUrl = `/${restauranteSlug}/produto/${produtoSlug}/`;
+            
+            console.log('🔗 Redirecionando para:', detailUrl);
+            window.location.href = detailUrl;
+            return;
+        }
+        
+        // Produto simples: adicionar direto ao carrinho
+        console.log('🛒 Produto simples, adicionando direto ao carrinho:', produtoId);
+        
         const originalText = btn.innerHTML;
         
         // Marcar como processando e desabilitar botão

@@ -919,6 +919,79 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* ====================== SIDEBAR DO CARRINHO ====================== */
+#carrinho-sidebar {
+    border: none;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+}
+
+#carrinho-sidebar .offcanvas-header {
+    background: var(--cor-primaria);
+    color: white;
+    border-bottom: none;
+}
+
+#carrinho-sidebar .offcanvas-header .btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+#carrinho-sidebar .offcanvas-header .btn-close:hover {
+    opacity: 1;
+}
+
+#carrinho-sidebar .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+#carrinho-items {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+}
+
+#carrinho-footer {
+    border-top: 2px solid #e9ecef;
+    background: #f8f9fa;
+    margin-top: auto;
+}
+
+#carrinho-header {
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Badge do carrinho com animação */
+#carrinho-badge {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Botão do carrinho */
+#btn-abrir-carrinho {
+    position: relative;
+    transition: var(--transition);
+}
+
+#btn-abrir-carrinho:hover {
+    transform: scale(1.05);
+}
+
+/* Itens do carrinho no sidebar */
+.carrinho-sidebar-item {
+    transition: var(--transition);
+}
+
+.carrinho-sidebar-item:hover {
+    background: #f8f9fa;
+}
+
 /* ====================== PRINT STYLES ====================== */
 @media print {
     .navbar,
