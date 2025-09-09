@@ -610,7 +610,7 @@ function mostrarNotificacao(message, type = 'info') {
     // Fallback simples
     const toast = document.createElement('div');
     toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
-    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1055; min-width: 300px;';
     toast.innerHTML = `
         <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
         ${message}

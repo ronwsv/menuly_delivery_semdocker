@@ -703,7 +703,7 @@ def admin_loja_pedidos(request):
         restaurantes = request.user.trabalha_em.all()
     
     pedidos = []
-    status_list = ['novo', 'preparo', 'pronto', 'entrega', 'finalizado']
+    status_list = ['pendente', 'novo', 'confirmado', 'preparo', 'preparando', 'pronto', 'entrega', 'em_entrega', 'finalizado']
     pedidos_por_status = {status: [] for status in status_list}
     
     if restaurantes.exists():

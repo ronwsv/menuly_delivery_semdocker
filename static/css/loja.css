@@ -62,6 +62,7 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #fff !important;
     box-shadow: var(--shadow-sm);
     padding: 0.75rem 0;
+    z-index: 1050 !important; /* Garantir que o navbar fique sempre no topo */
 }
 
 .navbar-brand {
@@ -608,7 +609,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1045; /* Z-index alto para ficar acima dos elementos da página */
     box-shadow: var(--shadow-lg);
     animation: bounce 2s infinite;
     transition: var(--transition);
@@ -654,6 +655,19 @@ h1, h2, h3, h4, h5, h6 {
 .toast {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
+}
+
+.toast-container {
+    z-index: 1055 !important; /* Toast deve ficar acima do navbar */
+}
+
+/* ====================== BOTÕES FLUTUANTES E ELEMENTOS FIXOS ====================== */
+.btn-flutuante {
+    z-index: 1045 !important;
+}
+
+.elemento-fixo-alto {
+    z-index: 1045 !important;
 }
 
 /* ====================== FORMULÁRIOS ====================== */
@@ -923,6 +937,7 @@ h1, h2, h3, h4, h5, h6 {
 #carrinho-sidebar {
     border: none;
     box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+    z-index: 1046 !important; /* Sidebar deve ficar acima de outros elementos mas abaixo do navbar */
 }
 
 #carrinho-sidebar .offcanvas-header {

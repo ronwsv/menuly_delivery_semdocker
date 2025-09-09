@@ -148,7 +148,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView
 from django.contrib import messages
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
 from django.http import JsonResponse, Http404
@@ -587,9 +587,13 @@ class AdicionarCarrinhoView(View):
                 produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
             
             # Obter carrinho usando Service Layer
+            # Garantir que existe sessão_id
+            if not request.session.session_key:
+                request.session.create()
+                
             carrinho = CarrinhoService.obter_carrinho(
                 usuario=request.user if request.user.is_authenticated else None,
-                sessao_id=request.session.session_key or request.session.create(),
+                sessao_id=request.session.session_key,
                 restaurante=restaurante
             )
             
@@ -660,6 +664,10 @@ class RemoverCarrinhoView(View):
             restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
             
             # Obter carrinho
+            # Garantir que existe sessão_id
+            if not request.session.session_key:
+                request.session.create()
+                
             carrinho = CarrinhoService.obter_carrinho(
                 usuario=request.user if request.user.is_authenticated else None,
                 sessao_id=request.session.session_key,
@@ -1649,6 +1657,10 @@ class CarrinhoView(BaseLojaView):
         
         try:
             # Obter carrinho usando service
+            # Garantir que existe sessão_id
+            if not self.request.session.session_key:
+                self.request.session.create()
+                
             carrinho = CarrinhoService.obter_carrinho(
                 usuario=self.request.user if self.request.user.is_authenticated else None,
                 sessao_id=self.request.session.session_key,
@@ -1696,6 +1708,10 @@ class CarrinhoView(BaseLojaView):
             try:
                 restaurante_slug = kwargs.get('restaurante_slug')
                 restaurante = get_object_or_404(Restaurante, slug=restaurante_slug)
+                
+                # Garantir que existe sessão_id
+                if not request.session.session_key:
+                    request.session.create()
                 
                 carrinho = CarrinhoService.obter_carrinho(
                     usuario=request.user if request.user.is_authenticated else None,
@@ -1752,14 +1768,66 @@ class AdicionarProdutoCarrinhoView(View):
             restaurante = get_object_or_404(Restaurante, slug=restaurante_slug)
             
             # Obter produto
-            produto = get_object_or_404(Produto, id=serializer.validated_data['produto_id'])
+            produto_id = serializer.validated_data['produto_id']
+            meio_a_meio_data = serializer.validated_data.get('meio_a_meio')
+            is_meio_a_meio = str(produto_id).startswith('meio-') or meio_a_meio_data is not None
+            
+            if is_meio_a_meio:
+                # Para meio-a-meio, usar o primeiro sabor como produto base
+                if meio_a_meio_data and isinstance(meio_a_meio_data, dict):
+                    primeiro_sabor = meio_a_meio_data.get('primeiro_sabor', {})
+                    primeiro_sabor_id = primeiro_sabor.get('id')
+                    if primeiro_sabor_id:
+                        try:
+                            produto = Produto.objects.get(id=primeiro_sabor_id, restaurante=restaurante, disponivel=True)
+                        except Produto.DoesNotExist:
+                            return JsonResponse({
+                                'success': False,
+                                'error': 'Primeiro sabor não encontrado'
+                            }, status=400)
+                    else:
+                        # Fallback: buscar primeiro produto de pizza disponível
+                        produto = Produto.objects.filter(
+                            restaurante=restaurante, 
+                            categoria__nome__icontains='pizza',
+                            disponivel=True
+                        ).first()
+                else:
+                    # Fallback: buscar primeiro produto de pizza disponível
+                    produto = Produto.objects.filter(
+                        restaurante=restaurante, 
+                        categoria__nome__icontains='pizza',
+                        disponivel=True
+                    ).first()
+                
+                if not produto:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Produto base para pizza não encontrado'
+                    }, status=400)
+            else:
+                produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
             
             # Obter carrinho
+            # Garantir que existe sessão_id
+            if not request.session.session_key:
+                request.session.create()
+                
             carrinho = CarrinhoService.obter_carrinho(
                 usuario=request.user if request.user.is_authenticated else None,
                 sessao_id=request.session.session_key,
                 restaurante=restaurante
             )
+            
+            # Preparar dados adicionais para meio-a-meio
+            dados_meio_a_meio = None
+            if is_meio_a_meio:
+                dados_meio_a_meio = {
+                    'nome_customizado': serializer.validated_data.get('nome'),
+                    'preco_customizado': float(serializer.validated_data.get('preco_unitario', 0)) if serializer.validated_data.get('preco_unitario') else None,
+                    'dados_originais': meio_a_meio_data,
+                    'produto_id_original': produto_id
+                }
             
             # Adicionar item
             item = CarrinhoService.adicionar_item(
@@ -1768,7 +1836,7 @@ class AdicionarProdutoCarrinhoView(View):
                 quantidade=serializer.validated_data['quantidade'],
                 observacoes=serializer.validated_data.get('observacoes', ''),
                 personalizacoes=serializer.validated_data.get('personalizacoes', []),
-                dados_meio_a_meio=serializer.validated_data.get('dados_meio_a_meio')
+                dados_meio_a_meio=dados_meio_a_meio
             )
             
             # Retornar resumo atualizado

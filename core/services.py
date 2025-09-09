@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 class CarrinhoService:
     """Serviço para gestão do carrinho de compras"""
     
+    @staticmethod 
+    def garantir_sessao(request) -> str:
+        """Garante que existe uma sessão ativa e retorna o session_key"""
+        if not request.session.session_key:
+            request.session.create()
+        return request.session.session_key
+        
     @staticmethod
     def obter_carrinho(usuario: Optional[Usuario] = None, 
                       sessao_id: Optional[str] = None, 
@@ -196,6 +203,7 @@ class CarrinhoService:
             
             itens_detalhados.append({
                 'id': str(item.id),
+                'nome': nome_produto,  # Nome diretamente acessível para o JS
                 'produto': {
                     'id': str(item.produto.id),
                     'nome': nome_produto,
