@@ -160,7 +160,7 @@ from decimal import Decimal, InvalidOperation
 
 from core.models import (
     Restaurante, Categoria, Produto, Pedido, ItemPedido, 
-    PersonalizacaoItemPedido, ItemPersonalizacao, Usuario, Endereco, HistoricoStatusPedido
+    PersonalizacaoItemPedido, ItemPersonalizacao, OpcaoPersonalizacao, Usuario, Endereco, HistoricoStatusPedido
 )
 
 
@@ -373,7 +373,7 @@ class BuscarProdutosView(BaseLojaView):
         return context
 
 
-class CarrinhoView(BaseLojaView):
+class CarrinhoViewOriginal(BaseLojaView):
     """Página do carrinho"""
     template_name = 'loja/carrinho.html'
     
@@ -516,29 +516,30 @@ class CarrinhoView(BaseLojaView):
 
 
 class AdicionarCarrinhoView(View):
-    """Adicionar produto ao carrinho via AJAX"""
+    """Adicionar produto ao carrinho via AJAX - Nova arquitetura"""
     
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
             produto_id = data.get('produto_id')
             quantidade = int(data.get('quantidade', 1))
-            personalizacoes = data.get('personalizacoes', [])
+            personalizacoes_data = data.get('personalizacoes', [])
             observacoes = data.get('observacoes', '')
             
-            # Verificar se é uma pizza meio-a-meio
-            meio_a_meio = data.get('meio_a_meio')
-            nome_customizado = data.get('nome')
-            preco_customizado = data.get('preco_unitario')
-            
-            # Validar se produto_id foi fornecido
+            # Validações básicas
             if not produto_id:
                 return JsonResponse({
                     'success': False,
                     'error': 'ID do produto é obrigatório'
                 }, status=400)
             
-            # Obter restaurante do slug da URL
+            # Verificar se é pizza meio-a-meio (ID customizado)
+            meio_a_meio_data = data.get('meio_a_meio')
+            nome_customizado = data.get('nome')
+            preco_customizado = data.get('preco_unitario')
+            is_meio_a_meio = str(produto_id).startswith('meio-') or meio_a_meio_data is not None
+            
+            # Obter restaurante
             restaurante_slug = kwargs.get('restaurante_slug')
             if not restaurante_slug:
                 return JsonResponse({
@@ -548,96 +549,154 @@ class AdicionarCarrinhoView(View):
             
             restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
             
-            # Para pizzas meio-a-meio, não buscar produto no banco (é um ID customizado)
-            if meio_a_meio:
-                # Pizza meio-a-meio - usar dados customizados
-                produto_nome = nome_customizado
-                preco_total = Decimal(str(preco_customizado or 0))
-                categoria_nome = "Pizzas"
-                imagem_url = None
+            # Para pizzas meio-a-meio, usar produto base de pizza
+            if is_meio_a_meio:
+                # Se temos dados de meio-a-meio, usar o primeiro sabor como produto base
+                if meio_a_meio_data and isinstance(meio_a_meio_data, dict):
+                    primeiro_sabor = meio_a_meio_data.get('primeiro_sabor', {})
+                    primeiro_sabor_id = primeiro_sabor.get('id')
+                    if primeiro_sabor_id:
+                        try:
+                            produto = Produto.objects.get(id=primeiro_sabor_id, restaurante=restaurante, disponivel=True)
+                        except Produto.DoesNotExist:
+                            return JsonResponse({
+                                'success': False,
+                                'error': 'Primeiro sabor não encontrado'
+                            }, status=400)
+                    else:
+                        # Fallback: buscar primeiro produto de pizza disponível
+                        produto = Produto.objects.filter(
+                            restaurante=restaurante, 
+                            categoria__nome__icontains='pizza',
+                            disponivel=True
+                        ).first()
+                else:
+                    # Fallback: buscar primeiro produto de pizza disponível
+                    produto = Produto.objects.filter(
+                        restaurante=restaurante, 
+                        categoria__nome__icontains='pizza',
+                        disponivel=True
+                    ).first()
+                
+                if not produto:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Produto base para pizza não encontrado'
+                    }, status=400)
             else:
-                # Buscar o produto filtrando por restaurante
                 produto = get_object_or_404(Produto, id=produto_id, restaurante=restaurante, disponivel=True)
-                
-                # Calcular preço com personalizações
-                preco_base = produto.preco_final
-                preco_adicional = sum(Decimal(str(p.get('preco_adicional', p.get('preco', 0)))) for p in personalizacoes)
-                preco_total = preco_base + preco_adicional
-                
-                produto_nome = produto.nome
-                categoria_nome = produto.categoria.nome if produto.categoria else ''
-                imagem_url = produto.imagem_principal.url if produto.imagem_principal else None
             
-            # Obter carrinho da sessão
-            carrinho = request.session.get('carrinho', {})
+            # Obter carrinho usando Service Layer
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key or request.session.create(),
+                restaurante=restaurante
+            )
             
-            # Chave única para o item (incluindo personalizações)
-            # Criar uma string única das personalizações para identificar itens únicos
-            personalizacoes_str = ""
-            if personalizacoes:
-                # Ordenar personalizações por uma chave específica para consistência
-                personalizacoes_ordenadas = sorted(personalizacoes, key=lambda x: str(x.get('opcao_id', '')) + str(x.get('item_id', '')))
-                personalizacoes_str = str([(p.get('opcao_id'), p.get('item_id')) for p in personalizacoes_ordenadas])
+            # Processar personalizações se existirem
+            personalizacoes = []
+            if personalizacoes_data:
+                for p in personalizacoes_data:
+                    try:
+                        # Buscar a personalização/opção
+                        if p.get('opcao_id'):
+                            opcao = OpcaoPersonalizacao.objects.get(id=p['opcao_id'])
+                            personalizacoes.append({
+                                'opcao_id': p['opcao_id'],
+                                'item_id': p.get('item_id'),
+                                'nome': p.get('nome', opcao.nome),
+                                'preco_adicional': float(p.get('preco_adicional', p.get('preco', 0)))
+                            })
+                    except OpcaoPersonalizacao.DoesNotExist:
+                        continue
             
-            item_key = f"{produto_id}_{hash(personalizacoes_str + observacoes)}"
-            
-            if item_key in carrinho:
-                carrinho[item_key]['quantidade'] += quantidade
-            else:
-                carrinho[item_key] = {
-                    'produto_id': str(produto_id),
-                    'quantidade': quantidade,
-                    'preco': float(preco_total),
-                    'personalizacoes': personalizacoes,
-                    'observacoes': observacoes,
-                    # Adicionar campos úteis para o frontend
-                    'nome': produto_nome,
-                    'categoria': categoria_nome,
-                    'imagem': imagem_url,
-                    'meio_a_meio': meio_a_meio if meio_a_meio else None,
+            # Preparar dados adicionais para meio-a-meio
+            dados_meio_a_meio = None
+            if is_meio_a_meio:
+                dados_meio_a_meio = {
+                    'nome_customizado': nome_customizado,
+                    'preco_customizado': float(preco_customizado) if preco_customizado else None,
+                    'dados_originais': meio_a_meio_data,
+                    'produto_id_original': produto_id  # Manter o ID original meio-uuid-uuid
                 }
             
-            request.session['carrinho'] = carrinho
-            request.session.modified = True
+            # Adicionar item ao carrinho usando Service Layer
+            item = CarrinhoService.adicionar_item(
+                carrinho=carrinho,
+                produto=produto,
+                quantidade=quantidade,
+                personalizacoes=personalizacoes,
+                observacoes=observacoes,
+                dados_meio_a_meio=dados_meio_a_meio
+            )
             
-            # Calcular novo total do carrinho
-            carrinho_count = sum(item['quantidade'] for item in carrinho.values())
+            # Calcular resumo atualizado
+            resumo = CarrinhoService.calcular_resumo(carrinho)
             
             return JsonResponse({
                 'success': True,
                 'message': 'Produto adicionado ao carrinho!',
-                'carrinho_count': carrinho_count
+                'carrinho_count': resumo['total_itens'],
+                'total_carrinho': float(resumo['subtotal'])
             })
             
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
         except Exception as e:
             return JsonResponse({
                 'success': False,
                 'error': f'Erro ao adicionar produto: {str(e)}'
-            }, status=400)
+            }, status=500)
 
 
 class RemoverCarrinhoView(View):
-    """Remover item do carrinho"""
+    """Remover item do carrinho - Nova arquitetura"""
     
     def post(self, request, restaurante_slug, item_id):
-        carrinho = request.session.get('carrinho', {})
-        
-        if item_id in carrinho:
-            del carrinho[item_id]
-            request.session['carrinho'] = carrinho
-            request.session.modified = True
+        try:
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+            
+            # Obter carrinho
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key,
+                restaurante=restaurante
+            )
+            
+            # Remover item
+            CarrinhoService.remover_item(carrinho, item_id)
             messages.success(request, 'Item removido do carrinho!')
+            
+        except Exception as e:
+            messages.error(request, f'Erro ao remover item: {str(e)}')
         
         return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
 
 
 class LimparCarrinhoView(View):
-    """Limpar todo o carrinho"""
+    """Limpar todo o carrinho - Nova arquitetura"""
     
     def post(self, request, restaurante_slug):
-        request.session['carrinho'] = {}
-        request.session.modified = True
-        messages.success(request, 'Carrinho limpo!')
+        try:
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+            
+            # Obter carrinho
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key,
+                restaurante=restaurante
+            )
+            
+            # Limpar carrinho
+            CarrinhoService.limpar_carrinho(carrinho)
+            messages.success(request, 'Carrinho limpo!')
+            
+        except Exception as e:
+            messages.error(request, f'Erro ao limpar carrinho: {str(e)}')
+        
         return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
 
 
@@ -1406,48 +1465,52 @@ class AcessarPedidosView(BaseLojaView):
 
 
 class RemoverItemCarrinhoView(View):
-    """Remover item específico do carrinho via AJAX"""
-    
-    def get(self, request, *args, **kwargs):
-        print(f"🗑️ GET recebido na RemoverItemCarrinhoView - URL está funcionando!")
-        return JsonResponse({'method': 'GET', 'status': 'working'})
+    """Remover item específico do carrinho via AJAX - Nova arquitetura"""
     
     def post(self, request, *args, **kwargs):
-        print(f"🗑️ RemoverItemCarrinhoView POST recebido")
-        print(f"🗑️ Body: {request.body}")
         try:
             data = json.loads(request.body)
-            produto_id = data.get('produto_id')
-            print(f"🗑️ Produto ID para remover: {produto_id}")
+            item_id = data.get('item_id') or data.get('produto_id')
             
-            if not produto_id:
+            if not item_id:
                 return JsonResponse({
                     'success': False,
-                    'message': 'ID do produto não fornecido'
+                    'message': 'ID do item não fornecido'
                 }, status=400)
             
-            carrinho = request.session.get('carrinho', {})
+            # Obter restaurante do slug (assumindo que está na URL ou session)
+            restaurante_slug = kwargs.get('restaurante_slug')
+            if not restaurante_slug:
+                # Tentar obter da sessão ou request
+                restaurante_slug = request.session.get('restaurante_slug')
             
-            # Procurar e remover item com o produto_id
-            items_removidos = 0
-            for item_key in list(carrinho.keys()):
-                if carrinho[item_key]['produto_id'] == str(produto_id):
-                    del carrinho[item_key]
-                    items_removidos += 1
-            
-            if items_removidos > 0:
-                request.session['carrinho'] = carrinho
-                request.session.modified = True
+            if restaurante_slug:
+                restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+                
+                # Obter carrinho
+                carrinho = CarrinhoService.obter_carrinho(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    sessao_id=request.session.session_key,
+                    restaurante=restaurante
+                )
+                
+                # Remover item
+                CarrinhoService.remover_item(carrinho, item_id)
+                
+                # Calcular resumo atualizado
+                resumo = CarrinhoService.calcular_resumo(carrinho)
                 
                 return JsonResponse({
                     'success': True,
-                    'message': 'Item removido do carrinho'
+                    'message': 'Item removido do carrinho',
+                    'carrinho_count': resumo['total_itens'],
+                    'total_carrinho': float(resumo['subtotal'])
                 })
             else:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Item não encontrado no carrinho'
-                }, status=404)
+                    'message': 'Restaurante não identificado'
+                }, status=400)
                 
         except Exception as e:
             return JsonResponse({
@@ -1457,51 +1520,67 @@ class RemoverItemCarrinhoView(View):
 
 
 class AlterarQuantidadeCarrinhoView(View):
-    """Alterar quantidade de item no carrinho via AJAX"""
+    """Alterar quantidade de item no carrinho via AJAX - Nova arquitetura"""
     
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
-            produto_id = data.get('produto_id')
-            delta = int(data.get('delta', 0))
+            item_id = data.get('item_id') or data.get('produto_id')
+            nova_quantidade = data.get('quantidade')
+            delta = data.get('delta')
             
-            if not produto_id or delta == 0:
+            if not item_id:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Dados inválidos'
+                    'message': 'ID do item não fornecido'
                 }, status=400)
             
-            carrinho = request.session.get('carrinho', {})
+            # Obter restaurante do slug
+            restaurante_slug = kwargs.get('restaurante_slug')
+            if not restaurante_slug:
+                restaurante_slug = request.session.get('restaurante_slug')
             
-            # Procurar item no carrinho
-            item_encontrado = False
-            for item_key in carrinho.keys():
-                if carrinho[item_key]['produto_id'] == str(produto_id):
-                    nova_quantidade = carrinho[item_key]['quantidade'] + delta
-                    
-                    if nova_quantidade <= 0:
-                        # Remover item se quantidade for 0 ou menor
-                        del carrinho[item_key]
-                    else:
-                        carrinho[item_key]['quantidade'] = nova_quantidade
-                    
-                    item_encontrado = True
-                    break
-            
-            if item_encontrado:
-                request.session['carrinho'] = carrinho
-                request.session.modified = True
+            if restaurante_slug:
+                restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+                
+                # Obter carrinho
+                carrinho = CarrinhoService.obter_carrinho(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    sessao_id=request.session.session_key,
+                    restaurante=restaurante
+                )
+                
+                # Atualizar quantidade
+                if nova_quantidade is not None:
+                    CarrinhoService.atualizar_quantidade(carrinho, item_id, int(nova_quantidade))
+                elif delta is not None:
+                    CarrinhoService.alterar_quantidade(carrinho, item_id, int(delta))
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Quantidade ou delta não fornecidos'
+                    }, status=400)
+                
+                # Calcular resumo atualizado
+                resumo = CarrinhoService.calcular_resumo(carrinho)
                 
                 return JsonResponse({
                     'success': True,
-                    'message': 'Quantidade atualizada'
+                    'message': 'Quantidade atualizada',
+                    'carrinho_count': resumo['total_itens'],
+                    'total_carrinho': float(resumo['subtotal'])
                 })
             else:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Item não encontrado no carrinho'
-                }, status=404)
+                    'message': 'Restaurante não identificado'
+                }, status=400)
                 
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
         except Exception as e:
             return JsonResponse({
                 'success': False,
@@ -1510,12 +1589,363 @@ class AlterarQuantidadeCarrinhoView(View):
 
 
 class LimparCarrinhoAjaxView(View):
-    """Limpar todo o carrinho via AJAX"""
+    """Limpar todo o carrinho via AJAX - Nova arquitetura"""
     
     def post(self, request, *args, **kwargs):
         try:
-            request.session['carrinho'] = {}
-            request.session.modified = True
+            # Obter restaurante do slug
+            restaurante_slug = kwargs.get('restaurante_slug')
+            if not restaurante_slug:
+                restaurante_slug = request.session.get('restaurante_slug')
+            
+            if restaurante_slug:
+                restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+                
+                # Obter carrinho
+                carrinho = CarrinhoService.obter_carrinho(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    sessao_id=request.session.session_key,
+                    restaurante=restaurante
+                )
+                
+                # Limpar carrinho
+                CarrinhoService.limpar_carrinho(carrinho)
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Carrinho limpo com sucesso',
+                    'carrinho_count': 0,
+                    'total_carrinho': 0.0
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Restaurante não identificado'
+                }, status=400)
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao limpar carrinho: {str(e)}'
+            }, status=500)
+
+
+# ====================== NOVA ARQUITETURA - VIEWS REFATORADAS ======================
+
+from core.services import CarrinhoService, PedidoService, FreteService
+from core.serializers import AdicionarItemCarrinhoSerializer, CriarPedidoSerializer
+from django.core.exceptions import ValidationError
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+
+class CarrinhoView(BaseLojaView):
+    """Versão refatorada da view do carrinho usando CarrinhoService"""
+    template_name = 'loja/carrinho.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        try:
+            # Obter carrinho usando service
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=self.request.user if self.request.user.is_authenticated else None,
+                sessao_id=self.request.session.session_key,
+                restaurante=context['restaurante']
+            )
+            
+            # Calcular resumo do carrinho
+            resumo = CarrinhoService.calcular_resumo(carrinho)
+            
+            # Calcular frete se houver endereço
+            taxa_entrega = 0
+            if not resumo['carrinho_vazio'] and self.request.session.get('endereco_entrega'):
+                taxa_entrega = FreteService.calcular_frete(
+                    context['restaurante'], 
+                    self.request.session.get('endereco_entrega', {}).get('cep', '')
+                )
+            
+            context.update({
+                'carrinho': carrinho,
+                'itens_carrinho': resumo['itens'],
+                'total_carrinho': resumo['subtotal'],
+                'taxa_entrega': taxa_entrega,
+                'total_final': resumo['subtotal'] + taxa_entrega,
+                'carrinho_count': resumo['total_itens'],
+                'total_items': len(resumo['itens']),
+            })
+            
+            logger.info(f"Carrinho carregado: {resumo['total_itens']} itens")
+            
+        except Exception as e:
+            logger.error(f"Erro ao carregar carrinho: {e}")
+            messages.error(self.request, 'Erro ao carregar carrinho')
+            context.update({
+                'itens_carrinho': [],
+                'total_carrinho': 0,
+                'carrinho_count': 0,
+                'total_items': 0,
+            })
+        
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        # Se for requisição AJAX, retornar JSON
+        if request.headers.get('Accept') == 'application/json':
+            try:
+                restaurante_slug = kwargs.get('restaurante_slug')
+                restaurante = get_object_or_404(Restaurante, slug=restaurante_slug)
+                
+                carrinho = CarrinhoService.obter_carrinho(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    sessao_id=request.session.session_key,
+                    restaurante=restaurante
+                )
+                
+                resumo = CarrinhoService.calcular_resumo(carrinho)
+                
+                # Converter Decimals para float para compatibilidade com JavaScript
+                items_formatados = []
+                for item in resumo['itens']:
+                    item_formatado = item.copy()
+                    item_formatado['preco_unitario'] = float(item['preco_unitario'])
+                    item_formatado['subtotal'] = float(item['subtotal'])
+                    items_formatados.append(item_formatado)
+                
+                return JsonResponse({
+                    'success': True,
+                    'carrinho_count': resumo['total_itens'],
+                    'total_valor': float(resumo['subtotal']),
+                    'items': items_formatados
+                })
+                
+            except Exception as e:
+                logger.error(f"Erro ao obter carrinho via AJAX: {e}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Erro ao carregar carrinho'
+                }, status=500)
+        
+        # Requisição normal - renderizar template
+        return super().get(request, *args, **kwargs)
+
+
+class AdicionarProdutoCarrinhoView(View):
+    """Versão refatorada para adicionar produtos ao carrinho"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            
+            # Validar dados usando serializer
+            serializer = AdicionarItemCarrinhoSerializer(data=data)
+            if not serializer.is_valid():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Dados inválidos',
+                    'details': serializer.errors
+                }, status=400)
+            
+            # Obter restaurante
+            restaurante_slug = kwargs.get('restaurante_slug')
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug)
+            
+            # Obter produto
+            produto = get_object_or_404(Produto, id=serializer.validated_data['produto_id'])
+            
+            # Obter carrinho
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key,
+                restaurante=restaurante
+            )
+            
+            # Adicionar item
+            item = CarrinhoService.adicionar_item(
+                carrinho=carrinho,
+                produto=produto,
+                quantidade=serializer.validated_data['quantidade'],
+                observacoes=serializer.validated_data.get('observacoes', ''),
+                personalizacoes=serializer.validated_data.get('personalizacoes', []),
+                dados_meio_a_meio=serializer.validated_data.get('dados_meio_a_meio')
+            )
+            
+            # Retornar resumo atualizado
+            resumo = CarrinhoService.calcular_resumo(carrinho)
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Produto adicionado ao carrinho!',
+                'carrinho_count': resumo['total_itens'],
+                'total_valor': float(resumo['subtotal'])
+            })
+            
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Erro ao adicionar produto ao carrinho: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro ao adicionar produto: {str(e)}'
+            }, status=500)
+
+
+class CheckoutView(BaseLojaView):
+    """Versão refatorada da view do checkout"""
+    template_name = 'loja/checkout.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        try:
+            # Obter carrinho
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=self.request.user if self.request.user.is_authenticated else None,
+                sessao_id=self.request.session.session_key,
+                restaurante=context['restaurante']
+            )
+            
+            if carrinho.esta_vazio():
+                messages.warning(self.request, 'Seu carrinho está vazio')
+                return context
+            
+            # Calcular resumo
+            resumo = CarrinhoService.calcular_resumo(carrinho)
+            
+            # Taxa de entrega (será calculada dinamicamente no frontend)
+            taxa_entrega = 0
+            
+            context.update({
+                'carrinho': carrinho,
+                'itens_carrinho': resumo['itens'],
+                'total_carrinho': resumo['subtotal'],
+                'taxa_entrega': taxa_entrega,
+                'total_final': resumo['subtotal'] + taxa_entrega,
+                'carrinho_count': resumo['total_itens'],
+            })
+            
+            # Endereços do usuário se logado
+            if self.request.user.is_authenticated:
+                context['enderecos_usuario'] = self.request.user.enderecos.all()
+            
+            # Formas de pagamento
+            context['formas_pagamento'] = [
+                ('dinheiro', 'Dinheiro'),
+                ('cartao_credito', 'Cartão de Crédito'),
+                ('cartao_debito', 'Cartão de Débito'),
+                ('pix', 'PIX'),
+            ]
+            
+        except Exception as e:
+            logger.error(f"Erro no checkout: {e}")
+            messages.error(self.request, 'Erro ao carregar checkout')
+            return redirect('loja:carrinho', restaurante_slug=kwargs.get('restaurante_slug'))
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Processa o pedido usando PedidoService"""
+        try:
+            # Obter restaurante
+            restaurante_slug = kwargs.get('restaurante_slug')
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug, status='ativo')
+            
+            # Obter carrinho
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key,
+                restaurante=restaurante
+            )
+            
+            if carrinho.esta_vazio():
+                messages.error(request, 'Seu carrinho está vazio')
+                return redirect('loja:carrinho', restaurante_slug=restaurante_slug)
+            
+            # Preparar dados do pedido
+            dados_cliente = {
+                'nome': request.POST.get('nome', '').strip(),
+                'celular': request.POST.get('celular', '').strip(),
+                'email': request.POST.get('email', '').strip(),
+            }
+            
+            dados_entrega = {
+                'tipo': request.POST.get('tipo_entrega', 'delivery'),
+            }
+            
+            # Dados de endereço se delivery
+            if dados_entrega['tipo'] == 'delivery':
+                dados_entrega.update({
+                    'cep': request.POST.get('cep', '').strip(),
+                    'logradouro': request.POST.get('logradouro', '').strip(),
+                    'numero': request.POST.get('numero', '').strip(),
+                    'complemento': request.POST.get('complemento', '').strip(),
+                    'bairro': request.POST.get('bairro', '').strip(),
+                    'cidade': request.POST.get('cidade', '').strip(),
+                    'estado': request.POST.get('estado', '').strip(),
+                    'ponto_referencia': request.POST.get('ponto_referencia', '').strip(),
+                })
+            
+            forma_pagamento = request.POST.get('forma_pagamento')
+            observacoes = request.POST.get('observacoes', '').strip()
+            
+            # Troco se pagamento em dinheiro
+            troco_para = None
+            if forma_pagamento == 'dinheiro':
+                troco_str = request.POST.get('troco_para', '0').replace(',', '.')
+                if troco_str:
+                    try:
+                        from decimal import Decimal
+                        troco_para = Decimal(troco_str)
+                    except:
+                        messages.error(request, 'Valor de troco inválido')
+                        return self.get(request, *args, **kwargs)
+            
+            # Criar pedido usando service
+            with transaction.atomic():
+                pedido = PedidoService.criar_pedido_do_carrinho(
+                    carrinho=carrinho,
+                    dados_cliente=dados_cliente,
+                    dados_entrega=dados_entrega,
+                    forma_pagamento=forma_pagamento,
+                    observacoes=observacoes,
+                    troco_para=troco_para
+                )
+            
+            # Salvar ID do pedido na sessão para confirmação
+            request.session['ultimo_pedido_id'] = str(pedido.id)
+            
+            messages.success(request, f'Pedido #{pedido.numero} criado com sucesso!')
+            return redirect('loja:confirmacao_pedido', restaurante_slug=restaurante_slug)
+            
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return self.get(request, *args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Erro ao processar pedido: {e}")
+            messages.error(request, 'Erro interno. Tente novamente.')
+            return self.get(request, *args, **kwargs)
+
+
+class LimparCarrinhoView(View):
+    """Versão refatorada para limpar carrinho"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            restaurante_slug = kwargs.get('restaurante_slug')
+            restaurante = get_object_or_404(Restaurante, slug=restaurante_slug)
+            
+            carrinho = CarrinhoService.obter_carrinho(
+                usuario=request.user if request.user.is_authenticated else None,
+                sessao_id=request.session.session_key,
+                restaurante=restaurante
+            )
+            
+            CarrinhoService.limpar_carrinho(carrinho)
             
             return JsonResponse({
                 'success': True,
@@ -1523,7 +1953,12 @@ class LimparCarrinhoAjaxView(View):
             })
             
         except Exception as e:
+            logger.error(f"Erro ao limpar carrinho: {e}")
             return JsonResponse({
                 'success': False,
                 'message': f'Erro ao limpar carrinho: {str(e)}'
             }, status=500)
+
+
+import logging
+logger = logging.getLogger(__name__)

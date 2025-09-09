@@ -994,3 +994,133 @@ class OcorrenciaEntrega(models.Model):
 
     def __str__(self):
         return f"Ocorrência: {self.get_tipo_display()} - Pedido #{self.pedido.numero}"
+
+
+# ====================== MODELOS DE CARRINHO MELHORADOS ======================
+
+class Carrinho(models.Model):
+    """Carrinho de compras persistente"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True, related_name='carrinhos')
+    restaurante = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='carrinhos')
+    sessao_id = models.CharField(max_length=40, null=True, blank=True, help_text="ID da sessão para usuários não logados")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'carrinhos'
+        verbose_name = 'Carrinho'
+        verbose_name_plural = 'Carrinhos'
+        indexes = [
+            models.Index(fields=['usuario', 'restaurante']),
+            models.Index(fields=['sessao_id', 'restaurante']),
+        ]
+    
+    def __str__(self):
+        identificador = self.usuario.username if self.usuario else f"Sessão {self.sessao_id}"
+        return f"Carrinho de {identificador} - {self.restaurante.nome}"
+    
+    @property
+    def total_itens(self):
+        return sum(item.quantidade for item in self.itens.all())
+    
+    @property
+    def subtotal(self):
+        from decimal import Decimal
+        return sum(item.subtotal for item in self.itens.all()) or Decimal('0.00')
+    
+    def limpar(self):
+        """Remove todos os itens do carrinho"""
+        self.itens.all().delete()
+    
+    def esta_vazio(self):
+        """Verifica se o carrinho está vazio"""
+        return not self.itens.exists()
+
+
+class CarrinhoItem(models.Model):
+    """Item do carrinho de compras"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    carrinho = models.ForeignKey(Carrinho, on_delete=models.CASCADE, related_name='itens')
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
+    quantidade = models.PositiveIntegerField(default=1)
+    preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    observacoes = models.TextField(blank=True)
+    
+    # Para pizzas meio-a-meio ou produtos personalizados
+    dados_personalizacao = models.JSONField(
+        default=dict, 
+        blank=True,
+        help_text="Dados de personalização incluindo meio-a-meio"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'carrinho_itens'
+        verbose_name = 'Item do Carrinho'
+        verbose_name_plural = 'Itens do Carrinho'
+        # Removido unique_together com JSON por limitação do MySQL
+        indexes = [
+            models.Index(fields=['carrinho', 'produto']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.preco_unitario:
+            self.preco_unitario = self.produto.preco_final
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.quantidade}x {self.produto.nome}"
+    
+    @property
+    def subtotal(self):
+        """Calcula o subtotal do item incluindo personalizações"""
+        from decimal import Decimal
+        base = self.preco_unitario * self.quantidade
+        
+        # Adicionar preços de personalizações
+        if self.dados_personalizacao:
+            personalizacoes = self.dados_personalizacao.get('personalizacoes', [])
+            for perso in personalizacoes:
+                preco_adicional = Decimal(str(perso.get('preco_adicional', '0.00')))
+                base += preco_adicional * self.quantidade
+        
+        return base
+    
+    @property
+    def eh_meio_a_meio(self):
+        """Verifica se é uma pizza meio-a-meio"""
+        return bool(self.dados_personalizacao.get('meio_a_meio'))
+
+
+class CarrinhoItemPersonalizacao(models.Model):
+    """Personalizações escolhidas para itens do carrinho"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    carrinho_item = models.ForeignKey(CarrinhoItem, on_delete=models.CASCADE, related_name='personalizacoes')
+    item_personalizacao = models.ForeignKey(ItemPersonalizacao, on_delete=models.CASCADE)
+    
+    # Dados salvos no momento da escolha (para histórico)
+    opcao_nome = models.CharField(max_length=100)
+    item_nome = models.CharField(max_length=100)
+    preco_adicional = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    class Meta:
+        db_table = 'carrinho_item_personalizacoes'
+        verbose_name = 'Personalização do Item do Carrinho'
+        verbose_name_plural = 'Personalizações dos Itens do Carrinho'
+    
+    def save(self, *args, **kwargs):
+        if not self.opcao_nome:
+            self.opcao_nome = self.item_personalizacao.opcao.nome
+        if not self.item_nome:
+            self.item_nome = self.item_personalizacao.nome
+        if not self.preco_adicional:
+            self.preco_adicional = self.item_personalizacao.preco_adicional
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.opcao_nome}: {self.item_nome}"

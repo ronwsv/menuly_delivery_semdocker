@@ -325,6 +325,8 @@
                         <textarea class="form-control" name="observacoes" id="observacoes" 
                                   rows="3" placeholder="Observações adicionais para o seu pedido..."></textarea>
                     </div>
+                    
+                    <!-- Botão foi movido de volta para o resumo -->
                 </div>
             </form>
         </div>
@@ -689,6 +691,14 @@ function controlarTroco() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('ROCKET [INIT] DOM carregado, inicializando checkout...');
     
+    // Adicionar listener global para erros JavaScript
+    window.addEventListener('error', function(e) {
+        console.error('🚨 [JS ERROR] Erro JavaScript detectado:', e.error);
+        console.error('🚨 [JS ERROR] Mensagem:', e.message);
+        console.error('🚨 [JS ERROR] Arquivo:', e.filename);
+        console.error('🚨 [JS ERROR] Linha:', e.lineno);
+    });
+    
     // Carregar dados do carrinho
     carregarCarrinho();
     
@@ -762,10 +772,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Validação do formulário
     const checkoutForm = document.getElementById('checkout-form');
+    console.log('📋 [FORM] Procurando formulário checkout-form...');
+    
     if (checkoutForm) {
+        console.log('📋 [FORM] Formulário encontrado:', checkoutForm);
+        console.log('📋 [FORM] Formulário HTML:', checkoutForm.outerHTML.substring(0, 200) + '...');
         checkoutForm.addEventListener('submit', function(e) {
             console.log('🚀 [SUBMIT] Formulário sendo enviado!');
             console.log('🚀 [SUBMIT] Dados do carrinho:', carrinhoData);
+            
+            // Verificar validação HTML5
+            if (!checkoutForm.checkValidity()) {
+                console.log('❌ [ERROR] Formulário falhou na validação HTML5');
+                const invalidFields = checkoutForm.querySelectorAll(':invalid');
+                console.log('❌ [ERROR] Campos inválidos:', invalidFields);
+                invalidFields.forEach(field => {
+                    console.log('❌ [ERROR] Campo inválido:', field.name, field.validationMessage);
+                });
+                // Deixar o navegador lidar com isso
+                return;
+            } else {
+                console.log('✅ [SUCCESS] Formulário passou na validação HTML5');
+            }
             
             // Validar carrinho não vazio
             if (carrinhoData.length === 0) {
@@ -855,6 +883,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Após envio bem-sucedido, limpar carrinho
             // (será chamado quando a página for redirecionada ou recarregada)
         });
+    } else {
+        console.log('❌ [ERROR] Formulário checkout-form NÃO encontrado!');
+        console.log('❌ [DEBUG] Todos os formulários da página:');
+        const allForms = document.querySelectorAll('form');
+        allForms.forEach((form, index) => {
+            console.log(`❌ [DEBUG] Form ${index}:`, form.outerHTML.substring(0, 100) + '...');
+        });
     }
     
     // Função para limpar carrinho após pedido
@@ -905,6 +940,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return cookieValue;
     }
+    
+    console.log('✅ [BUTTON] Botão finalizar configurado como type="submit" - sem necessidade de JavaScript adicional');
     
     console.log('OK [INIT] Checkout inicializado com sucesso!');
 });
