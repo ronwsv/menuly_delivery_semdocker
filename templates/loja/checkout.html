@@ -75,21 +75,122 @@
     }
     
     .btn-finalizar {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        border: none;
-        color: white;
-        padding: 15px 40px;
-        border-radius: 50px;
-        font-size: 1.1rem;
-        font-weight: 600;
+        /* Neuromarketing: Cores vibrantes - laranja intenso para urgência e apetite */
+        background: linear-gradient(135deg, #ff6600 0%, #ff8c00 50%, #ffa500 100%) !important;
+        border: 3px solid #ff6600 !important;
+        color: white !important;
+        padding: 20px 40px !important;
+        border-radius: 25px !important;
+        font-size: 1.3rem !important;
+        font-weight: 800 !important;
+        width: 100% !important;
+        position: relative !important;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+        letter-spacing: 0.5px !important;
+        overflow: hidden !important;
+        
+        /* Sombra laranja vibrante que cria profundidade intensa */
+        box-shadow: 0 12px 35px rgba(255, 102, 0, 0.5), 
+                    0 6px 20px rgba(255, 140, 0, 0.3),
+                    0 3px 10px rgba(0, 0, 0, 0.15) !important;
+        
+        /* Transição suave para reforçar feedback visual */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        
+        /* Animação sutil de pulsação para chamar atenção */
+        animation: pulse-gentle 3s ease-in-out infinite !important;
+        
+        /* Cursor que reforça a ação */
+        cursor: pointer !important;
+        
+        /* Prevent double-tap zoom no mobile */
+        touch-action: manipulation;
+    }
+    
+    /* Efeito shimmer para tornar mais atrativo */
+    .btn-finalizar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
         width: 100%;
-        transition: all 0.3s ease;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(255, 255, 255, 0.3), 
+            transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn-finalizar:hover::before {
+        left: 100%;
     }
     
     .btn-finalizar:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
-        color: white;
+        /* Hover vermelho vibrante - máxima urgência e ação */
+        transform: translateY(-4px) scale(1.03) !important;
+        box-shadow: 0 15px 40px rgba(220, 38, 38, 0.6), 
+                    0 8px 25px rgba(239, 68, 68, 0.4),
+                    0 0 30px rgba(248, 113, 113, 0.3) !important;
+        color: white !important;
+        border-color: #dc2626 !important;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4) !important;
+        
+        /* Gradiente vermelho intenso no hover */
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%) !important;
+    }
+    
+    .btn-finalizar:active {
+        /* Feedback tátil no clique - vermelho mais sutil */
+        transform: translateY(-1px) scale(0.99) !important;
+        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.5),
+                    0 4px 10px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.1s ease !important;
+    }
+    
+    .btn-finalizar:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.4),
+                    0 12px 35px rgba(255, 102, 0, 0.5) !important;
+    }
+    
+    .btn-finalizar:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        animation: none;
+        box-shadow: none;
+    }
+    
+    .btn-finalizar:disabled:hover {
+        transform: none;
+        background: #6c757d;
+    }
+    
+    /* Animação vibrante de pulsação laranja */
+    @keyframes pulse-gentle {
+        0%, 100% {
+            box-shadow: 0 12px 35px rgba(255, 102, 0, 0.5), 
+                        0 6px 20px rgba(255, 140, 0, 0.3),
+                        0 3px 10px rgba(0, 0, 0, 0.15);
+            transform: scale(1);
+        }
+        50% {
+            box-shadow: 0 18px 45px rgba(255, 102, 0, 0.7), 
+                        0 10px 30px rgba(255, 140, 0, 0.5),
+                        0 0 40px rgba(255, 165, 0, 0.3);
+            transform: scale(1.02);
+        }
+    }
+    
+    /* Ícone animado dentro do botão */
+    .btn-finalizar .btn-icon {
+        display: inline-block;
+        margin-left: 8px;
+        transition: transform 0.3s ease;
+    }
+    
+    .btn-finalizar:hover .btn-icon {
+        transform: translateX(3px);
     }
     
     .loading-cep {
@@ -113,6 +214,22 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
+        }
+        
+        /* Botão finalizar responsivo para mobile */
+        .btn-finalizar {
+            padding: 20px 30px;
+            font-size: 1.3rem;
+            position: sticky;
+            bottom: 10px;
+            z-index: 1040;
+            margin: 20px 0;
+            border-radius: 15px;
+        }
+        
+        .btn-finalizar:hover {
+            /* Reduzir transformação no mobile para melhor usabilidade */
+            transform: translateY(-1px) scale(1.01);
         }
     }
 </style>
@@ -362,8 +479,9 @@
                 
                 <!-- Botão finalizar -->
                 <button type="submit" form="checkout-form" class="btn-finalizar">
-                    <i class="bi bi-check-circle me-2"></i>
-                    Finalizar Pedido
+                    <i class="bi bi-bag-check-fill me-2"></i>
+                    Confirmar Pedido Agora
+                    <i class="bi bi-arrow-right btn-icon"></i>
                 </button>
             </div>
         </div>

@@ -670,6 +670,89 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1045 !important;
 }
 
+/* ====================== CARRINHO FLUTUANTE ====================== */
+.carrinho-flutuante {
+    position: fixed;
+    bottom: 90px; /* Acima do WhatsApp (que está em bottom: 20px) */
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1046; /* Acima do WhatsApp mas abaixo do navbar */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: pulse 2s infinite;
+}
+
+.carrinho-flutuante:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+    background: linear-gradient(135deg, #ff8c61, #ffa500);
+}
+
+.carrinho-flutuante:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.carrinho-flutuante i {
+    color: white;
+    font-size: 24px;
+}
+
+.carrinho-contador {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.8);
+    }
+    100% {
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+    }
+}
+
+/* Responsivo para mobile */
+@media (max-width: 768px) {
+    .carrinho-flutuante {
+        width: 56px;
+        height: 56px;
+        bottom: 85px;
+        right: 15px;
+    }
+    
+    .carrinho-flutuante i {
+        font-size: 22px;
+    }
+}
+
+/* Ocultar em páginas que não são cardápio */
+.carrinho-flutuante.hidden {
+    display: none;
+}
+
 /* ====================== FORMULÁRIOS ====================== */
 .form-control,
 .form-select {

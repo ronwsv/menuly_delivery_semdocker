@@ -20,6 +20,9 @@ SIMPLE_VIEWS = {
     'buscar': 'loja:buscar',
     'meus_pedidos': 'loja:meus_pedidos',
     'perfil': 'loja:perfil',
+    'login': 'loja:login',
+    'logout': 'loja:logout',
+    'cadastro': 'loja:cadastro',
 }
 
 @register.simple_tag(takes_context=True)

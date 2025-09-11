@@ -230,6 +230,9 @@ function abrirCarrinhoSidebar() {
     }
 }
 
+// Tornar função disponível globalmente
+window.abrirCarrinhoSidebar = abrirCarrinhoSidebar;
+
 // Função para carregar dados do carrinho no sidebar
 function carregarDadosCarrinhoSidebar() {
     console.log('📦 Carregando dados do carrinho no sidebar...');

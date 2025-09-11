@@ -1,0 +1,85 @@
+<!-- Galeria de imagens otimizada -->
+<div class="image-gallery">
+    {% if images %}
+        <div class="main-image">
+            {% if images.0.main_url %}
+                <img src="{{ images.0.main_url }}" alt="Imagem principal" class="img-fluid main-gallery-image" id="mainGalleryImage">
+            {% endif %}
+        </div>
+        
+        {% if show_thumbs and images|length > 1 %}
+            <div class="thumbnail-gallery mt-3">
+                <div class="row">
+                    {% for image in images %}
+                        {% if image.thumb_url %}
+                            <div class="col-2 col-md-3 mb-2">
+                                <img src="{{ image.thumb_url }}" 
+                                     alt="Miniatura" 
+                                     class="img-thumbnail gallery-thumb" 
+                                     data-main-src="{{ image.main_url }}"
+                                     style="cursor: pointer;">
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="no-images text-center py-4">
+            <i class="fas fa-image fa-3x text-muted"></i>
+            <p class="text-muted mt-2">Nenhuma imagem disponível</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidade para trocar imagem principal
+    const thumbs = document.querySelectorAll('.gallery-thumb');
+    const mainImage = document.getElementById('mainGalleryImage');
+    
+    thumbs.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            const newSrc = this.getAttribute('data-main-src');
+            if (newSrc && mainImage) {
+                mainImage.src = newSrc;
+                
+                // Remove active class from all thumbs
+                thumbs.forEach(t => t.classList.remove('active'));
+                // Add active class to clicked thumb
+                this.classList.add('active');
+            }
+        });
+    });
+    
+    // Define primeiro thumb como ativo
+    if (thumbs.length > 0) {
+        thumbs[0].classList.add('active');
+    }
+});
+</script>
+
+<style>
+.image-gallery .main-gallery-image {
+    max-height: 400px;
+    object-fit: contain;
+    width: 100%;
+}
+
+.image-gallery .gallery-thumb {
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    opacity: 0.7;
+}
+
+.image-gallery .gallery-thumb:hover,
+.image-gallery .gallery-thumb.active {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.image-gallery .no-images {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+}
+</style>

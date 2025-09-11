@@ -1,5 +1,5 @@
-{% load loja_extras %}
 {% load static %}
+{% load loja_extras %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -442,6 +442,12 @@
     <div id="carrinho-overlay" class="position-fixed top-0 start-0 w-100 h-100 bg-dark" 
          style="opacity: 0.5; z-index: 1040; display: none;"></div>
     
+    <!-- Carrinho Flutuante (apenas no cardápio) -->
+    <button id="carrinho-flutuante" class="carrinho-flutuante hidden" onclick="abrirCarrinhoSidebar()" title="Ver Carrinho">
+        <i class="bi bi-cart3"></i>
+        <span id="carrinho-contador" class="carrinho-contador" style="display: none;">0</span>
+    </button>
+
     <!-- WhatsApp Flutuante (se configurado) -->
     {% if restaurante_atual.whatsapp %}
         <a href="https://wa.me/{{ restaurante_atual.whatsapp }}" 
@@ -488,6 +494,68 @@
             </div>
         </div>
     </div>
+    
+    <script>
+    // Controle do Carrinho Flutuante
+    document.addEventListener('DOMContentLoaded', function() {
+        const carrinhoFlutuante = document.getElementById('carrinho-flutuante');
+        const contadorElemento = document.getElementById('carrinho-contador');
+        
+        // Mostrar carrinho flutuante apenas no cardápio
+        function mostrarCarrinhoFlutuante() {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/cardapio/') || currentPath.endsWith('/cardapio')) {
+                carrinhoFlutuante.classList.remove('hidden');
+            } else {
+                carrinhoFlutuante.classList.add('hidden');
+            }
+        }
+        
+        // Atualizar contador do carrinho flutuante
+        function atualizarContadorCarrinhoFlutuante(count) {
+            if (count > 0) {
+                contadorElemento.textContent = count;
+                contadorElemento.style.display = 'flex';
+                carrinhoFlutuante.style.animation = 'pulse 2s infinite';
+            } else {
+                contadorElemento.style.display = 'none';
+                carrinhoFlutuante.style.animation = 'none';
+            }
+        }
+        
+        // Sincronizar com o contador do navbar
+        function sincronizarContador() {
+            const badgeNavbar = document.querySelector('.badge.bg-danger');
+            if (badgeNavbar) {
+                const count = parseInt(badgeNavbar.textContent) || 0;
+                atualizarContadorCarrinhoFlutuante(count);
+            }
+        }
+        
+        // Inicializar
+        mostrarCarrinhoFlutuante();
+        sincronizarContador();
+        
+        // Observar mudanças no badge do navbar
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                    sincronizarContador();
+                }
+            });
+        });
+        
+        const badgeNavbar = document.querySelector('.badge.bg-danger');
+        if (badgeNavbar) {
+            observer.observe(badgeNavbar, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
+    });
+    
+    </script>
     
 </body>
 </html>
