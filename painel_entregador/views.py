@@ -118,7 +118,7 @@ def dashboard(request):
     
     # Pedidos disponíveis para aceite
     pedidos_disponiveis = Pedido.objects.filter(
-        status='aguardando_entregador',
+        status='pronto',
         tipo_entrega='delivery'
     ).order_by('-created_at')[:10]
     
@@ -145,7 +145,7 @@ def dashboard(request):
 def pedidos_disponiveis(request):
     """Lista todos os pedidos disponíveis para aceite"""
     pedidos = Pedido.objects.filter(
-        status='aguardando_entregador',
+        status='pronto',
         tipo_entrega='delivery'
     ).select_related('restaurante').order_by('-created_at')
     
@@ -176,7 +176,7 @@ def aceitar_pedido(request, pedido_id):
             'message': 'Você não está disponível para aceitar pedidos.'
         })
     
-    if pedido.status != 'aguardando_entregador':
+    if pedido.status != 'pronto':
         return JsonResponse({
             'success': False,
             'message': 'Este pedido não está mais disponível.'
@@ -194,15 +194,15 @@ def aceitar_pedido(request, pedido_id):
         with transaction.atomic():
             # Verificar novamente se ainda está disponível (race condition)
             pedido.refresh_from_db()
-            if pedido.status != 'aguardando_entregador':
+            if pedido.status != 'pronto':
                 return JsonResponse({
                     'success': False,
                     'message': 'Este pedido já foi aceito por outro entregador.'
                 })
             
-            # Atribuir entregador e alterar status
+            # Atribuir entregador e alterar status para 'entrega' (saiu para entrega)
             pedido.entregador = entregador
-            pedido.status = 'em_entrega'
+            pedido.status = 'entrega'
             pedido.save()
             
             # Registrar aceite (evitar duplicatas)

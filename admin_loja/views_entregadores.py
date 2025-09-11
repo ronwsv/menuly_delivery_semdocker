@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Avg
 from core.models import Entregador, Pedido, AvaliacaoEntregador, OcorrenciaEntrega
-from .utils import painel_loja_required as admin_loja_required
+from .utils import painel_loja_required as admin_loja_required, obter_restaurante_usuario
 import json
 
 
@@ -95,9 +95,16 @@ def detalhe_entregador(request, entregador_id):
 def pedidos_aguardando_entregador(request):
     """Lista pedidos que estão aguardando entregador"""
     
-    # Pedidos aguardando entregador
+    # Obter restaurante do usuário logado
+    restaurante = obter_restaurante_usuario(request.user)
+    if not restaurante:
+        messages.error(request, 'Restaurante não encontrado.')
+        return redirect('admin_loja:dashboard')
+    
+    # Pedidos aguardando entregador (status 'pronto' e tipo 'delivery')
     pedidos = Pedido.objects.filter(
-        status='aguardando_entregador',
+        restaurante=restaurante,
+        status='pronto',
         tipo_entrega='delivery'
     ).select_related('restaurante').order_by('-created_at')
     
