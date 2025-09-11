@@ -255,8 +255,14 @@
             <!-- Dashboard - Todos podem ver -->
             <li><a href="{% url 'admin_loja:dashboard' %}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
             
-            <!-- Pedidos - Todos podem ver -->
-            <li><a href="{% url 'admin_loja:pedidos' %}"><i class="fas fa-shopping-cart"></i><span>Pedidos</span></a></li>
+            <!-- Pedidos - Dropdown com opções -->
+            <li class="menu-dropdown">
+                <a href="#" class="menu-toggle"><i class="fas fa-shopping-cart"></i><span>Pedidos</span> <i class="fas fa-chevron-down"></i></a>
+                <ul class="submenu">
+                    <li><a href="{% url 'admin_loja:pedidos' %}"><i class="fas fa-clock"></i><span>Pedidos Ativos (24h)</span></a></li>
+                    <li><a href="{% url 'admin_loja:pedidos_arquivados' %}"><i class="fas fa-archive"></i><span>Pedidos Arquivados</span></a></li>
+                </ul>
+            </li>
             
             <!-- Entregadores - Dropdown com opções -->
             <li class="menu-dropdown">

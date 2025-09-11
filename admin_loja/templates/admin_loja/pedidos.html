@@ -1,6 +1,11 @@
 {% extends 'admin_loja/base_admin_loja.html' %}
 {% block content %}
-<h2>Pedidos da Loja</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Pedidos da Loja <small class="text-muted">(Últimas 24 horas)</small></h2>
+    <a href="{% url 'admin_loja:pedidos_arquivados' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-archive me-2"></i>Ver Pedidos Arquivados
+    </a>
+</div>
 <style>
 .kanban-board {
 	display: flex;

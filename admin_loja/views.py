@@ -224,14 +224,19 @@ def admin_loja_avancar_status_pedido(request, pedido_id):
         # Gerente/Atendente: buscar pedidos dos restaurantes onde trabalha
         restaurantes = request.user.trabalha_em.all()
         pedido = Pedido.objects.get(id=pedido_id, restaurante__in=restaurantes)
-    # Definir o fluxo de status
-    fluxo = ['novo', 'preparo', 'pronto', 'entrega', 'finalizado']
+    # Definir o fluxo de status completo
+    fluxo = ['pendente', 'novo', 'confirmado', 'preparo', 'preparando', 'pronto', 'entrega', 'em_entrega', 'finalizado']
+    
     try:
         idx = fluxo.index(pedido.status)
         if idx < len(fluxo) - 1:
             pedido.status = fluxo[idx + 1]
             pedido.save()
+            print(f"Status do pedido {pedido.numero} alterado para: {pedido.status}")
+        else:
+            print(f"Pedido {pedido.numero} já está no status final: {pedido.status}")
     except ValueError:
+        print(f"Status '{pedido.status}' não encontrado no fluxo para pedido {pedido.numero}")
         pass
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin-loja/pedidos/'))
 
@@ -692,6 +697,8 @@ def equipe_remover(request, user_id):
 # Página de pedidos do lojista
 @painel_loja_required
 def admin_loja_pedidos(request):
+    from datetime import timedelta
+    
     # Buscar restaurantes baseado no tipo de usuário
     tipo_usuario = getattr(request.user, 'tipo_usuario', None)
     
@@ -707,12 +714,107 @@ def admin_loja_pedidos(request):
     pedidos_por_status = {status: [] for status in status_list}
     
     if restaurantes.exists():
-        pedidos = Pedido.objects.filter(restaurante__in=restaurantes).order_by('-created_at')
+        # Mostrar apenas pedidos das últimas 24 horas no kanban
+        limite_24h = timezone.now() - timedelta(hours=24)
+        pedidos = Pedido.objects.filter(
+            restaurante__in=restaurantes,
+            created_at__gte=limite_24h
+        ).order_by('-created_at')
+        
         for pedido in pedidos:
             if pedido.status in pedidos_por_status:
                 pedidos_por_status[pedido.status].append(pedido)
     
     return render(request, 'admin_loja/pedidos.html', {'pedidos_por_status': pedidos_por_status})
+
+
+@painel_loja_required
+def admin_loja_pedidos_arquivados(request):
+    """Página de pedidos arquivados (mais de 24 horas) com filtros"""
+    from datetime import timedelta, datetime
+    from django.db.models import Q
+    
+    # Buscar restaurantes baseado no tipo de usuário
+    tipo_usuario = getattr(request.user, 'tipo_usuario', None)
+    
+    if tipo_usuario == 'lojista':
+        restaurantes = request.user.restaurantes.all()
+    else:
+        restaurantes = request.user.trabalha_em.all()
+    
+    # Filtros da requisição
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    status_filtro = request.GET.get('status')
+    busca = request.GET.get('busca')
+    
+    # Query base - pedidos mais antigos que 24 horas
+    limite_24h = timezone.now() - timedelta(hours=24)
+    pedidos = Pedido.objects.filter(
+        restaurante__in=restaurantes,
+        created_at__lt=limite_24h
+    )
+    
+    # Aplicar filtros
+    if data_inicio:
+        try:
+            data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+            pedidos = pedidos.filter(created_at__date__gte=data_inicio_obj)
+        except ValueError:
+            pass
+    
+    if data_fim:
+        try:
+            data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+            pedidos = pedidos.filter(created_at__date__lte=data_fim_obj)
+        except ValueError:
+            pass
+    
+    if status_filtro:
+        pedidos = pedidos.filter(status=status_filtro)
+    
+    if busca:
+        pedidos = pedidos.filter(
+            Q(numero__icontains=busca) |
+            Q(cliente_nome__icontains=busca) |
+            Q(cliente_telefone__icontains=busca)
+        )
+    
+    # Ordenar por data decrescente
+    pedidos = pedidos.order_by('-created_at')
+    
+    # Paginação
+    from django.core.paginator import Paginator
+    paginator = Paginator(pedidos, 20)  # 20 pedidos por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Status disponíveis para filtro
+    status_choices = [
+        ('pendente', 'Pendente'),
+        ('novo', 'Novo'),
+        ('confirmado', 'Confirmado'),
+        ('preparo', 'Em Preparo'),
+        ('preparando', 'Preparando'),
+        ('pronto', 'Pronto'),
+        ('entrega', 'Saiu para Entrega'),
+        ('em_entrega', 'Em Entrega'),
+        ('finalizado', 'Finalizado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    context = {
+        'page_obj': page_obj,
+        'status_choices': status_choices,
+        'filtros': {
+            'data_inicio': data_inicio,
+            'data_fim': data_fim,
+            'status': status_filtro,
+            'busca': busca,
+        }
+    }
+    
+    return render(request, 'admin_loja/pedidos_arquivados.html', context)
 
 @painel_loja_required
 def admin_loja_relatorios(request):
