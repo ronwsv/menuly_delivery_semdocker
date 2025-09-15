@@ -139,6 +139,43 @@
             color: #888;
             text-align: center;
         }
+        
+        /* Links adicionais */
+        .login-links {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .forgot-password, .register-link {
+            color: #ff6600;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .forgot-password:hover, .register-link:hover {
+            color: #e65c00;
+            background: rgba(255, 102, 0, 0.05);
+            transform: translateY(-1px);
+        }
+        .register-link {
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .register-link:hover {
+            background: #4CAF50;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
         .login-social {
             margin: 18px 0 8px 0;
             text-align: left;
@@ -228,6 +265,13 @@
             </button>
         </form>
         {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+        
+        <!-- Links adicionais -->
+        <div class="login-links">
+            <a href="{% url 'admin_loja:esqueci_senha' %}" class="forgot-password">Esqueci minha senha</a>
+            <a href="{% url 'admin_loja:cadastro' %}" class="register-link">Ainda não tenho cadastro</a>
+        </div>
+        
         <div class="login-footer">
             <span style="font-size:1.1em;">&copy; {{ now|default:2025 }} Menuly</span>
         </div>

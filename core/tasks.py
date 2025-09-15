@@ -157,6 +157,45 @@ def calcular_frete_async(restaurante_id, cep_destino):
         }
 
 
+@shared_task(bind=True)
+def desativar_trial_expirados(self):
+    """
+    Desativa usuários com trial expirado (mais de 7 dias sem plano).
+    Esta task é executada diariamente pelo Celery Beat.
+    """
+    try:
+        from core.models import Usuario
+        from datetime import timedelta
+        
+        # Data limite: 7 dias atrás
+        data_limite = timezone.now() - timedelta(days=7)
+        
+        # Buscar usuários lojistas ativos sem plano que foram criados há mais de 7 dias
+        usuarios_trial_expirado = Usuario.objects.filter(
+            tipo_usuario='lojista',
+            is_active=True,
+            restaurantes__plano__isnull=True,
+            date_joined__lt=data_limite
+        ).distinct()
+        
+        total_desativados = 0
+        
+        for usuario in usuarios_trial_expirado:
+            usuario.is_active = False
+            usuario.save()
+            total_desativados += 1
+            logger.info(f'Usuário {usuario.username} desativado - Trial expirado')
+        
+        if total_desativados > 0:
+            logger.info(f'Total de {total_desativados} usuários desativados por trial expirado')
+        
+        return f"Processados {total_desativados} usuários com trial expirado"
+        
+    except Exception as exc:
+        logger.error(f"Erro na desativação de trials expirados: {exc}")
+        raise self.retry(exc=exc, countdown=300, max_retries=3)
+
+
 @shared_task
 def debug_celery():
     """Task de debug para testar se o Celery está funcionando"""

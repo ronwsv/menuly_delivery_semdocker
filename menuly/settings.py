@@ -60,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware_trial.TrialNotificationMiddleware",  # Notificações de trial
 ]
 
 ROOT_URLCONF = "menuly.urls"
@@ -78,6 +79,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "core.context_processors.site_context",  # Context processor customizado
                 "admin_loja.context_processors.painel_permissoes",  # Context processor para permissões do painel
+                "core.trial_utils.trial_context_processor",  # Context processor para informações de trial
             ],
         },
     },

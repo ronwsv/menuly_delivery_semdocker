@@ -6,6 +6,9 @@ app_name = 'admin_loja'
 
 urlpatterns = [
     path('login/', views.admin_loja_login, name='login'),
+    path('esqueci-senha/', views.admin_loja_esqueci_senha, name='esqueci_senha'),
+    path('redefinir-senha/<str:token>/', views.admin_loja_redefinir_senha, name='redefinir_senha'),
+    path('cadastro/', views.admin_loja_cadastro, name='cadastro'),
     path('dashboard/', views.admin_loja_dashboard, name='dashboard'),
     path('pedidos/', views.admin_loja_pedidos, name='pedidos'),
     path('pedidos-arquivados/', views.admin_loja_pedidos_arquivados, name='pedidos_arquivados'),
@@ -84,6 +87,10 @@ urlpatterns = [
     
     # APIs para entregadores
     path('api/entregadores-disponiveis/', views_entregadores.api_entregadores_disponiveis, name='api_entregadores_disponiveis'),
+    
+    # Gerenciamento de trials (apenas superusuários)
+    path('trials/', views.gerenciar_trials, name='gerenciar_trials'),
+    path('trials/reativar/<int:user_id>/', views.reativar_trial, name='reativar_trial'),
     
     path('', views.DashboardView.as_view(), name='dashboard-old'),
     path('logout/', views.admin_loja_logout, name='logout'),

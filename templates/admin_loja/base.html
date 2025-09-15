@@ -23,6 +23,13 @@
                 <li class="nav-item mb-2"><a href="/admin-loja/relatorios/" class="nav-link text-white"><i class="fas fa-chart-bar me-2"></i>Relatórios</a></li>
                 <li class="nav-item mb-2"><a href="/admin-loja/configurar_frete/" class="nav-link text-white"><i class="fas fa-cog me-2"></i>Configurar Frete</a></li>
                 <li class="nav-item mb-2"><a href="/admin-loja/equipe/" class="nav-link text-white"><i class="fas fa-users-cog me-2"></i>Equipe</a></li>
+                {% if user.is_superuser %}
+                <li class="nav-item mb-2 mt-3">
+                    <hr class="text-white opacity-50">
+                    <small class="text-white-50 text-uppercase fw-bold">Administração</small>
+                </li>
+                <li class="nav-item mb-2"><a href="{% url 'admin_loja:gerenciar_trials' %}" class="nav-link text-white"><i class="fas fa-user-clock me-2"></i>Gerenciar Trials</a></li>
+                {% endif %}
             </ul>
         </nav>
         <!-- Main Content -->

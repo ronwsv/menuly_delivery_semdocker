@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esqueci minha senha - Menuly</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #222 url('https://images.pexels.com/photos/4393661/pexels-photo-4393661.jpeg?auto=compress&w=1200&q=80') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .forgot-container {
+            background: rgba(255,255,255,0.97);
+            max-width: 450px;
+            width: 100%;
+            margin: 80px auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 40px 36px 32px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: slideUp 0.6s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .forgot-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .forgot-subtitle {
+            font-size: 1.05rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 32px;
+            line-height: 1.4;
+        }
+        .forgot-icon {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 3rem;
+        }
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        input[type="email"] {
+            width: 100%;
+            padding: 16px 18px;
+            margin-bottom: 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.9);
+        }
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #ff6600;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+        }
+        button[type="submit"] {
+            background: linear-gradient(135deg, #ff6600, #e65c00);
+            color: white;
+            border: none;
+            padding: 16px 0;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+        }
+        button[type="submit"]:hover {
+            background: linear-gradient(135deg, #e65c00, #ff6600);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+        }
+        button[type="submit"]:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(255, 102, 0, 0.3);
+        }
+        .forgot-error {
+            color: #d32f2f;
+            background: rgba(211, 47, 47, 0.1);
+            border-left: 4px solid #d32f2f;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        .forgot-success {
+            color: #2e7d32;
+            background: rgba(46, 125, 50, 0.1);
+            border-left: 4px solid #2e7d32;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        .forgot-footer {
+            margin-top: 24px;
+            text-align: center;
+        }
+        .back-link {
+            color: #ff6600;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+            margin-right: 16px;
+        }
+        .back-link:hover {
+            color: #e65c00;
+        }
+        .register-link {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .register-link:hover {
+            color: #45a049;
+        }
+        .info-box {
+            background: #f0f7ff;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            color: #1565c0;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .forgot-container {
+                margin: 40px 16px;
+                padding: 32px 24px;
+            }
+            .forgot-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="forgot-container">
+        <div class="forgot-icon">🔑</div>
+        
+        <div class="forgot-title">Esqueci minha senha</div>
+        <div class="forgot-subtitle">Digite seu email para receber as instruções de redefinição</div>
+        
+        <div class="info-box">
+            💡 Enviaremos um link seguro para redefinir sua senha. Verifique também a pasta de spam.
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="forgot-success">{{ message }}</div>
+                {% else %}
+                    <div class="forgot-error">{{ message }}</div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        {% if form.errors %}
+            <div class="forgot-error">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <label for="id_email">Email cadastrado</label>
+            {{ form.email }}
+            
+            <button type="submit">
+                Enviar instruções
+            </button>
+        </form>
+        
+        <div class="forgot-footer">
+            <a href="{% url 'admin_loja:login' %}" class="back-link">← Voltar ao login</a>
+            <a href="{% url 'admin_loja:cadastro' %}" class="register-link">Criar conta</a>
+        </div>
+        
+        <div class="forgot-footer" style="margin-top: 16px;">
+            <span style="font-size:1.1em; color: #888;">&copy; 2025 Menuly</span>
+        </div>
+    </div>
+</body>
+</html>

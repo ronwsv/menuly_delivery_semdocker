@@ -48,6 +48,10 @@ app.conf.update(
             'task': 'core.tasks.atualizar_status_entregas',
             'schedule': 60.0,   # A cada 1 minuto
         },
+        'desativar-trial-expirados': {
+            'task': 'core.tasks.desativar_trial_expirados',
+            'schedule': 86400.0,  # A cada 24 horas (1 dia)
+        },
     },
 )
 

@@ -1768,3 +1768,363 @@ def calcular_pagamento_entregador(entregador, pedido):
 
     return Decimal('0.00')
 
+
+# ==================== VIEWS DE AUTENTICAÇÃO E CADASTRO ====================
+
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
+from django.urls import reverse_lazy
+from core.models import Usuario, Restaurante, Plano
+import secrets
+import string
+
+class CadastroLojista(forms.Form):
+    """Form para cadastro de novo lojista"""
+    nome_completo = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Seu nome completo'
+        })
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'seu@email.com'
+        })
+    )
+    celular = forms.CharField(
+        max_length=15,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '(11) 99999-9999'
+        })
+    )
+    nome_restaurante = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nome do seu restaurante'
+        })
+    )
+    senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Senha (mínimo 8 caracteres)'
+        }),
+        min_length=8
+    )
+    confirmar_senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirme sua senha'
+        })
+    )
+    
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if Usuario.objects.filter(email=email).exists():
+            raise forms.ValidationError('Este email já está cadastrado.')
+        return email
+    
+    def clean_celular(self):
+        celular = self.cleaned_data['celular']
+        # Limpar formatação
+        celular_limpo = ''.join(filter(str.isdigit, celular))
+        if len(celular_limpo) < 10:
+            raise forms.ValidationError('Celular deve ter pelo menos 10 dígitos.')
+        if Usuario.objects.filter(celular__contains=celular_limpo[-9:]).exists():
+            raise forms.ValidationError('Este celular já está cadastrado.')
+        return celular_limpo
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        senha = cleaned_data.get('senha')
+        confirmar_senha = cleaned_data.get('confirmar_senha')
+        
+        if senha and confirmar_senha and senha != confirmar_senha:
+            raise forms.ValidationError('As senhas não coincidem.')
+        
+        return cleaned_data
+
+
+class EsqueciSenhaForm(forms.Form):
+    """Form para solicitar redefinição de senha"""
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Digite seu email cadastrado'
+        })
+    )
+
+
+class RedefinirSenhaForm(forms.Form):
+    """Form para redefinir senha com token"""
+    nova_senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nova senha (mínimo 8 caracteres)'
+        }),
+        min_length=8
+    )
+    confirmar_senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirme a nova senha'
+        })
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        nova_senha = cleaned_data.get('nova_senha')
+        confirmar_senha = cleaned_data.get('confirmar_senha')
+        
+        if nova_senha and confirmar_senha and nova_senha != confirmar_senha:
+            raise forms.ValidationError('As senhas não coincidem.')
+        
+        return cleaned_data
+
+
+def admin_loja_cadastro(request):
+    """View para cadastro de novo lojista com período trial de 7 dias"""
+    if request.method == 'POST':
+        form = CadastroLojista(request.POST)
+        if form.is_valid():
+            try:
+                # Criar usuário
+                user = Usuario.objects.create_user(
+                    username=form.cleaned_data['email'],
+                    email=form.cleaned_data['email'],
+                    password=form.cleaned_data['senha'],
+                    first_name=form.cleaned_data['nome_completo'].split()[0],
+                    last_name=' '.join(form.cleaned_data['nome_completo'].split()[1:]),
+                    celular=form.cleaned_data['celular'],
+                    tipo_usuario='lojista'
+                )
+                
+                # Buscar plano trial (starter por padrão)
+                try:
+                    plano_trial = Plano.objects.get(nome='starter', ativo=True)
+                except Plano.DoesNotExist:
+                    plano_trial = None
+                
+                # Criar restaurante com período trial de 7 dias
+                restaurante = Restaurante.objects.create(
+                    nome=form.cleaned_data['nome_restaurante'],
+                    proprietario=user,
+                    slug=form.cleaned_data['nome_restaurante'].lower().replace(' ', '-'),
+                    descricao=f"Restaurante {form.cleaned_data['nome_restaurante']}",
+                    plano=plano_trial,
+                    data_vencimento_plano=timezone.now().date() + timedelta(days=7),
+                    status='ativo'
+                )
+                
+                # Adicionar usuário aos restaurantes do proprietário
+                user.restaurantes.add(restaurante)
+                
+                messages.success(request, 
+                    f'Cadastro realizado com sucesso! Você tem 7 dias de trial gratuito. '
+                    f'Faça login para acessar seu painel.'
+                )
+                
+                return redirect('admin_loja:login')
+                
+            except Exception as e:
+                messages.error(request, f'Erro ao criar cadastro: {str(e)}')
+    else:
+        form = CadastroLojista()
+    
+    return render(request, 'admin_loja/cadastro.html', {
+        'form': form
+    })
+
+
+def admin_loja_esqueci_senha(request):
+    """View para solicitar redefinição de senha"""
+    if request.method == 'POST':
+        form = EsqueciSenhaForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            try:
+                user = Usuario.objects.get(email=email, tipo_usuario='lojista')
+                
+                # Gerar token seguro
+                token = get_random_string(32)
+                
+                # Salvar token no usuário (você pode criar um modelo separado para tokens)
+                # Por simplicidade, vamos usar um campo temporário ou cache
+                from django.core.cache import cache
+                cache.set(f'reset_token_{token}', user.id, timeout=3600)  # 1 hora
+                
+                # Enviar email (configure seu backend de email)
+                reset_url = request.build_absolute_uri(
+                    reverse('admin_loja:redefinir_senha', args=[token])
+                )
+                
+                try:
+                    send_mail(
+                        'Redefinição de senha - Menuly',
+                        f'Clique no link para redefinir sua senha: {reset_url}',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email],
+                        fail_silently=False,
+                    )
+                    messages.success(request, 
+                        'Email de redefinição enviado! Verifique sua caixa de entrada.'
+                    )
+                except Exception as e:
+                    messages.warning(request, 
+                        'Cadastro encontrado, mas houve erro no envio do email. '
+                        'Tente novamente ou entre em contato com o suporte.'
+                    )
+                
+            except Usuario.DoesNotExist:
+                # Por segurança, não revelar se o email existe ou não
+                messages.success(request, 
+                    'Se o email estiver cadastrado, você receberá as instruções.'
+                )
+            
+            return redirect('admin_loja:login')
+    else:
+        form = EsqueciSenhaForm()
+    
+    return render(request, 'admin_loja/esqueci_senha.html', {
+        'form': form
+    })
+
+
+def admin_loja_redefinir_senha(request, token):
+    """View para redefinir senha com token válido"""
+    from django.core.cache import cache
+    
+    # Verificar se token é válido
+    user_id = cache.get(f'reset_token_{token}')
+    if not user_id:
+        messages.error(request, 'Token inválido ou expirado.')
+        return redirect('admin_loja:login')
+    
+    try:
+        user = Usuario.objects.get(id=user_id)
+    except Usuario.DoesNotExist:
+        messages.error(request, 'Usuário não encontrado.')
+        return redirect('admin_loja:login')
+    
+    if request.method == 'POST':
+        form = RedefinirSenhaForm(request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data['nova_senha'])
+            user.save()
+            
+            # Invalidar token
+            cache.delete(f'reset_token_{token}')
+            
+            messages.success(request, 
+                'Senha redefinida com sucesso! Faça login com sua nova senha.'
+            )
+            return redirect('admin_loja:login')
+    else:
+        form = RedefinirSenhaForm()
+    
+    return render(request, 'admin_loja/redefinir_senha.html', {
+        'form': form,
+        'user': user
+    })
+
+
+# ==================== VIEWS DE GERENCIAMENTO DE TRIALS ====================
+
+@login_required
+def gerenciar_trials(request):
+    """View para visualizar e gerenciar contas trial"""
+    from core.models import Usuario
+    from django.db.models import Q
+    from datetime import timedelta
+    
+    if not request.user.is_superuser:
+        messages.error(request, 'Acesso negado. Apenas superusuários podem acessar esta área.')
+        return redirect('admin_loja:index')
+    
+    # Data limite para trials (7 dias)
+    data_limite = timezone.now() - timedelta(days=7)
+    
+    # Usuários em trial (sem plano) - apenas lojistas que têm restaurantes
+    usuarios_trial = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True
+    ).distinct().prefetch_related('restaurantes')
+    
+    # Trials expirados
+    trials_expirados = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True,
+        date_joined__lt=data_limite
+    ).distinct().prefetch_related('restaurantes')
+    
+    # Trials recentes (últimos 7 dias)
+    trials_recentes = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True,
+        date_joined__gte=data_limite
+    ).distinct().prefetch_related('restaurantes')
+    
+    # Contas desativadas
+    contas_desativadas = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        is_active=False,
+        restaurantes__plano__isnull=True
+    ).distinct().prefetch_related('restaurantes')[:20]  # Limitando a 20 mais recentes
+    
+    # Executar limpeza manual se solicitado
+    if request.method == 'POST' and 'executar_limpeza' in request.POST:
+        from core.tasks import desativar_trial_expirados
+        try:
+            resultado = desativar_trial_expirados.delay()
+            messages.success(request, 
+                'Limpeza de trials expirados executada com sucesso!'
+            )
+        except Exception as e:
+            messages.error(request, f'Erro ao executar limpeza: {str(e)}')
+        
+        return redirect('admin_loja:gerenciar_trials')
+    
+    context = {
+        'usuarios_trial': usuarios_trial,
+        'trials_expirados': trials_expirados,
+        'trials_recentes': trials_recentes,
+        'contas_desativadas': contas_desativadas,
+        'total_trial': usuarios_trial.count(),
+        'total_expirados': trials_expirados.count(),
+        'total_recentes': trials_recentes.count(),
+        'data_limite': data_limite,
+    }
+    
+    return render(request, 'admin_loja/gerenciar_trials.html', context)
+
+
+@login_required
+def reativar_trial(request, user_id):
+    """Reativa uma conta trial por mais 7 dias"""
+    from core.models import Usuario
+    
+    if not request.user.is_superuser:
+        messages.error(request, 'Acesso negado.')
+        return redirect('admin_loja:index')
+    
+    usuario = get_object_or_404(Usuario, id=user_id)
+    
+    if request.method == 'POST':
+        # Reativa o usuário e atualiza a data de criação para estender o trial
+        usuario.is_active = True
+        usuario.date_joined = timezone.now()
+        usuario.save()
+        
+        messages.success(request, 
+            f'Trial do usuário {usuario.username} reativado por mais 7 dias.'
+        )
+    
+    return redirect('admin_loja:gerenciar_trials')
+

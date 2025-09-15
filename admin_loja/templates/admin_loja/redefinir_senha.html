@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha - Menuly</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #222 url('https://images.pexels.com/photos/4393661/pexels-photo-4393661.jpeg?auto=compress&w=1200&q=80') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .reset-container {
+            background: rgba(255,255,255,0.97);
+            max-width: 450px;
+            width: 100%;
+            margin: 80px auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 40px 36px 32px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: slideUp 0.6s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .reset-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .reset-subtitle {
+            font-size: 1.05rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 32px;
+            line-height: 1.4;
+        }
+        .reset-icon {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 3rem;
+        }
+        .user-info {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 16px 18px;
+            margin-bottom: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.9);
+        }
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        button[type="submit"] {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 16px 0;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        button[type="submit"]:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        button[type="submit"]:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+        .reset-error {
+            color: #d32f2f;
+            background: rgba(211, 47, 47, 0.1);
+            border-left: 4px solid #d32f2f;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        .reset-footer {
+            margin-top: 24px;
+            text-align: center;
+        }
+        .login-link {
+            color: #ff6600;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .login-link:hover {
+            color: #e65c00;
+        }
+        .password-requirements {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .password-requirements ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+        .password-requirements li {
+            margin-bottom: 4px;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .reset-container {
+                margin: 40px 16px;
+                padding: 32px 24px;
+            }
+            .reset-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reset-container">
+        <div class="reset-icon">🔐</div>
+        
+        <div class="reset-title">Redefinir Senha</div>
+        <div class="reset-subtitle">Crie uma nova senha para sua conta</div>
+        
+        <div class="user-info">
+            ✓ Redefinindo senha para: {{ user.email }}
+        </div>
+        
+        <div class="password-requirements">
+            <strong>Sua nova senha deve ter:</strong>
+            <ul>
+                <li>Pelo menos 8 caracteres</li>
+                <li>Combine letras e números</li>
+                <li>Seja fácil de lembrar mas difícil de adivinhar</li>
+            </ul>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="reset-error">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if form.errors %}
+            <div class="reset-error">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <label for="id_nova_senha">Nova Senha</label>
+            {{ form.nova_senha }}
+            
+            <label for="id_confirmar_senha">Confirmar Nova Senha</label>
+            {{ form.confirmar_senha }}
+            
+            <button type="submit">
+                Confirmar Nova Senha
+            </button>
+        </form>
+        
+        <div class="reset-footer">
+            <a href="{% url 'admin_loja:login' %}" class="login-link">← Voltar ao login</a>
+        </div>
+        
+        <div class="reset-footer" style="margin-top: 16px;">
+            <span style="font-size:1.1em; color: #888;">&copy; 2025 Menuly</span>
+        </div>
+    </div>
+    
+    <script>
+        // Validação visual da senha em tempo real
+        const novaSenha = document.getElementById('id_nova_senha');
+        const confirmarSenha = document.getElementById('id_confirmar_senha');
+        
+        function validarSenhas() {
+            if (confirmarSenha.value && novaSenha.value !== confirmarSenha.value) {
+                confirmarSenha.style.borderColor = '#d32f2f';
+            } else {
+                confirmarSenha.style.borderColor = '#e0e0e0';
+            }
+        }
+        
+        novaSenha.addEventListener('input', validarSenhas);
+        confirmarSenha.addEventListener('input', validarSenhas);
+    </script>
+</body>
+</html>

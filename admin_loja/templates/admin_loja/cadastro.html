@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Menuly</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #222 url('https://images.pexels.com/photos/4393661/pexels-photo-4393661.jpeg?auto=compress&w=1200&q=80') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .register-container {
+            background: rgba(255,255,255,0.97);
+            max-width: 500px;
+            width: 100%;
+            margin: 40px auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 40px 36px 32px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: slideUp 0.6s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .register-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .register-subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 32px;
+            line-height: 1.4;
+        }
+        .trial-badge {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+        }
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.9);
+        }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        button[type="submit"] {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 16px 0;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        button[type="submit"]:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        button[type="submit"]:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+        .register-error {
+            color: #d32f2f;
+            background: rgba(211, 47, 47, 0.1);
+            border-left: 4px solid #d32f2f;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            border-radius: 6px;
+        }
+        .register-footer {
+            margin-top: 24px;
+            text-align: center;
+        }
+        .login-link {
+            color: #ff6600;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .login-link:hover {
+            color: #e65c00;
+        }
+        .features-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .features-list h4 {
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 1rem;
+        }
+        .features-list ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .features-list li {
+            margin-bottom: 4px;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .register-container {
+                margin: 20px 16px;
+                padding: 32px 24px;
+            }
+            .register-title {
+                font-size: 1.8rem;
+            }
+            input[type="text"], input[type="email"], input[type="password"] {
+                padding: 12px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-title">Criar Conta</div>
+        <div class="register-subtitle">Comece seu delivery online hoje mesmo!</div>
+        
+        <div class="trial-badge">
+            🎉 7 dias grátis para testar todas as funcionalidades
+        </div>
+        
+        <div class="features-list">
+            <h4>O que você terá acesso:</h4>
+            <ul>
+                <li>Site responsivo para seu restaurante</li>
+                <li>Gestão completa de produtos e pedidos</li>
+                <li>Dashboard com relatórios</li>
+                <li>Impressão de cupons</li>
+                <li>7 dias para escolher seu plano ideal</li>
+            </ul>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="register-error">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if form.errors %}
+            <div class="register-error">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <label for="id_nome_completo">Nome Completo</label>
+            {{ form.nome_completo }}
+            
+            <label for="id_email">Email</label>
+            {{ form.email }}
+            
+            <label for="id_celular">Celular</label>
+            {{ form.celular }}
+            
+            <label for="id_nome_restaurante">Nome do Restaurante</label>
+            {{ form.nome_restaurante }}
+            
+            <label for="id_senha">Senha</label>
+            {{ form.senha }}
+            
+            <label for="id_confirmar_senha">Confirmar Senha</label>
+            {{ form.confirmar_senha }}
+            
+            <button type="submit">
+                Criar Minha Conta Grátis
+            </button>
+        </form>
+        
+        <div class="register-footer">
+            Já tem uma conta? 
+            <a href="{% url 'admin_loja:login' %}" class="login-link">Fazer Login</a>
+        </div>
+        
+        <div class="register-footer" style="margin-top: 16px;">
+            <span style="font-size:1.1em; color: #888;">&copy; 2025 Menuly</span>
+        </div>
+    </div>
+    
+    <script>
+        // Formatação automática do celular
+        document.getElementById('id_celular').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                if (value.length > 6) {
+                    value = value.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3');
+                } else if (value.length > 2) {
+                    value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+                } else if (value.length > 0) {
+                    value = value.replace(/(\d{0,2})/, '($1');
+                }
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
