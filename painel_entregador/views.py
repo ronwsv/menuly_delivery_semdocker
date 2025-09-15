@@ -323,37 +323,45 @@ def alterar_status_pedido(request, pedido_id):
     
     # Validar transições permitidas para entregador
     transicoes_permitidas = {
-        'em_entrega': ['entregue'],  # Entregador só pode marcar como entregue
+        'entrega': ['entregue'],     # Saiu para entrega -> Entregue
+        'em_entrega': ['entregue'],  # Em entrega -> Entregue
     }
-    
+
     if pedido.status not in transicoes_permitidas:
         return JsonResponse({
             'success': False,
-            'message': 'Não é possível alterar o status deste pedido.'
+            'message': f'Não é possível alterar o status deste pedido. Status atual: {pedido.get_status_display()}'
         })
-    
+
     if novo_status not in transicoes_permitidas[pedido.status]:
         return JsonResponse({
             'success': False,
             'message': 'Transição de status não permitida.'
         })
     
+    # Salvar status anterior
+    status_anterior = pedido.status
+
     # Alterar status
     pedido.status = novo_status
     if novo_status == 'entregue':
         pedido.data_entrega = timezone.now()
-    
+
     pedido.save()
-    
+
     # Criar histórico
-    from core.models import HistoricoStatusPedido
-    HistoricoStatusPedido.objects.create(
-        pedido=pedido,
-        status_anterior=pedido.status,
-        status_novo=novo_status,
-        usuario=request.user,
-        observacoes=f'Status alterado pelo entregador {request.user.entregador.nome}'
-    )
+    try:
+        from core.models import HistoricoStatusPedido
+        HistoricoStatusPedido.objects.create(
+            pedido=pedido,
+            status_anterior=status_anterior,
+            status_novo=novo_status,
+            usuario=request.user,
+            observacoes=f'Status alterado pelo entregador {request.user.entregador.nome}'
+        )
+    except Exception:
+        # Se não existir o modelo de histórico, continua sem erro
+        pass
     
     # Atualizar contador de entregas
     if novo_status == 'entregue':

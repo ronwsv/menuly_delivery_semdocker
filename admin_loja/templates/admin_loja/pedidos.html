@@ -57,7 +57,7 @@
 	{% for status, pedidos in pedidos_por_status.items %}
 	<div class="kanban-col">
 		<h3>
-			{% if status == 'pendente' %}Pendente{% elif status == 'novo' %}Novo{% elif status == 'confirmado' %}Confirmado{% elif status == 'preparo' %}Em Preparo{% elif status == 'preparando' %}Preparando{% elif status == 'pronto' %}Pronto{% elif status == 'entrega' %}Saiu para Entrega{% elif status == 'em_entrega' %}Em Entrega{% elif status == 'finalizado' %}Finalizado{% else %}{{ status|title }}{% endif %}
+			{% if status == 'pendente' %}Pendente{% elif status == 'confirmado' %}Confirmado{% elif status == 'preparando' %}Preparando{% elif status == 'pronto' %}Pronto{% elif status == 'aguardando_entregador' %}Aguardando Entregador{% elif status == 'em_entrega' %}Em Entrega{% elif status == 'entregue' %}Entregue{% else %}{{ status|title }}{% endif %}
 		</h3>
 		{% for pedido in pedidos %}
 		<div class="pedido-card">
@@ -69,14 +69,14 @@
 				<a class="cupom-link" href="{% url 'admin_loja:cupom_pedido' pedido.id %}" target="_blank">Cupom</a>
 				{% if pedido.status == 'pendente' %}
 					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Confirmar</button></form>
-				{% elif pedido.status == 'novo' or pedido.status == 'confirmado' %}
+				{% elif pedido.status == 'confirmado' %}
 					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Iniciar Preparo</button></form>
-				{% elif pedido.status == 'preparo' or pedido.status == 'preparando' %}
+				{% elif pedido.status == 'preparando' %}
 					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Marcar Pronto</button></form>
 				{% elif pedido.status == 'pronto' %}
-					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Saiu para Entrega</button></form>
-				{% elif pedido.status == 'entrega' or pedido.status == 'em_entrega' %}
-					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Finalizar</button></form>
+					<form method="post" action="{% url 'admin_loja:avancar_status_pedido' pedido.id %}">{% csrf_token %}<button type="submit">Aguardar Entregador</button></form>
+				{% elif pedido.status == 'aguardando_entregador' or pedido.status == 'em_entrega' %}
+					<span class="text-muted">Aguardando entrega...</span>
 				{% elif pedido.status == 'finalizado' %}
 					<span style="color: #888;">Finalizado</span>
 				{% endif %}

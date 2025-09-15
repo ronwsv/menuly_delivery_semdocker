@@ -72,13 +72,15 @@ urlpatterns = [
     path('planos/api/verificar-limite/', views.planos_api_verificar_limite, name='planos_api_verificar_limite'),
     
     # URLs para gestão de entregadores
-    path('entregadores/', views_entregadores.listar_entregadores, name='entregadores_listar'),
-    path('entregadores/<int:entregador_id>/', views_entregadores.detalhe_entregador, name='entregadores_detalhe'),
+    path('entregadores/', views.entregadores_listar, name='entregadores_listar'),
+    path('entregadores/<int:entregador_id>/', views.entregadores_detalhe, name='entregadores_detalhe'),
+    path('entregadores/configurar-pagamento/', views.entregadores_configurar_pagamento, name='entregadores_configurar_pagamento'),
     path('entregadores/pedidos-aguardando/', views_entregadores.pedidos_aguardando_entregador, name='pedidos_aguardando_entregador'),
     path('entregadores/atribuir/<int:pedido_id>/', views_entregadores.atribuir_entregador_manual, name='atribuir_entregador_manual'),
     path('entregadores/ocorrencias/', views_entregadores.ocorrencias_entrega, name='ocorrencias_entrega'),
     path('entregadores/ocorrencias/<int:ocorrencia_id>/resolver/', views_entregadores.resolver_ocorrencia, name='resolver_ocorrencia'),
     path('entregadores/relatorio/', views_entregadores.relatorio_entregas, name='relatorio_entregas'),
+    path('entregadores/relatorio-pagamentos/', views_entregadores.relatorio_entregas, name='entregadores_relatorio_pagamentos'),
     
     # APIs para entregadores
     path('api/entregadores-disponiveis/', views_entregadores.api_entregadores_disponiveis, name='api_entregadores_disponiveis'),

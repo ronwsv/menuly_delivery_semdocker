@@ -245,24 +245,34 @@
                         <i class="fas fa-link me-2"></i>Links Úteis
                     </h6>
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <a href="{% url 'admin_loja:pedidos_aguardando_entregador' %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
                                 <i class="fas fa-clock me-1"></i>Pedidos Aguardando
                             </a>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <a href="{% url 'admin_loja:ocorrencias_entrega' %}" class="btn btn-outline-danger btn-sm w-100 mb-2">
                                 <i class="fas fa-exclamation-triangle me-1"></i>Ocorrências
                             </a>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <a href="{% url 'admin_loja:relatorio_entregas' %}" class="btn btn-outline-info btn-sm w-100 mb-2">
                                 <i class="fas fa-chart-bar me-1"></i>Relatórios
                             </a>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <a href="{% url 'admin_loja:pedidos' %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
                                 <i class="fas fa-list me-1"></i>Todos os Pedidos
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'admin_loja:entregadores_configurar_pagamento' %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                                <i class="fas fa-money-bill-wave me-1"></i>Config. Pagamento
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'admin_loja:entregadores_relatorio_pagamentos' %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                                <i class="fas fa-calculator me-1"></i>Relatório Pagamentos
                             </a>
                         </div>
                     </div>

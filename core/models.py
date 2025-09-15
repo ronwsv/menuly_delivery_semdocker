@@ -877,6 +877,12 @@ class Notificacao(models.Model):
 
 class Entregador(models.Model):
     """Modelo para entregadores/motoboys"""
+    TIPO_PAGAMENTO_CHOICES = [
+        ('fixo', 'Valor Fixo'),
+        ('fixo_comissao', 'Fixo + Comissão'),
+        ('comissao', 'Apenas Comissão'),
+    ]
+
     usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
     nome = models.CharField(max_length=100)
     telefone = models.CharField(max_length=20)
@@ -888,6 +894,12 @@ class Entregador(models.Model):
     nota_media = models.FloatField(default=0, help_text="Média das avaliações")
     total_avaliacoes = models.PositiveIntegerField(default=0)
     total_entregas = models.PositiveIntegerField(default=0)
+
+    # Configurações de pagamento
+    tipo_pagamento = models.CharField(max_length=20, choices=TIPO_PAGAMENTO_CHOICES, default='fixo')
+    valor_fixo = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Valor fixo por entrega")
+    percentual_comissao = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Percentual de comissão sobre o pedido")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

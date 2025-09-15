@@ -74,37 +74,57 @@
         margin-top: 15px;
     }
     
-    .btn-finalizar {
-        /* Neuromarketing: Cores vibrantes - laranja intenso para urgência e apetite */
-        background: linear-gradient(135deg, #ff6600 0%, #ff8c00 50%, #ffa500 100%) !important;
-        border: 3px solid #ff6600 !important;
+    /* Múltiplos seletores para garantir especificidade */
+    button.btn-finalizar,
+    .btn-finalizar,
+    button[type="submit"].btn-finalizar,
+    #checkout-form button.btn-finalizar {
+        /* Gradiente laranja vibrante - máxima conversão */
+        background: linear-gradient(45deg, #ff4500 0%, #ff6b35 25%, #ff8500 75%, #ffa500 100%) !important;
+        background-color: #ff6b35 !important;
+        border: none !important;
         color: white !important;
-        padding: 20px 40px !important;
-        border-radius: 25px !important;
-        font-size: 1.3rem !important;
-        font-weight: 800 !important;
+
+        /* Tamanho e espaçamento otimizados */
+        padding: 18px 30px !important;
+        margin: 15px 0 !important;
+        border-radius: 12px !important;
+
+        /* Tipografia chamativa */
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3) !important;
+
+        /* Largura total */
         width: 100% !important;
+        display: block !important;
+        min-height: 65px !important;
+
+        /* Sombra tripla para profundidade */
+        box-shadow:
+            0 8px 25px rgba(255, 107, 53, 0.4),
+            0 4px 15px rgba(255, 69, 0, 0.3),
+            0 2px 8px rgba(0, 0, 0, 0.15) !important;
+
+        /* Transições suaves */
+        transition: all 0.25s ease-out !important;
+
+        /* Posicionamento para efeitos */
         position: relative !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
-        letter-spacing: 0.5px !important;
         overflow: hidden !important;
-        
-        /* Sombra laranja vibrante que cria profundidade intensa */
-        box-shadow: 0 12px 35px rgba(255, 102, 0, 0.5), 
-                    0 6px 20px rgba(255, 140, 0, 0.3),
-                    0 3px 10px rgba(0, 0, 0, 0.15) !important;
-        
-        /* Transição suave para reforçar feedback visual */
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        
-        /* Animação sutil de pulsação para chamar atenção */
-        animation: pulse-gentle 3s ease-in-out infinite !important;
-        
-        /* Cursor que reforça a ação */
+
+        /* Cursor chamativo */
         cursor: pointer !important;
-        
-        /* Prevent double-tap zoom no mobile */
-        touch-action: manipulation;
+
+        /* Touch otimizado */
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+
+        /* Override de qualquer estilo Bootstrap */
+        border-width: 0 !important;
+        outline: none !important;
     }
     
     /* Efeito shimmer para tornar mais atrativo */
@@ -126,59 +146,94 @@
         left: 100%;
     }
     
-    .btn-finalizar:hover {
-        /* Hover vermelho vibrante - máxima urgência e ação */
-        transform: translateY(-4px) scale(1.03) !important;
-        box-shadow: 0 15px 40px rgba(220, 38, 38, 0.6), 
-                    0 8px 25px rgba(239, 68, 68, 0.4),
-                    0 0 30px rgba(248, 113, 113, 0.3) !important;
-        color: white !important;
-        border-color: #dc2626 !important;
+    /* Estados hover, active e focus com seletores específicos */
+    button.btn-finalizar:hover,
+    .btn-finalizar:hover,
+    button[type="submit"].btn-finalizar:hover,
+    #checkout-form button.btn-finalizar:hover {
+        /* Transformação elevada no hover */
+        transform: translateY(-3px) scale(1.02) !important;
+
+        /* Gradiente mais intenso no hover */
+        background: linear-gradient(45deg, #e63946 0%, #ff4500 25%, #ff6b35 75%, #ff8500 100%) !important;
+        background-color: #e63946 !important;
+
+        /* Sombra ainda mais dramática */
+        box-shadow:
+            0 12px 35px rgba(255, 69, 0, 0.6),
+            0 6px 20px rgba(230, 57, 70, 0.4),
+            0 0 25px rgba(255, 107, 53, 0.3) !important;
+
+        /* Texto mais nítido */
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4) !important;
-        
-        /* Gradiente vermelho intenso no hover */
-        background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%) !important;
+        color: white !important;
     }
-    
-    .btn-finalizar:active {
-        /* Feedback tátil no clique - vermelho mais sutil */
-        transform: translateY(-1px) scale(0.99) !important;
-        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.5),
-                    0 4px 10px rgba(0, 0, 0, 0.2) !important;
+
+    button.btn-finalizar:active,
+    .btn-finalizar:active,
+    button[type="submit"].btn-finalizar:active,
+    #checkout-form button.btn-finalizar:active {
+        /* Feedback imediato no clique */
+        transform: translateY(-1px) scale(0.98) !important;
+
+        /* Sombra reduzida para simular pressão */
+        box-shadow:
+            0 4px 15px rgba(255, 69, 0, 0.5),
+            0 2px 8px rgba(0, 0, 0, 0.2) !important;
+
+        /* Transição rápida */
         transition: all 0.1s ease !important;
+        background-color: #dc2626 !important;
+        color: white !important;
     }
-    
-    .btn-finalizar:focus {
+
+    button.btn-finalizar:focus,
+    .btn-finalizar:focus,
+    button[type="submit"].btn-finalizar:focus,
+    #checkout-form button.btn-finalizar:focus {
+        /* Foco sem outline padrão */
         outline: none !important;
-        box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.4),
-                    0 12px 35px rgba(255, 102, 0, 0.5) !important;
+
+        /* Anel de foco customizado */
+        box-shadow:
+            0 0 0 4px rgba(255, 107, 53, 0.5),
+            0 8px 25px rgba(255, 107, 53, 0.4),
+            0 4px 15px rgba(255, 69, 0, 0.3) !important;
+
+        color: white !important;
     }
     
     .btn-finalizar:disabled {
-        background: #6c757d;
-        cursor: not-allowed;
-        animation: none;
-        box-shadow: none;
+        background: #6c757d !important;
+        cursor: not-allowed !important;
+        transform: none !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        animation: none !important;
     }
-    
+
     .btn-finalizar:disabled:hover {
-        transform: none;
-        background: #6c757d;
+        transform: none !important;
+        background: #6c757d !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     }
-    
-    /* Animação vibrante de pulsação laranja */
-    @keyframes pulse-gentle {
+
+    /* Animação sutil de pulsação para chamar atenção */
+    .btn-finalizar:not(:disabled) {
+        animation: pulse-attention 4s ease-in-out infinite !important;
+    }
+
+    @keyframes pulse-attention {
         0%, 100% {
-            box-shadow: 0 12px 35px rgba(255, 102, 0, 0.5), 
-                        0 6px 20px rgba(255, 140, 0, 0.3),
-                        0 3px 10px rgba(0, 0, 0, 0.15);
-            transform: scale(1);
+            box-shadow:
+                0 8px 25px rgba(255, 107, 53, 0.4),
+                0 4px 15px rgba(255, 69, 0, 0.3),
+                0 2px 8px rgba(0, 0, 0, 0.15);
         }
         50% {
-            box-shadow: 0 18px 45px rgba(255, 102, 0, 0.7), 
-                        0 10px 30px rgba(255, 140, 0, 0.5),
-                        0 0 40px rgba(255, 165, 0, 0.3);
-            transform: scale(1.02);
+            box-shadow:
+                0 12px 35px rgba(255, 107, 53, 0.6),
+                0 6px 20px rgba(255, 69, 0, 0.5),
+                0 0 30px rgba(255, 165, 0, 0.3);
         }
     }
     
@@ -216,20 +271,54 @@
             gap: 10px;
         }
         
-        /* Botão finalizar responsivo para mobile */
+        /* Botão finalizar otimizado para mobile */
         .btn-finalizar {
-            padding: 20px 30px;
-            font-size: 1.3rem;
-            position: sticky;
-            bottom: 10px;
-            z-index: 1040;
-            margin: 20px 0;
-            border-radius: 15px;
+            padding: 22px 25px !important;
+            font-size: 1.3rem !important;
+            border-radius: 15px !important;
+
+            /* Posicionamento sticky para fácil acesso */
+            position: sticky !important;
+            bottom: 15px !important;
+            z-index: 1040 !important;
+            margin: 25px 0 20px 0 !important;
+
+            /* Sombra mais sutil em mobile */
+            box-shadow:
+                0 6px 20px rgba(255, 107, 53, 0.5),
+                0 3px 12px rgba(255, 69, 0, 0.3),
+                0 1px 6px rgba(0, 0, 0, 0.15) !important;
         }
-        
+
         .btn-finalizar:hover {
-            /* Reduzir transformação no mobile para melhor usabilidade */
-            transform: translateY(-1px) scale(1.01);
+            /* Transformação reduzida em mobile */
+            transform: translateY(-2px) scale(1.01) !important;
+
+            /* Sombra controlada */
+            box-shadow:
+                0 8px 25px rgba(255, 69, 0, 0.6),
+                0 4px 15px rgba(230, 57, 70, 0.4),
+                0 0 20px rgba(255, 107, 53, 0.3) !important;
+        }
+
+        /* Animação mais sutil em mobile */
+        .btn-finalizar:not(:disabled) {
+            animation: pulse-attention-mobile 5s ease-in-out infinite !important;
+        }
+
+        @keyframes pulse-attention-mobile {
+            0%, 100% {
+                box-shadow:
+                    0 6px 20px rgba(255, 107, 53, 0.5),
+                    0 3px 12px rgba(255, 69, 0, 0.3),
+                    0 1px 6px rgba(0, 0, 0, 0.15);
+            }
+            50% {
+                box-shadow:
+                    0 8px 25px rgba(255, 107, 53, 0.7),
+                    0 4px 15px rgba(255, 69, 0, 0.5),
+                    0 0 25px rgba(255, 165, 0, 0.3);
+            }
         }
     }
 </style>
@@ -478,7 +567,18 @@
                 </div>
                 
                 <!-- Botão finalizar -->
-                <button type="submit" form="checkout-form" class="btn-finalizar">
+                <button type="submit" form="checkout-form" class="btn btn-finalizar"
+                        style="background: linear-gradient(45deg, #ff4500, #ff6b35, #ff8500, #ffa500) !important;
+                               color: white !important;
+                               border: none !important;
+                               padding: 18px 30px !important;
+                               border-radius: 12px !important;
+                               font-size: 1.4rem !important;
+                               font-weight: 700 !important;
+                               text-transform: uppercase !important;
+                               letter-spacing: 1px !important;
+                               width: 100% !important;
+                               box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4) !important;">
                     <i class="bi bi-bag-check-fill me-2"></i>
                     Confirmar Pedido Agora
                     <i class="bi bi-arrow-right btn-icon"></i>

@@ -1,0 +1,403 @@
+{% extends "admin_loja/base_admin_loja.html" %}
+{% block title %}Configuração de Pagamento - Entregadores{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header {
+        background-color: rgba(40, 167, 69, 0.1);
+        border-bottom: 1px solid rgba(40, 167, 69, 0.25);
+    }
+
+    .tipo-pagamento-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+
+    .tipo-pagamento-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .tipo-pagamento-card.selected {
+        border-color: #28a745;
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+
+    .tipo-pagamento-card .card-body {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .tipo-pagamento-card .icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #28a745;
+    }
+
+    .configuracao-form {
+        display: none;
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .configuracao-form.show {
+        display: block;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .valor-exemplo {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        margin-top: 10px;
+        border-radius: 5px;
+    }
+
+    .entregador-item {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: white;
+    }
+
+    .entregador-item.changed {
+        border-color: #ffc107;
+        background-color: #fff3cd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-money-bill-wave me-2"></i>Configuração de Pagamento - Entregadores
+        </h1>
+        <div class="text-muted">
+            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="configPagamentoForm">
+        {% csrf_token %}
+
+        <!-- Seleção do Tipo de Pagamento -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>Tipo de Pagamento para Entregadores
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Fixo -->
+                            <div class="col-md-4">
+                                <div class="card tipo-pagamento-card" data-tipo="fixo">
+                                    <div class="card-body">
+                                        <div class="icon">
+                                            <i class="fas fa-dollar-sign"></i>
+                                        </div>
+                                        <h5>Valor Fixo</h5>
+                                        <p class="text-muted">Valor fixo por entrega realizada</p>
+                                        <small class="text-success"><strong>Exemplo:</strong> R$ 8,00 por entrega</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fixo + Comissão -->
+                            <div class="col-md-4">
+                                <div class="card tipo-pagamento-card" data-tipo="fixo_comissao">
+                                    <div class="card-body">
+                                        <div class="icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h5>Fixo + Comissão</h5>
+                                        <p class="text-muted">Valor fixo + percentual sobre o pedido</p>
+                                        <small class="text-success"><strong>Exemplo:</strong> R$ 5,00 + 3% do pedido</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Apenas Comissão -->
+                            <div class="col-md-4">
+                                <div class="card tipo-pagamento-card" data-tipo="comissao">
+                                    <div class="card-body">
+                                        <div class="icon">
+                                            <i class="fas fa-percentage"></i>
+                                        </div>
+                                        <h5>Apenas Comissão</h5>
+                                        <p class="text-muted">Apenas percentual sobre o valor do pedido</p>
+                                        <small class="text-success"><strong>Exemplo:</strong> 8% do valor do pedido</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="tipo_pagamento" id="tipoPagamento" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuração Valor Fixo -->
+        <div class="configuracao-form" id="configFixo">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Configuração - Valor Fixo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="valorFixo" class="form-label">Valor Fixo por Entrega</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="valorFixo" name="valor_fixo"
+                                       step="0.01" min="0" placeholder="8.00">
+                            </div>
+                            <small class="text-muted">Valor que será pago por cada entrega realizada</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="valor-exemplo">
+                                <strong>Simulação:</strong><br>
+                                Pedido de R$ 50,00 = Pagamento de <span id="exemploFixo">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuração Fixo + Comissão -->
+        <div class="configuracao-form" id="configFixoComissao">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Configuração - Fixo + Comissão</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="valorFixoComissao" class="form-label">Valor Fixo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="valorFixoComissao" name="valor_fixo_comissao"
+                                       step="0.01" min="0" placeholder="5.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="percentualComissao" class="form-label">Comissão (%)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="percentualComissao" name="percentual_comissao"
+                                       step="0.1" min="0" max="30" placeholder="3.0">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="valor-exemplo">
+                                <strong>Simulação:</strong><br>
+                                Pedido de R$ 50,00 = <span id="exemploFixoComissao">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuração Apenas Comissão -->
+        <div class="configuracao-form" id="configComissao">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Configuração - Apenas Comissão</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="percentualComissaoUnico" class="form-label">Percentual de Comissão</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="percentualComissaoUnico" name="percentual_comissao_unico"
+                                       step="0.1" min="0" max="50" placeholder="8.0">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Percentual sobre o valor total do pedido</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="valor-exemplo">
+                                <strong>Simulação:</strong><br>
+                                Pedido de R$ 50,00 = <span id="exemploComissao">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aplicar Configurações -->
+        <div class="row mt-4" id="aplicarConfig" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Aplicar Configurações</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Aplicar para:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="aplicar_para" id="aplicarTodos" value="todos" checked>
+                                    <label class="form-check-label" for="aplicarTodos">
+                                        <strong>Todos os entregadores</strong>
+                                        <small class="text-muted d-block">Aplicar para todos os entregadores cadastrados</small>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="aplicar_para" id="aplicarNovos" value="novos">
+                                    <label class="form-check-label" for="aplicarNovos">
+                                        <strong>Apenas novos entregadores</strong>
+                                        <small class="text-muted d-block">Manter configurações atuais dos entregadores existentes</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Importante:</strong> As alterações entrarão em vigor para os próximos pedidos aceitos pelos entregadores.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i>Salvar Configurações
+                            </button>
+                            <a href="{% url 'admin_loja:entregadores_listar' %}" class="btn btn-outline-secondary btn-lg ms-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoCards = document.querySelectorAll('.tipo-pagamento-card');
+    const tipoPagamentoInput = document.getElementById('tipoPagamento');
+    const configForms = document.querySelectorAll('.configuracao-form');
+    const aplicarConfig = document.getElementById('aplicarConfig');
+
+    // Configuração dos tipos de pagamento
+    tipoCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remover seleção anterior
+            tipoCards.forEach(c => c.classList.remove('selected'));
+
+            // Selecionar atual
+            this.classList.add('selected');
+
+            // Atualizar input hidden
+            const tipo = this.dataset.tipo;
+            tipoPagamentoInput.value = tipo;
+
+            // Esconder todos os forms
+            configForms.forEach(form => form.classList.remove('show'));
+
+            // Mostrar form correspondente
+            const configForm = document.getElementById(`config${tipo.charAt(0).toUpperCase() + tipo.slice(1).replace('_', '')}`);
+            if (configForm) {
+                configForm.classList.add('show');
+            }
+
+            // Mostrar seção de aplicar
+            aplicarConfig.style.display = 'block';
+
+            // Calcular exemplo
+            calcularExemplo();
+        });
+    });
+
+    // Função para calcular exemplos
+    function calcularExemplo() {
+        const valorPedido = 50; // Valor fixo para exemplo
+
+        // Exemplo Fixo
+        const valorFixo = parseFloat(document.getElementById('valorFixo')?.value || 0);
+        document.getElementById('exemploFixo').textContent = `R$ ${valorFixo.toFixed(2)}`;
+
+        // Exemplo Fixo + Comissão
+        const valorFixoComissao = parseFloat(document.getElementById('valorFixoComissao')?.value || 0);
+        const percentualComissao = parseFloat(document.getElementById('percentualComissao')?.value || 0);
+        const totalFixoComissao = valorFixoComissao + (valorPedido * percentualComissao / 100);
+        document.getElementById('exemploFixoComissao').textContent = `R$ ${totalFixoComissao.toFixed(2)}`;
+
+        // Exemplo Apenas Comissão
+        const percentualComissaoUnico = parseFloat(document.getElementById('percentualComissaoUnico')?.value || 0);
+        const totalComissao = valorPedido * percentualComissaoUnico / 100;
+        document.getElementById('exemploComissao').textContent = `R$ ${totalComissao.toFixed(2)}`;
+    }
+
+    // Event listeners para atualizar exemplos
+    document.getElementById('valorFixo')?.addEventListener('input', calcularExemplo);
+    document.getElementById('valorFixoComissao')?.addEventListener('input', calcularExemplo);
+    document.getElementById('percentualComissao')?.addEventListener('input', calcularExemplo);
+    document.getElementById('percentualComissaoUnico')?.addEventListener('input', calcularExemplo);
+
+    // Validação do formulário
+    document.getElementById('configPagamentoForm').addEventListener('submit', function(e) {
+        const tipo = tipoPagamentoInput.value;
+
+        if (!tipo) {
+            e.preventDefault();
+            alert('Por favor, selecione um tipo de pagamento.');
+            return;
+        }
+
+        // Validações específicas por tipo
+        if (tipo === 'fixo') {
+            const valor = parseFloat(document.getElementById('valorFixo').value);
+            if (!valor || valor <= 0) {
+                e.preventDefault();
+                alert('Por favor, informe um valor fixo válido.');
+                return;
+            }
+        } else if (tipo === 'fixo_comissao') {
+            const valorFixo = parseFloat(document.getElementById('valorFixoComissao').value);
+            const percentual = parseFloat(document.getElementById('percentualComissao').value);
+            if (!valorFixo || valorFixo <= 0 || !percentual || percentual <= 0) {
+                e.preventDefault();
+                alert('Por favor, informe valores válidos para fixo e comissão.');
+                return;
+            }
+        } else if (tipo === 'comissao') {
+            const percentual = parseFloat(document.getElementById('percentualComissaoUnico').value);
+            if (!percentual || percentual <= 0) {
+                e.preventDefault();
+                alert('Por favor, informe um percentual de comissão válido.');
+                return;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

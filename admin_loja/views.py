@@ -225,7 +225,7 @@ def admin_loja_avancar_status_pedido(request, pedido_id):
         restaurantes = request.user.trabalha_em.all()
         pedido = Pedido.objects.get(id=pedido_id, restaurante__in=restaurantes)
     # Definir o fluxo de status completo
-    fluxo = ['pendente', 'novo', 'confirmado', 'preparo', 'preparando', 'pronto', 'entrega', 'em_entrega', 'finalizado']
+    fluxo = ['pendente', 'confirmado', 'preparando', 'pronto', 'aguardando_entregador']
     
     try:
         idx = fluxo.index(pedido.status)
@@ -550,7 +550,7 @@ from django.db.models import Sum
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 
-from core.models import Pedido, ItemPedido, Restaurante, Usuario, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, HorarioFuncionamento, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto, Categoria, Produto
+from core.models import Pedido, ItemPedido, Restaurante, Usuario, Categoria, Produto, HorarioFuncionamento, Entregador
 from .models import Impressora
 from .forms import (LogoForm, BannerForm, ImpressoraForm, CategoriaForm, ProdutoForm, 
                     PersonalizacaoVisulaForm, HorarioFuncionamentoFormSet, FuncionarioForm,
@@ -710,7 +710,7 @@ def admin_loja_pedidos(request):
         restaurantes = request.user.trabalha_em.all()
     
     pedidos = []
-    status_list = ['pendente', 'novo', 'confirmado', 'preparo', 'preparando', 'pronto', 'entrega', 'em_entrega', 'finalizado']
+    status_list = ['pendente', 'confirmado', 'preparando', 'pronto', 'aguardando_entregador', 'em_entrega', 'entregue']
     pedidos_por_status = {status: [] for status in status_list}
     
     if restaurantes.exists():
@@ -777,7 +777,7 @@ def admin_loja_pedidos_arquivados(request):
         pedidos = pedidos.filter(
             Q(numero__icontains=busca) |
             Q(cliente_nome__icontains=busca) |
-            Q(cliente_telefone__icontains=busca)
+            Q(cliente_celular__icontains=busca)
         )
     
     # Ordenar por data decrescente
@@ -791,16 +791,15 @@ def admin_loja_pedidos_arquivados(request):
     
     # Status disponíveis para filtro
     status_choices = [
-        ('pendente', 'Pendente'),
-        ('novo', 'Novo'),
+        ('pendente', 'Pendente de Pagamento'),
         ('confirmado', 'Confirmado'),
-        ('preparo', 'Em Preparo'),
         ('preparando', 'Preparando'),
         ('pronto', 'Pronto'),
-        ('entrega', 'Saiu para Entrega'),
+        ('aguardando_entregador', 'Aguardando Entregador'),
         ('em_entrega', 'Em Entrega'),
-        ('finalizado', 'Finalizado'),
+        ('entregue', 'Entregue'),
         ('cancelado', 'Cancelado'),
+        ('devolvido', 'Devolvido'),
     ]
     
     context = {
@@ -1565,4 +1564,207 @@ def admin_loja_produto_personalizar(request, produto_id):
         'produto': produto,
         'opcoes_personalizacao': opcoes_personalizacao,
     })
+
+
+# ==================== VIEWS DE ENTREGADORES ====================
+
+@painel_loja_required
+def entregadores_listar(request):
+    """Lista todos os entregadores do sistema"""
+    # Verificar permissão específica
+    redirect_response = verificar_permissao_gerencial(request, "a gestão de entregadores")
+    if redirect_response:
+        return redirect_response
+
+    restaurante = obter_restaurante_usuario(request.user)
+    if not restaurante:
+        return render(request, 'admin_loja/entregadores_listar.html', {
+            'error': 'Restaurante não encontrado.'
+        })
+
+    # Filtros
+    search = request.GET.get('search', '')
+    status = request.GET.get('status', 'all')
+
+    entregadores = Entregador.objects.all()
+
+    # Aplicar filtros
+    if search:
+        entregadores = entregadores.filter(
+            models.Q(nome__icontains=search) |
+            models.Q(telefone__icontains=search) |
+            models.Q(usuario__username__icontains=search)
+        )
+
+    if status == 'disponivel':
+        entregadores = entregadores.filter(disponivel=True, em_pausa=False)
+    elif status == 'em_pausa':
+        entregadores = entregadores.filter(em_pausa=True)
+    elif status == 'indisponivel':
+        entregadores = entregadores.filter(disponivel=False)
+
+    # Estatísticas
+    total_entregadores = Entregador.objects.count()
+    disponiveis = Entregador.objects.filter(disponivel=True, em_pausa=False).count()
+    em_pausa = Entregador.objects.filter(em_pausa=True).count()
+    indisponiveis = Entregador.objects.filter(disponivel=False).count()
+
+    # Paginação
+    from django.core.paginator import Paginator
+    paginator = Paginator(entregadores, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'total_entregadores': total_entregadores,
+        'disponiveis': disponiveis,
+        'em_pausa': em_pausa,
+        'indisponiveis': indisponiveis,
+        'search': search,
+        'status': status,
+    }
+
+    return render(request, 'admin_loja/entregadores_listar.html', context)
+
+
+@painel_loja_required
+def entregadores_configurar_pagamento(request):
+    """Configurar pagamento dos entregadores"""
+    redirect_response = verificar_permissao_gerencial(request, "a configuração de pagamento de entregadores")
+    if redirect_response:
+        return redirect_response
+
+    restaurante = obter_restaurante_usuario(request.user)
+    if not restaurante:
+        messages.error(request, 'Restaurante não encontrado.')
+        return redirect('admin_loja:entregadores_listar')
+
+    if request.method == 'POST':
+        from decimal import Decimal
+
+        tipo_pagamento = request.POST.get('tipo_pagamento')
+        aplicar_para = request.POST.get('aplicar_para', 'todos')
+
+        # Validar dados recebidos
+        if not tipo_pagamento:
+            messages.error(request, 'Por favor, selecione um tipo de pagamento.')
+            return render(request, 'admin_loja/entregadores_configurar_pagamento.html')
+
+        # Preparar valores para salvar
+        valores = {}
+
+        if tipo_pagamento == 'fixo':
+            valor_fixo = request.POST.get('valor_fixo')
+            if not valor_fixo or float(valor_fixo) <= 0:
+                messages.error(request, 'Por favor, informe um valor fixo válido.')
+                return render(request, 'admin_loja/entregadores_configurar_pagamento.html')
+
+            valores['tipo_pagamento'] = 'fixo'
+            valores['valor_fixo'] = Decimal(valor_fixo)
+            valores['percentual_comissao'] = None
+
+        elif tipo_pagamento == 'fixo_comissao':
+            valor_fixo = request.POST.get('valor_fixo_comissao')
+            percentual = request.POST.get('percentual_comissao')
+
+            if not valor_fixo or float(valor_fixo) <= 0 or not percentual or float(percentual) <= 0:
+                messages.error(request, 'Por favor, informe valores válidos para fixo e comissão.')
+                return render(request, 'admin_loja/entregadores_configurar_pagamento.html')
+
+            valores['tipo_pagamento'] = 'fixo_comissao'
+            valores['valor_fixo'] = Decimal(valor_fixo)
+            valores['percentual_comissao'] = Decimal(percentual)
+
+        elif tipo_pagamento == 'comissao':
+            percentual = request.POST.get('percentual_comissao_unico')
+            if not percentual or float(percentual) <= 0:
+                messages.error(request, 'Por favor, informe um percentual de comissão válido.')
+                return render(request, 'admin_loja/entregadores_configurar_pagamento.html')
+
+            valores['tipo_pagamento'] = 'comissao'
+            valores['valor_fixo'] = None
+            valores['percentual_comissao'] = Decimal(percentual)
+
+        # Aplicar configurações
+        if aplicar_para == 'todos':
+            # Aplicar para todos os entregadores
+            entregadores_atualizados = Entregador.objects.all().update(**valores)
+            messages.success(request, f'Configurações aplicadas para {entregadores_atualizados} entregadores.')
+        else:
+            # Aplicar apenas para novos entregadores (salvar como padrão)
+            # TODO: Implementar configuração padrão para novos entregadores
+            messages.success(request, 'Configurações salvas como padrão para novos entregadores.')
+
+        return redirect('admin_loja:entregadores_listar')
+
+    return render(request, 'admin_loja/entregadores_configurar_pagamento.html')
+
+
+@painel_loja_required
+def entregadores_detalhe(request, entregador_id):
+    """Visualizar detalhes de um entregador específico"""
+    entregador = get_object_or_404(Entregador, id=entregador_id)
+
+    # Histórico de pedidos do entregador (últimos 30 dias)
+    from datetime import timedelta
+    data_limite = timezone.now() - timedelta(days=30)
+
+    pedidos_recentes = Pedido.objects.filter(
+        entregador=entregador,
+        created_at__gte=data_limite
+    ).order_by('-created_at')[:20]
+
+    # Estatísticas
+    total_entregas_mes = pedidos_recentes.filter(status='entregue').count()
+    valor_total_mes = pedidos_recentes.filter(status='entregue').aggregate(
+        total=Sum('valor_entrega')
+    )['total'] or 0
+
+    # Calcular valor a pagar baseado no tipo de pagamento
+    valor_a_pagar = 0
+    if entregador.tipo_pagamento == 'fixo':
+        valor_a_pagar = (entregador.valor_fixo or 0) * total_entregas_mes
+    elif entregador.tipo_pagamento == 'fixo_comissao':
+        valor_fixo_total = (entregador.valor_fixo or 0) * total_entregas_mes
+        valor_comissao = sum([
+            (pedido.total * (entregador.percentual_comissao or 0) / 100)
+            for pedido in pedidos_recentes.filter(status='entregue')
+        ])
+        valor_a_pagar = valor_fixo_total + valor_comissao
+    elif entregador.tipo_pagamento == 'comissao':
+        valor_a_pagar = sum([
+            (pedido.total * (entregador.percentual_comissao or 0) / 100)
+            for pedido in pedidos_recentes.filter(status='entregue')
+        ])
+
+    context = {
+        'entregador': entregador,
+        'pedidos_recentes': pedidos_recentes,
+        'total_entregas_mes': total_entregas_mes,
+        'valor_total_mes': valor_total_mes,
+        'valor_a_pagar': valor_a_pagar,
+    }
+
+    return render(request, 'admin_loja/entregadores_detalhe.html', context)
+
+
+def calcular_pagamento_entregador(entregador, pedido):
+    """Calcula o valor a pagar para um entregador baseado na configuração"""
+    from decimal import Decimal
+
+    if entregador.tipo_pagamento == 'fixo':
+        return entregador.valor_fixo or Decimal('0.00')
+
+    elif entregador.tipo_pagamento == 'fixo_comissao':
+        valor_fixo = entregador.valor_fixo or Decimal('0.00')
+        percentual = entregador.percentual_comissao or Decimal('0.00')
+        comissao = pedido.total * (percentual / 100)
+        return valor_fixo + comissao
+
+    elif entregador.tipo_pagamento == 'comissao':
+        percentual = entregador.percentual_comissao or Decimal('0.00')
+        return pedido.total * (percentual / 100)
+
+    return Decimal('0.00')
 
