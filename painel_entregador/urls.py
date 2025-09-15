@@ -15,6 +15,7 @@ urlpatterns = [
     
     # Pedidos
     path('pedidos-disponiveis/', views.pedidos_disponiveis, name='pedidos_disponiveis'),
+    path('pedidos-em-rota/', views.pedidos_em_rota, name='pedidos_em_rota'),
     path('meus-pedidos/', views.meus_pedidos, name='meus_pedidos'),
     path('pedido/<uuid:pedido_id>/', views.detalhe_pedido, name='detalhe_pedido'),
     
@@ -22,6 +23,7 @@ urlpatterns = [
     path('aceitar-pedido/<uuid:pedido_id>/', views.aceitar_pedido, name='aceitar_pedido'),
     path('alterar-status/<uuid:pedido_id>/', views.alterar_status_pedido, name='alterar_status_pedido'),
     path('registrar-ocorrencia/<uuid:pedido_id>/', views.registrar_ocorrencia, name='registrar_ocorrencia'),
+    path('reportar-problema/<uuid:pedido_id>/', views.reportar_problema, name='reportar_problema'),
     path('alterar-disponibilidade/', views.alterar_disponibilidade, name='alterar_disponibilidade'),
     
     # Perfil e gestão

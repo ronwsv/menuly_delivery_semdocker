@@ -232,27 +232,63 @@ def aceitar_pedido(request, pedido_id):
 def meus_pedidos(request):
     """Lista pedidos do entregador"""
     entregador = request.user.entregador
-    
+
     # Filtros
     status_filter = request.GET.get('status', 'all')
-    
+
     pedidos = entregador.pedidos_entrega.select_related('restaurante').order_by('-created_at')
-    
+
     if status_filter != 'all':
         pedidos = pedidos.filter(status=status_filter)
-    
+
     # Paginação
     paginator = Paginator(pedidos, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
         'status_filter': status_filter,
         'status_choices': Pedido.STATUS_CHOICES,
     }
-    
+
     return render(request, 'painel_entregador/meus_pedidos.html', context)
+
+
+@entregador_required
+def pedidos_em_rota(request):
+    """Lista pedidos em rota (aceitos e em entrega) do entregador"""
+    entregador = request.user.entregador
+
+    # Buscar pedidos em rota (status 'entrega' ou 'em_entrega')
+    pedidos_em_rota = entregador.pedidos_entrega.filter(
+        status__in=['entrega', 'em_entrega']
+    ).select_related('restaurante').order_by('-created_at')
+
+    # Adicionar informações extras para cada pedido
+    for pedido in pedidos_em_rota:
+        # Calcular tempo desde aceite
+        if hasattr(pedido, 'aceites') and pedido.aceites.exists():
+            aceite = pedido.aceites.filter(entregador=entregador).first()
+            if aceite:
+                tempo_aceito = timezone.now() - aceite.data_aceite
+                pedido.tempo_aceito = f"{tempo_aceito.seconds // 60}min"
+            else:
+                pedido.tempo_aceito = "Recém aceito"
+        else:
+            pedido.tempo_aceito = "Recém aceito"
+
+        # Garantir que temos coordenadas para o Waze
+        if not hasattr(pedido, 'latitude') or not pedido.latitude:
+            pedido.latitude = "-23.5505"  # São Paulo default
+            pedido.longitude = "-46.6333"
+
+    context = {
+        'pedidos_em_rota': pedidos_em_rota,
+        'entregador': entregador,
+    }
+
+    return render(request, 'painel_entregador/pedidos_em_rota.html', context)
 
 
 @entregador_required
@@ -336,16 +372,16 @@ def alterar_status_pedido(request, pedido_id):
 def registrar_ocorrencia(request, pedido_id):
     """Registra uma ocorrência na entrega"""
     pedido = get_object_or_404(Pedido, id=pedido_id, entregador=request.user.entregador)
-    
+
     tipo = request.POST.get('tipo')
     descricao = request.POST.get('descricao', '').strip()
-    
+
     if not tipo or not descricao:
         return JsonResponse({
             'success': False,
             'message': 'Tipo e descrição da ocorrência são obrigatórios.'
         })
-    
+
     # Criar ocorrência
     ocorrencia = OcorrenciaEntrega.objects.create(
         pedido=pedido,
@@ -353,14 +389,53 @@ def registrar_ocorrencia(request, pedido_id):
         tipo=tipo,
         descricao=descricao
     )
-    
+
     # Notificar lojista
     notificar_ocorrencia_entrega(ocorrencia)
-    
+
     return JsonResponse({
         'success': True,
         'message': 'Ocorrência registrada com sucesso!'
     })
+
+
+@entregador_required
+@require_http_methods(["POST"])
+def reportar_problema(request, pedido_id):
+    """Reporta um problema durante a entrega"""
+    pedido = get_object_or_404(Pedido, id=pedido_id, entregador=request.user.entregador)
+
+    tipo = request.POST.get('tipo', 'problema_entrega')
+    descricao = request.POST.get('descricao', '').strip()
+
+    if not descricao:
+        return JsonResponse({
+            'success': False,
+            'message': 'Descrição do problema é obrigatória.'
+        })
+
+    # Criar ocorrência de problema
+    try:
+        ocorrencia = OcorrenciaEntrega.objects.create(
+            pedido=pedido,
+            entregador=request.user.entregador,
+            tipo=tipo,
+            descricao=descricao
+        )
+
+        # Notificar lojista sobre o problema
+        notificar_ocorrencia_entrega(ocorrencia)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Problema reportado com sucesso! O lojista foi notificado.'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro ao reportar problema: {str(e)}'
+        })
 
 
 @entregador_required

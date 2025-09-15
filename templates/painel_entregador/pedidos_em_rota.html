@@ -1,0 +1,501 @@
+{% extends 'painel_entregador/base.html' %}
+
+{% block title %}Pedidos em Rota{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modo Normal */
+    .pedido-rota-card {
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .pedido-rota-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .status-em-rota {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+    }
+
+    /* Toggle do Modo Direção */
+    .modo-direcao-toggle {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        z-index: 1001;
+        background: #ff6b35;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        transition: all 0.3s ease;
+    }
+    .modo-direcao-toggle:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
+    }
+
+    /* MODO DIREÇÃO - Botões e texto grandes para uso na moto */
+    .modo-direcao {
+        background: #000 !important;
+        color: #fff !important;
+        min-height: 100vh;
+    }
+
+    .modo-direcao .navbar {
+        display: none !important;
+    }
+
+    .modo-direcao .sidebar {
+        display: none !important;
+    }
+
+    .modo-direcao .container-fluid {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .modo-direcao .col-md-9 {
+        margin-left: 0 !important;
+        max-width: 100% !important;
+        padding: 20px !important;
+    }
+
+    .modo-direcao .pedido-card-driving {
+        background: #1a1a1a;
+        border: 3px solid #ff6b35;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+    }
+
+    .modo-direcao h1, .modo-direcao h2, .modo-direcao h3 {
+        color: #fff !important;
+        font-size: 2.5rem !important;
+        font-weight: bold !important;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .modo-direcao p, .modo-direcao span {
+        color: #fff !important;
+        font-size: 1.4rem !important;
+        font-weight: 500 !important;
+    }
+
+    .modo-direcao .btn {
+        font-size: 1.6rem !important;
+        padding: 20px 40px !important;
+        margin: 10px !important;
+        border-radius: 15px !important;
+        font-weight: bold !important;
+        min-height: 80px !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+        border: none !important;
+    }
+
+    .modo-direcao .btn-waze {
+        background: linear-gradient(45deg, #00d4ff, #0099cc) !important;
+        color: white !important;
+    }
+
+    .modo-direcao .btn-entregue {
+        background: linear-gradient(45deg, #28a745, #20c997) !important;
+        color: white !important;
+    }
+
+    .modo-direcao .btn-problema {
+        background: linear-gradient(45deg, #dc3545, #c82333) !important;
+        color: white !important;
+    }
+
+    .modo-direcao .cliente-info {
+        background: #2a2a2a;
+        border-radius: 15px;
+        padding: 25px;
+        margin: 20px 0;
+        border-left: 5px solid #ff6b35;
+    }
+
+    .modo-direcao .endereco-box {
+        background: #1e3a8a;
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin: 20px 0;
+        font-size: 1.3rem !important;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    /* Responsive para modo direção */
+    @media (max-width: 768px) {
+        .modo-direcao h1, .modo-direcao h2, .modo-direcao h3 {
+            font-size: 2rem !important;
+        }
+
+        .modo-direcao p, .modo-direcao span {
+            font-size: 1.2rem !important;
+        }
+
+        .modo-direcao .btn {
+            font-size: 1.3rem !important;
+            padding: 15px 25px !important;
+            min-height: 70px !important;
+        }
+
+        .modo-direcao-toggle {
+            top: 10px;
+            right: 10px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toggle do Modo Direção -->
+<button class="modo-direcao-toggle" id="modoDirecaoToggle" onclick="toggleModoDirecao()">
+    <i class="fas fa-road me-2"></i><span id="modoTexto">Modo Direção</span>
+</button>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-route me-2"></i>Pedidos em Rota
+    </h1>
+    <div class="text-muted">
+        <i class="fas fa-motorcycle me-1"></i>
+        {{ pedidos_em_rota.count }} pedido{% if pedidos_em_rota.count != 1 %}s{% endif %} em andamento
+    </div>
+</div>
+
+<!-- Pedidos em Rota -->
+{% if pedidos_em_rota %}
+    <div class="row" id="pedidosContainer">
+        {% for pedido in pedidos_em_rota %}
+            <div class="col-12 mb-4">
+                <div class="card pedido-rota-card pedido-item" data-pedido-id="{{ pedido.id }}">
+                    <div class="card-header status-em-rota d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-motorcycle me-2"></i>Pedido #{{ pedido.numero }}
+                        </h5>
+                        <div>
+                            <span class="badge bg-light text-dark me-2">
+                                <i class="fas fa-clock me-1"></i>{{ pedido.tempo_aceito }}
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                R$ {{ pedido.valor_entrega|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="cliente-info-normal">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-user me-2"></i>Informações do Cliente
+                                    </h6>
+                                    <p class="mb-2"><strong>Nome:</strong> {{ pedido.cliente_nome }}</p>
+                                    <p class="mb-2">
+                                        <strong>Telefone:</strong>
+                                        <a href="tel:{{ pedido.cliente_celular }}" class="text-decoration-none">
+                                            {{ pedido.cliente_celular }}
+                                        </a>
+                                    </p>
+                                    <div class="endereco-normal bg-light p-3 rounded">
+                                        <h6 class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>Endereço de Entrega:</h6>
+                                        <p class="mb-0">{{ pedido.endereco_completo }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="restaurante-info mb-3">
+                                    <h6 class="text-success mb-2">
+                                        <i class="fas fa-store me-2"></i>{{ pedido.restaurante.nome }}
+                                    </h6>
+                                    <p class="text-muted mb-2">Pedido realizado em: {{ pedido.created_at|date:"d/m/Y H:i" }}</p>
+                                    <p class="text-muted">Total do pedido: R$ {{ pedido.total|floatformat:2 }}</p>
+                                </div>
+
+                                <!-- Botões de Ação - Modo Normal -->
+                                <div class="acoes-normais">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <button class="btn btn-info w-100 mb-2" onclick="abrirWaze('{{ pedido.latitude }}', '{{ pedido.longitude }}', '{{ pedido.endereco_completo|escapejs }}')">
+                                                <i class="fas fa-route me-2"></i>Abrir no Waze
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-success w-100" onclick="marcarComoEntregue('{{ pedido.id }}')">
+                                                <i class="fas fa-check me-2"></i>Entregue
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-warning w-100" onclick="reportarProblema('{{ pedido.id }}')">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>Problema
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card para Modo Direção (inicialmente oculto) -->
+                <div class="pedido-card-driving d-none">
+                    <div class="row">
+                        <div class="col-12 text-center mb-3">
+                            <h2>PEDIDO #{{ pedido.numero }}</h2>
+                        </div>
+                    </div>
+
+                    <div class="cliente-info">
+                        <h3><i class="fas fa-user me-3"></i>{{ pedido.cliente_nome }}</h3>
+                        <p><i class="fas fa-phone me-3"></i><a href="tel:{{ pedido.cliente_celular }}" class="text-white">{{ pedido.cliente_celular }}</a></p>
+                    </div>
+
+                    <div class="endereco-box">
+                        <i class="fas fa-map-marker-alt me-3"></i>{{ pedido.endereco_completo }}
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <button class="btn btn-waze w-100 mb-3" onclick="abrirWaze('{{ pedido.latitude }}', '{{ pedido.longitude }}', '{{ pedido.endereco_completo|escapejs }}')">
+                                <i class="fas fa-route me-3"></i>ABRIR WAZE
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-entregue w-100" onclick="marcarComoEntregue('{{ pedido.id }}')">
+                                <i class="fas fa-check me-3"></i>ENTREGUE
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-problema w-100" onclick="reportarProblema('{{ pedido.id }}')">
+                                <i class="fas fa-exclamation-triangle me-3"></i>PROBLEMA
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <p><strong>VALOR DA ENTREGA: R$ {{ pedido.valor_entrega|floatformat:2 }}</strong></p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-route fa-4x text-muted mb-4"></i>
+        <h4 class="text-muted">Nenhum pedido em rota</h4>
+        <p class="text-muted">Quando você aceitar pedidos, eles aparecerão aqui para acompanhamento da entrega.</p>
+        <a href="{% url 'painel_entregador:pedidos_disponiveis' %}" class="btn btn-primary">
+            <i class="fas fa-search me-2"></i>Ver Pedidos Disponíveis
+        </a>
+    </div>
+{% endif %}
+
+<!-- Modal para Reportar Problema -->
+<div class="modal fade" id="problemaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reportar Problema</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="problemaForm">
+                    <input type="hidden" id="pedidoProblemaId">
+                    <div class="mb-3">
+                        <label for="tipoProblema" class="form-label">Tipo do Problema</label>
+                        <select class="form-select" id="tipoProblema" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="endereco_incorreto">Endereço incorreto</option>
+                            <option value="cliente_ausente">Cliente ausente</option>
+                            <option value="problemas_veiculo">Problemas com veículo</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricaoProblema" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricaoProblema" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="enviarProblema()">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Reportar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modoDirecaoAtivo = false;
+
+function toggleModoDirecao() {
+    modoDirecaoAtivo = !modoDirecaoAtivo;
+    const body = document.body;
+    const button = document.getElementById('modoDirecaoToggle');
+    const modoTexto = document.getElementById('modoTexto');
+    const cardsNormais = document.querySelectorAll('.pedido-rota-card');
+    const cardsDirecao = document.querySelectorAll('.pedido-card-driving');
+
+    if (modoDirecaoAtivo) {
+        body.classList.add('modo-direcao');
+        modoTexto.textContent = 'Sair do Modo';
+        button.style.background = '#dc3545';
+
+        // Esconder cards normais e mostrar cards de direção
+        cardsNormais.forEach(card => card.classList.add('d-none'));
+        cardsDirecao.forEach(card => card.classList.remove('d-none'));
+
+        // Bloquear orientação em landscape (se possível)
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+        }
+
+    } else {
+        body.classList.remove('modo-direcao');
+        modoTexto.textContent = 'Modo Direção';
+        button.style.background = '#ff6b35';
+
+        // Mostrar cards normais e esconder cards de direção
+        cardsNormais.forEach(card => card.classList.remove('d-none'));
+        cardsDirecao.forEach(card => card.classList.add('d-none'));
+
+        // Desbloquecar orientação
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+        }
+    }
+}
+
+function abrirWaze(latitude, longitude, endereco) {
+    // Tenta abrir o app do Waze primeiro, depois o browser
+    const wazeApp = `waze://?ll=${latitude},${longitude}&navigate=yes`;
+    const wazeWeb = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes&z=10`;
+
+    // Tentar abrir o app
+    window.location.href = wazeApp;
+
+    // Fallback para versão web após um delay
+    setTimeout(() => {
+        window.open(wazeWeb, '_blank');
+    }, 500);
+}
+
+function marcarComoEntregue(pedidoId) {
+    const confirmText = modoDirecaoAtivo ?
+        'CONFIRMA QUE FOI ENTREGUE?' :
+        'Confirma que o pedido foi entregue?';
+
+    if (confirm(confirmText)) {
+        fetch(`/entregador/alterar-status/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=entregue'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao alterar status. Tente novamente.');
+        });
+    }
+}
+
+function reportarProblema(pedidoId) {
+    if (modoDirecaoAtivo) {
+        // No modo direção, apenas marcar como problema simples
+        if (confirm('REPORTAR PROBLEMA COM ESTA ENTREGA?')) {
+            fetch(`/entregador/reportar-problema/${pedidoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'tipo=problema_entrega&descricao=Problema reportado durante entrega'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    } else {
+        // Modo normal - abrir modal detalhado
+        document.getElementById('pedidoProblemaId').value = pedidoId;
+        new bootstrap.Modal(document.getElementById('problemaModal')).show();
+    }
+}
+
+function enviarProblema() {
+    const pedidoId = document.getElementById('pedidoProblemaId').value;
+    const tipo = document.getElementById('tipoProblema').value;
+    const descricao = document.getElementById('descricaoProblema').value;
+
+    if (!tipo || !descricao) {
+        alert('Preencha todos os campos');
+        return;
+    }
+
+    fetch(`/entregador/reportar-problema/${pedidoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `tipo=${tipo}&descricao=${encodeURIComponent(descricao)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('problemaModal')).hide();
+            location.reload();
+        }
+    });
+}
+
+// Desativar modo direção ao redimensionar para desktop
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && modoDirecaoAtivo) {
+        toggleModoDirecao();
+    }
+});
+
+// Impedir zoom no modo direção
+document.addEventListener('gesturestart', function (e) {
+    if (modoDirecaoAtivo) {
+        e.preventDefault();
+    }
+});
+
+document.addEventListener('gesturechange', function (e) {
+    if (modoDirecaoAtivo) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}
