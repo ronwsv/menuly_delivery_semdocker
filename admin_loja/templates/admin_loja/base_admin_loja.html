@@ -177,24 +177,214 @@
             color: white !important;
         }
 
-        /* Responsividade para telas menores */
-        @media (max-width: 768px) {
-            nav { 
-                width: 70px; 
+        /* Mobile menu toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1.2em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Responsividade para tablets */
+        @media (max-width: 992px) {
+            nav {
+                width: 80px;
                 padding: 10px 0;
             }
             nav a {
                 text-align: center;
-                padding: 15px 5px;
+                padding: 12px 8px;
+                margin: 0 5px;
             }
             nav a span {
                 display: none;
             }
-            .nav-header {
+            nav a i {
+                margin-right: 0;
+                font-size: 1.2em;
+            }
+            .nav-header h3 {
+                font-size: 0.9em;
+            }
+            .nav-header h3 span {
                 display: none;
             }
+
+            /* Indicador de submenu para versão compacta */
+            .menu-toggle::after {
+                content: '▼';
+                position: absolute;
+                bottom: 2px;
+                right: 50%;
+                transform: translateX(50%);
+                font-size: 0.7em;
+                opacity: 0.7;
+                transition: transform 0.3s ease;
+            }
+            .menu-dropdown.active .menu-toggle::after {
+                transform: translateX(50%) rotate(180deg);
+            }
+            .menu-toggle i.fa-chevron-down {
+                display: none;
+            }
+
+            /* Submenu em versão compacta */
+            .submenu {
+                position: absolute;
+                left: 85px;
+                top: 0;
+                background: #1e3a8a;
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 8px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                min-width: 200px;
+                z-index: 1000;
+            }
+            .submenu a {
+                text-align: left;
+                padding: 12px 16px;
+                margin: 0;
+                font-size: 0.9em;
+                padding-left: 16px;
+            }
+            .submenu a span {
+                display: inline;
+            }
+
             main {
                 padding: 20px;
+            }
+        }
+
+        /* Responsividade para celulares */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            body {
+                overflow-x: hidden;
+            }
+
+            nav {
+                position: fixed;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                padding: 80px 0 20px 0;
+            }
+
+            nav.mobile-open {
+                left: 0;
+            }
+
+            nav a {
+                text-align: left;
+                padding: 15px 20px;
+                margin: 0 10px;
+                font-size: 1rem;
+            }
+
+            nav a span {
+                display: inline;
+            }
+
+            nav a i {
+                margin-right: 12px;
+                font-size: 1.1em;
+            }
+
+            .nav-header {
+                display: block;
+                padding: 20px;
+                margin-top: -60px;
+            }
+
+            .nav-header h3 span {
+                display: inline;
+            }
+
+            /* Restaurar dropdown normal no mobile */
+            .menu-toggle::after {
+                display: none;
+            }
+            .menu-toggle i.fa-chevron-down {
+                display: inline;
+            }
+
+            .submenu {
+                position: static;
+                background: rgba(0,0,0,0.2);
+                margin: 4px 10px 0 10px;
+                border-radius: 8px;
+                min-width: auto;
+                box-shadow: none;
+                border: none;
+            }
+
+            .submenu a {
+                padding: 12px 20px;
+                padding-left: 52px;
+                margin: 0;
+            }
+
+            main {
+                padding: 80px 15px 20px 15px;
+                margin-left: 0;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            /* Overlay para fechar menu */
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+
+            .mobile-overlay.active {
+                display: block;
+            }
+        }
+
+        /* Extra pequenas telas */
+        @media (max-width: 480px) {
+            .mobile-menu-toggle {
+                top: 15px;
+                left: 15px;
+                padding: 10px;
+                font-size: 1.1em;
+            }
+
+            main {
+                padding: 75px 10px 15px 10px;
+            }
+
+            header h1 {
+                font-size: 1.3em;
+            }
+
+            nav {
+                width: 100%;
+                left: -100%;
             }
         }
 
@@ -243,7 +433,11 @@
 </head>
 <body>
     {% if request.user.is_authenticated %}
-    <nav>
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+    <nav id="sideNav">
         <div class="nav-header">
             <h3><i class="fas fa-store"></i> Painel do Lojista</h3>
             <div class="notification-bell" style="position: absolute; top: 15px; right: 20px;">
@@ -332,12 +526,16 @@
         // Dropdown menu functionality
         document.addEventListener('DOMContentLoaded', function() {
             const menuToggles = document.querySelectorAll('.menu-toggle');
-            
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sideNav = document.getElementById('sideNav');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+
+            // Dropdown functionality
             menuToggles.forEach(toggle => {
                 toggle.addEventListener('click', function(e) {
                     e.preventDefault();
                     const dropdown = this.closest('.menu-dropdown');
-                    
+
                     // Fechar outros dropdowns
                     menuToggles.forEach(otherToggle => {
                         const otherDropdown = otherToggle.closest('.menu-dropdown');
@@ -345,10 +543,56 @@
                             otherDropdown.classList.remove('active');
                         }
                     });
-                    
+
                     // Toggle do dropdown atual
                     dropdown.classList.toggle('active');
                 });
+            });
+
+            // Mobile menu functionality
+            function toggleMobileMenu() {
+                sideNav.classList.toggle('mobile-open');
+                mobileOverlay.classList.toggle('active');
+
+                // Alterar ícone do botão
+                const icon = mobileMenuToggle.querySelector('i');
+                if (sideNav.classList.contains('mobile-open')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            }
+
+            function closeMobileMenu() {
+                sideNav.classList.remove('mobile-open');
+                mobileOverlay.classList.remove('active');
+                mobileMenuToggle.querySelector('i').className = 'fas fa-bars';
+            }
+
+            // Event listeners para mobile menu
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', closeMobileMenu);
+            }
+
+            // Fechar menu ao clicar em um link (exceto dropdowns)
+            const navLinks = document.querySelectorAll('nav a:not(.menu-toggle)');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+
+            // Fechar menu ao redimensionar tela
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
             });
             
             // Função para atualizar badge de notificações no menu
