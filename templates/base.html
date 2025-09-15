@@ -84,6 +84,18 @@
             
             <!-- Menu -->
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Busca Mobile -->
+                <div class="d-lg-none mt-3 mb-3">
+                    <form method="GET" action="{% loja_url 'buscar' %}">
+                        <div class="input-group">
+                            <input class="form-control" type="search" name="q" placeholder="Buscar produtos..." value="{{ request.GET.q }}">
+                            <button class="btn btn-outline-primary" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% loja_url 'home' %}">
@@ -135,7 +147,7 @@
                 </ul>
                 
                 <!-- Busca -->
-                <form class="d-flex me-2" method="GET" action="{% loja_url 'buscar' %}">
+                <form class="d-flex me-2 d-none d-lg-flex" method="GET" action="{% loja_url 'buscar' %}">
                     <div class="input-group">
                         <input class="form-control form-control-sm" type="search" name="q" placeholder="Buscar..." value="{{ request.GET.q }}">
                         <button class="btn btn-outline-primary btn-sm" type="submit">
@@ -144,46 +156,51 @@
                     </div>
                 </form>
                 
-                <!-- Carrinho -->
-                <button class="btn btn-primary position-relative me-2" id="btn-abrir-carrinho" type="button">
-                    <i class="bi bi-cart3"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
-                          id="carrinho-badge" style="display: none;">
-                        0
-                    </span>
-                </button>
-                
-                <!-- Usuário -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person"></i>
-                        {% if user.is_authenticated %}
-                            {{ user.first_name|default:user.username }}
-                        {% else %}
-                            Entrar
-                        {% endif %}
+                <!-- Ações do usuário (Carrinho + Login) -->
+                <div class="d-flex align-items-center navbar-actions">
+                    <!-- Carrinho -->
+                    <button class="btn btn-primary position-relative me-2" id="btn-abrir-carrinho" type="button">
+                        <i class="bi bi-cart3"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                              id="carrinho-badge" style="display: none;">
+                            0
+                        </span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        {% if user.is_authenticated %}
-                            <li><a class="dropdown-item" href="{% loja_url 'perfil' %}">
-                                <i class="bi bi-person-gear"></i> Meu Perfil
-                            </a></li>
-                            <li><a class="dropdown-item" href="{% loja_url 'meus_pedidos' %}">
-                                <i class="bi bi-bag-check"></i> Meus Pedidos
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% loja_url 'logout' %}">
-                                <i class="bi bi-box-arrow-right"></i> Sair
-                            </a></li>
-                        {% else %}
-                            <li><a class="dropdown-item" href="{% loja_url 'login' %}">
-                                <i class="bi bi-box-arrow-in-right"></i> Entrar
-                            </a></li>
-                            <li><a class="dropdown-item" href="{% loja_url 'cadastro' %}">
-                                <i class="bi bi-person-plus"></i> Criar Conta
-                            </a></li>
-                        {% endif %}
-                    </ul>
+                    
+                    <!-- Usuário -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person"></i>
+                            <span class="d-none d-sm-inline">
+                                {% if user.is_authenticated %}
+                                    {{ user.first_name|default:user.username }}
+                                {% else %}
+                                    Entrar
+                                {% endif %}
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if user.is_authenticated %}
+                                <li><a class="dropdown-item" href="{% loja_url 'perfil' %}">
+                                    <i class="bi bi-person-gear"></i> Meu Perfil
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% loja_url 'meus_pedidos' %}">
+                                    <i class="bi bi-bag-check"></i> Meus Pedidos
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% loja_url 'logout' %}">
+                                    <i class="bi bi-box-arrow-right"></i> Sair
+                                </a></li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{% loja_url 'login' %}">
+                                    <i class="bi bi-box-arrow-in-right"></i> Entrar
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% loja_url 'cadastro' %}">
+                                    <i class="bi bi-person-plus"></i> Criar Conta
+                                </a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

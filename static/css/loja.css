@@ -101,6 +101,46 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0.25rem 0.4rem;
 }
 
+/* ====================== NAVBAR ACTIONS ====================== */
+.navbar-actions {
+    gap: 0.5rem;
+}
+
+.navbar-actions .btn {
+    min-width: 44px; /* Mínimo recomendado para touch targets */
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ====================== MOBILE NAVBAR IMPROVEMENTS ====================== */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        margin-top: 1rem;
+        padding: 1rem 0;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .navbar-actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        justify-content: center;
+    }
+    
+    .navbar-actions .btn {
+        flex: 0 0 auto;
+    }
+    
+    /* Esconder texto no botão de usuário em telas muito pequenas */
+    @media (max-width: 359px) {
+        .navbar-actions .btn span {
+            display: none !important;
+        }
+    }
+}
+
 /* ====================== CARDS DE PRODUTO ====================== */
 .produto-card {
     border-radius: var(--border-radius-lg);
@@ -499,7 +539,7 @@ h1, h2, h3, h4, h5, h6 {
     
     .navbar-nav {
         text-align: center;
-        margin-top: 1rem;
+        margin-top: 0;
     }
     
     .hero-actions {
@@ -510,6 +550,13 @@ h1, h2, h3, h4, h5, h6 {
         display: block;
         width: 100%;
         margin: 0.5rem 0;
+    }
+    
+    /* Melhorar espaçamento dos botões de ação no mobile */
+    .navbar-actions .btn {
+        min-width: 48px;
+        height: 42px;
+        font-size: 1rem;
     }
 }
 
@@ -534,6 +581,21 @@ h1, h2, h3, h4, h5, h6 {
     
     .categoria-img {
         height: 100px;
+    }
+    
+    /* Layout mais compacto para ações do navbar em telas pequenas */
+    .navbar-actions .btn {
+        min-width: 40px;
+        height: 38px;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .navbar-actions .btn .bi {
+        font-size: 1.1rem;
+    }
+    
+    .navbar-actions {
+        gap: 0.75rem;
     }
 }
 
