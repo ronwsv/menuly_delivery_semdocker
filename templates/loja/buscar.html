@@ -1,16 +1,294 @@
 {% extends "base.html" %}
-{% block title %}Buscar Produtos{% endblock %}
+{% load static %}
+{% load loja_extras %}
+
+{% block title %}
+    {% if query %}
+        Busca: "{{ query }}" - {{ restaurante_atual.nome }}
+    {% else %}
+        Buscar Produtos - {{ restaurante_atual.nome }}
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-  <h2>Resultados da busca</h2>
-  {% if produtos %}
-    <ul>
-      {% for produto in produtos %}
-        <li>{{ produto.nome }} - R$ {{ produto.preco_final }}</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Nenhum produto encontrado.</p>
-  {% endif %}
+    <!-- Cabeçalho da busca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    {% if query %}
+                        <h2 class="mb-1">Resultados para "{{ query }}"</h2>
+                        <p class="text-muted mb-0">{{ total_resultados }} produto{{ total_resultados|pluralize }} encontrado{{ total_resultados|pluralize }}</p>
+                    {% else %}
+                        <h2 class="mb-1">Buscar Produtos</h2>
+                        <p class="text-muted mb-0">Digite o que você procura</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Formulário de busca refinada -->
+                <div class="col-md-6">
+                    <form method="GET" class="d-flex">
+                        <input class="form-control me-2" 
+                               type="search" 
+                               name="q" 
+                               placeholder="Buscar produtos..." 
+                               value="{{ query }}"
+                               autocomplete="off">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if query %}
+        <!-- Filtros -->
+        {% if categorias_com_resultados %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">Filtrar por categoria:</h6>
+                        <div class="d-flex flex-wrap gap-2 filtros-busca">
+                            <a href="?q={{ query }}" 
+                               class="btn btn-sm {% if not categoria_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                Todas
+                            </a>
+                            {% for categoria in categorias_com_resultados %}
+                            <a href="?q={{ query }}&categoria={{ categoria.slug }}" 
+                               class="btn btn-sm {% if categoria_filter == categoria.slug %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                {{ categoria.nome }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Resultados -->
+        {% if tem_resultados %}
+        <div class="row">
+            {% for produto in produtos %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card produto-card h-100">
+                    {% if produto.imagem %}
+                    <img src="{{ produto.imagem.url }}" class="card-img-top produto-img" alt="{{ produto.nome }}">
+                    {% else %}
+                    <div class="card-img-top produto-img bg-light d-flex align-items-center justify-content-center">
+                        <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ produto.nome }}</h5>
+                        <p class="card-text text-muted small flex-grow-1">{{ produto.descricao|truncatewords:15 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <div>
+                                {% if produto.promocao %}
+                                <span class="text-decoration-line-through text-muted small">R$ {{ produto.preco|floatformat:2 }}</span><br>
+                                <span class="h5 text-primary mb-0">R$ {{ produto.preco_final|floatformat:2 }}</span>
+                                {% else %}
+                                <span class="h5 mb-0">R$ {{ produto.preco_final|floatformat:2 }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
+                               class="btn btn-primary btn-sm">
+                                Ver Detalhes
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if produto.promocao %}
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-danger">Promoção</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if produtos.has_other_pages %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <nav aria-label="Navegação da busca">
+                    <ul class="pagination justify-content-center">
+                        {% if produtos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?q={{ query }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}&page={{ produtos.previous_page_number }}">Anterior</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in produtos.paginator.page_range %}
+                        {% if produtos.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > produtos.number|add:'-3' and num < produtos.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?q={{ query }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if produtos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?q={{ query }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}&page={{ produtos.next_page_number }}">Próxima</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Nenhum resultado encontrado -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 mb-2">Nenhum produto encontrado</h4>
+                    <p class="text-muted mb-4">
+                        Não encontramos produtos que correspondam à sua busca por "<strong>{{ query }}</strong>".
+                    </p>
+                    
+                    <!-- Sugestões -->
+                    {% if sugestoes %}
+                    <div class="mt-4">
+                        <h5>Talvez você goste destes produtos:</h5>
+                        <div class="row mt-3">
+                            {% for produto in sugestoes %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card produto-card">
+                                    {% if produto.imagem %}
+                                    <img src="{{ produto.imagem.url }}" class="card-img-top produto-img" alt="{{ produto.nome }}" style="height: 150px;">
+                                    {% else %}
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                                        <i class="bi bi-image text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ produto.nome }}</h6>
+                                        <p class="text-muted small">R$ {{ produto.preco_final|floatformat:2 }}</p>
+                                        <a href="{% loja_url 'produto_detalhe' produto_slug=produto.slug %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            Ver Produto
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Dicas de busca -->
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            <strong>Dicas:</strong><br>
+                            • Verifique a ortografia das palavras<br>
+                            • Tente usar termos mais genéricos<br>
+                            • Use menos palavras na busca
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    
+    {% else %}
+        <!-- Página inicial de busca -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-search text-primary" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 mb-4">O que você gostaria de encontrar?</h4>
+                    
+                    <!-- Formulário principal -->
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                            <form method="GET">
+                                <div class="input-group input-group-lg">
+                                    <input class="form-control" 
+                                           type="search" 
+                                           name="q" 
+                                           placeholder="Digite o nome do produto..." 
+                                           autocomplete="off"
+                                           autofocus>
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="bi bi-search"></i> Buscar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Categorias disponíveis -->
+                    {% if todas_categorias %}
+                    <div class="mt-5">
+                        <h5 class="mb-3">Ou navegue por categoria:</h5>
+                        <div class="row">
+                            {% for categoria in todas_categorias %}
+                            <div class="col-lg-3 col-md-4 col-6 mb-3">
+                                <a href="{% loja_url 'categoria' categoria_slug=categoria.slug %}" 
+                                   class="card categoria-card text-decoration-none">
+                                    {% if categoria.imagem %}
+                                    <img src="{{ categoria.imagem.url }}" class="card-img-top categoria-img" alt="{{ categoria.nome }}">
+                                    {% else %}
+                                    <div class="card-img-top categoria-img bg-light d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-grid text-muted" style="font-size: 2rem;"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title mb-0">{{ categoria.nome }}</h6>
+                                    </div>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
+
+<style>
+.produto-img {
+    height: 200px;
+    object-fit: cover;
+}
+
+.categoria-img {
+    height: 120px;
+    object-fit: cover;
+}
+
+.categoria-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.produto-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.categoria-card,
+.produto-card {
+    transition: all 0.3s ease;
+}
+</style>
 {% endblock %}

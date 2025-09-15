@@ -346,29 +346,110 @@ class ProdutoDetalheView(BaseLojaView):
 
 
 class BuscarProdutosView(BaseLojaView):
-    """Busca de produtos"""
+    """Busca de produtos com filtros avançados"""
     template_name = 'loja/buscar.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        query = self.request.GET.get('q', '')
+        query = self.request.GET.get('q', '').strip()
+        categoria_filter = self.request.GET.get('categoria', '')
+        
+        produtos = []
+        categorias_com_resultados = []
+        sugestoes = []
         
         if context['restaurante'] and query:
-            produtos = context['restaurante'].produtos.filter(
-                Q(nome__icontains=query) | 
-                Q(descricao__icontains=query) |
-                Q(categoria__nome__icontains=query),
+            # Busca principal
+            produtos_query = context['restaurante'].produtos.filter(
                 disponivel=True
-            ).select_related('categoria').order_by('nome')
+            ).select_related('categoria')
+            
+            # Aplicar filtro de categoria se especificado
+            if categoria_filter:
+                produtos_query = produtos_query.filter(categoria__slug=categoria_filter)
+            
+            # Busca por relevância (nome tem prioridade)
+            produtos_nome = produtos_query.filter(
+                Q(nome__icontains=query)
+            ).order_by('nome')
+            
+            # Busca em descrição
+            produtos_descricao = produtos_query.filter(
+                Q(descricao__icontains=query)
+            ).exclude(
+                id__in=produtos_nome.values_list('id', flat=True)
+            ).order_by('nome')
+            
+            # Busca em categoria
+            produtos_categoria = produtos_query.filter(
+                Q(categoria__nome__icontains=query)
+            ).exclude(
+                id__in=produtos_nome.values_list('id', flat=True)
+            ).exclude(
+                id__in=produtos_descricao.values_list('id', flat=True)
+            ).order_by('nome')
+            
+            # Combinar resultados por relevância
+            produtos_list = list(produtos_nome) + list(produtos_descricao) + list(produtos_categoria)
             
             # Paginação
-            paginator = Paginator(produtos, 12)
+            paginator = Paginator(produtos_list, 12)
             page_number = self.request.GET.get('page')
-            produtos_paginated = paginator.get_page(page_number)
+            produtos = paginator.get_page(page_number)
             
-            context['produtos'] = produtos_paginated
-            context['query'] = query
-            context['total_resultados'] = produtos.count()
+            # Categorias que têm produtos nos resultados
+            if produtos_list:
+                categorias_com_resultados = context['restaurante'].categorias.filter(
+                    produtos__in=[p.id for p in produtos_list]
+                ).distinct().order_by('nome')
+            
+            # Sugestões se não houver resultados ou poucos resultados
+            if len(produtos_list) < 3:
+                # Buscar produtos similares
+                palavras = query.split()
+                if palavras:
+                    sugestoes_query = context['restaurante'].produtos.filter(
+                        disponivel=True
+                    )
+                    
+                    for palavra in palavras:
+                        if len(palavra) > 2:  # Ignorar palavras muito pequenas
+                            sugestoes_query = sugestoes_query.filter(
+                                Q(nome__icontains=palavra) |
+                                Q(descricao__icontains=palavra) |
+                                Q(categoria__nome__icontains=palavra)
+                            )
+                    
+                    # Excluir produtos já nos resultados
+                    if produtos_list:
+                        sugestoes_query = sugestoes_query.exclude(
+                            id__in=[p.id for p in produtos_list]
+                        )
+                    
+                    sugestoes = list(sugestoes_query.order_by('nome')[:6])
+            
+            context.update({
+                'produtos': produtos,
+                'query': query,
+                'categoria_filter': categoria_filter,
+                'total_resultados': len(produtos_list),
+                'categorias_com_resultados': categorias_com_resultados,
+                'sugestoes': sugestoes,
+                'tem_resultados': len(produtos_list) > 0,
+            })
+        else:
+            # Se não há query, mostrar categorias disponíveis
+            if context['restaurante']:
+                context['todas_categorias'] = context['restaurante'].categorias.filter(
+                    produtos__disponivel=True
+                ).distinct().order_by('nome')
+            
+            context.update({
+                'produtos': produtos,
+                'query': query,
+                'total_resultados': 0,
+                'tem_resultados': False,
+            })
         
         return context
 
@@ -2030,3 +2111,53 @@ class LimparCarrinhoView(View):
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class BuscarSugestoesView(BaseLojaView):
+    """API para sugestões de busca em tempo real"""
+    
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        query = request.GET.get('q', '').strip()
+        
+        sugestoes = []
+        
+        if context['restaurante'] and query and len(query) >= 2:
+            # Buscar produtos que começam com a query
+            produtos_nomes = list(
+                context['restaurante'].produtos.filter(
+                    nome__istartswith=query,
+                    disponivel=True
+                ).values_list('nome', flat=True)[:5]
+            )
+            
+            # Buscar produtos que contêm a query
+            produtos_contem = list(
+                context['restaurante'].produtos.filter(
+                    nome__icontains=query,
+                    disponivel=True
+                ).exclude(
+                    nome__istartswith=query
+                ).values_list('nome', flat=True)[:3]
+            )
+            
+            # Buscar categorias
+            categorias = list(
+                context['restaurante'].categorias.filter(
+                    nome__icontains=query
+                ).values_list('nome', flat=True)[:2]
+            )
+            
+            # Combinar sugestões
+            sugestoes = produtos_nomes + produtos_contem + categorias
+            
+            # Remover duplicatas mantendo ordem
+            sugestoes = list(dict.fromkeys(sugestoes))
+            
+            # Limitar a 8 sugestões
+            sugestoes = sugestoes[:8]
+        
+        return JsonResponse({
+            'sugestoes': sugestoes,
+            'query': query
+        })

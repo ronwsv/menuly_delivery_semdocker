@@ -1171,3 +1171,70 @@ h1, h2, h3, h4, h5, h6 {
         border: 1px solid #ddd !important;
     }
 }
+
+/* ====================== PÁGINA DE BUSCA ====================== */
+.produto-img {
+    height: 200px;
+    object-fit: cover;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.categoria-img {
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.categoria-card,
+.produto-card {
+    transition: var(--transition);
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.categoria-card:hover,
+.produto-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+}
+
+.categoria-card .card-body {
+    padding: 0.75rem;
+}
+
+/* Busca - Estados vazios */
+.busca-vazia {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+/* Filtros de busca */
+.filtros-busca .btn-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    margin: 0.125rem;
+}
+
+/* Responsividade da busca */
+@media (max-width: 768px) {
+    .produto-img {
+        height: 150px;
+    }
+    
+    .categoria-img {
+        height: 100px;
+    }
+    
+    .filtros-busca {
+        text-align: center;
+    }
+    
+    .filtros-busca .btn-sm {
+        margin: 0.25rem;
+        font-size: 0.8rem;
+    }
+}

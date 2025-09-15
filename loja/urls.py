@@ -51,4 +51,5 @@ urlpatterns = [
     # APIs para funcionalidades dinâmicas
     path('api/buscar-cep/', views.BuscarCEPView.as_view(), name='api_buscar_cep'),
     path('api/calcular-entrega/', views.CalcularEntregaView.as_view(), name='api_calcular_entrega'),
+    path('api/buscar-sugestoes/', views.BuscarSugestoesView.as_view(), name='api_buscar_sugestoes'),
 ]
