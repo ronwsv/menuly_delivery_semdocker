@@ -83,11 +83,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Docker
-*.pid
-*.seed
-*.pid.lock
-
 # Logs
 logs
 *.log

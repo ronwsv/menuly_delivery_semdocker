@@ -230,6 +230,9 @@ function abrirCarrinhoSidebar() {
     }
 }
 
+// Tornar função disponível globalmente
+window.abrirCarrinhoSidebar = abrirCarrinhoSidebar;
+
 // Função para carregar dados do carrinho no sidebar
 function carregarDadosCarrinhoSidebar() {
     console.log('📦 Carregando dados do carrinho no sidebar...');
@@ -298,7 +301,7 @@ function renderizarCarrinhoSidebar(data) {
         let total = 0;
         
         data.items.forEach(function(item) {
-            const subtotal = item.preco_total || (item.preco_unitario * item.quantidade);
+            const subtotal = item.subtotal || item.preco_total || (item.preco_unitario * item.quantidade);
             total += subtotal;
             
             // Personalizações
@@ -353,7 +356,7 @@ function renderizarCarrinhoSidebar(data) {
     
     // Mostrar total e footer
     if (carrinhoTotal) {
-        const totalValue = data.total || 0;
+        const totalValue = data.total_valor || data.total || 0;
         carrinhoTotal.textContent = `R$ ${totalValue.toFixed(2).replace('.', ',')}`;
     }
     

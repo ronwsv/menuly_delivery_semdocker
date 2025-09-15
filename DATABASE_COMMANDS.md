@@ -104,48 +104,7 @@ python manage.py collectstatic
 python manage.py collectstatic --clear --noinput
 ```
 
-## 🐳 Comandos Docker
-
-### Recriar Banco no Docker
-
-```bash
-# Parar containers
-docker-compose down
-
-# Remover volumes (CUIDADO: apaga dados!)
-docker-compose down -v
-
-# Subir novamente
-docker-compose up --build
-```
-
-### Comandos Django no Docker
-
-```bash
-# Executar migrações
-docker-compose exec web python manage.py migrate
-
-# Criar superusuário
-docker-compose exec web python manage.py createsuperuser
-
-# Acessar shell Django
-docker-compose exec web python manage.py shell
-
-# Acessar bash do container
-docker-compose exec web bash
-```
-
-### Backup e Restore
-
-```bash
-# Backup do banco MySQL
-docker-compose exec db mysqldump -u menuly -p menuly_delivery > backup.sql
-
-# Restore do banco
-docker-compose exec -T db mysql -u menuly -p menuly_delivery < backup.sql
-```
-
-## 🛠️ Comandos MySQL Diretos
+## ️ Comandos MySQL Diretos
 
 ### Conexão
 

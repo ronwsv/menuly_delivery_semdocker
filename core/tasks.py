@@ -18,14 +18,14 @@ def limpar_pedidos_expirados(self):
     Esta task é executada a cada 5 minutos pelo Celery Beat.
     """
     try:
-        from core.models import Pedido, StatusPedido
+        from core.models import Pedido
         
         # Calcula o tempo limite (30 minutos atrás)
         tempo_limite = timezone.now() - timedelta(minutes=30)
         
         # Busca pedidos pendentes que estão expirados
         pedidos_expirados = Pedido.objects.filter(
-            status=StatusPedido.PENDENTE,
+            status='pendente',
             data_criacao__lt=tempo_limite
         )
         
@@ -33,7 +33,7 @@ def limpar_pedidos_expirados(self):
         
         if count > 0:
             # Atualiza o status para cancelado
-            pedidos_expirados.update(status=StatusPedido.CANCELADO)
+            pedidos_expirados.update(status='cancelado')
             logger.info(f"Limpeza de pedidos: {count} pedidos expirados foram cancelados")
         
         return f"Processados {count} pedidos expirados"
@@ -44,19 +44,19 @@ def limpar_pedidos_expirados(self):
 
 
 @shared_task(bind=True)
-def atualizar_status_entregas(self):
+def verificar_entregas_demoradas(self):
     """
     Atualiza o status das entregas em andamento.
     Esta task é executada a cada 1 minuto pelo Celery Beat.
     """
     try:
-        from core.models import Pedido, StatusPedido
+        from core.models import Pedido
         
         # Busca pedidos em entrega há mais de 2 horas
         tempo_limite = timezone.now() - timedelta(hours=2)
         
         pedidos_entrega_longa = Pedido.objects.filter(
-            status=StatusPedido.EM_ENTREGA,
+            status='em_entrega',
             data_atualizacao__lt=tempo_limite
         )
         
@@ -83,17 +83,17 @@ def processar_pedido(self, pedido_id):
         pedido_id (int): ID do pedido a ser processado
     """
     try:
-        from core.models import Pedido, StatusPedido
-        from core.notifications import enviar_notificacao_pedido
+        from core.models import Pedido
+        # from core.notifications import enviar_notificacao_pedido  # Comentado se não existe
         
         pedido = Pedido.objects.get(id=pedido_id)
         
         # Confirma o pedido
-        pedido.status = StatusPedido.CONFIRMADO
+        pedido.status = 'confirmado'
         pedido.save()
         
-        # Envia notificações
-        enviar_notificacao_pedido(pedido, 'confirmado')
+        # Envia notificações (comentado se não existe)
+        # enviar_notificacao_pedido(pedido, 'confirmado')
         
         logger.info(f"Pedido {pedido_id} processado com sucesso")
         return f"Pedido {pedido_id} processado"
@@ -158,6 +158,6 @@ def calcular_frete_async(restaurante_id, cep_destino):
 
 
 @shared_task
-def debug_task():
+def debug_celery():
     """Task de debug para testar se o Celery está funcionando"""
-    return 'Celery está funcionando!'
+    return '🚀 Celery funcionando perfeitamente!'

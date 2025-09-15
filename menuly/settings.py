@@ -227,8 +227,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'core.tasks.limpar_pedidos_expirados',
         'schedule': 300.0,  # A cada 5 minutos
     },
-    'atualizar-status-entregas': {
-        'task': 'core.tasks.atualizar_status_entregas',
-        'schedule': 60.0,   # A cada 1 minuto
+    'verificar-entregas-demoradas': {
+        'task': 'core.tasks.verificar_entregas_demoradas',
+        'schedule': 300.0,   # A cada 5 minutos (menos frequente)
+    },
+    'debug-celery': {
+        'task': 'core.tasks.debug_celery',
+        'schedule': 3600.0,  # A cada 1 hora para verificar se está funcionando
     },
 }
