@@ -198,6 +198,17 @@
             {% endfor %}
         {% endif %}
         
+        <!-- Informações importantes sobre o cadastro -->
+        <div class="alert alert-info mb-4" style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px;">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-info-circle text-primary me-2 mt-1"></i>
+                <div>
+                    <strong>Como funciona o login:</strong>
+                    <p class="mb-0 mt-1">Após o cadastro, use seu <strong>email como nome de usuário</strong> para fazer login no sistema.</p>
+                </div>
+            </div>
+        </div>
+        
         {% if form.errors %}
             <div class="register-error">
                 {% for field, errors in form.errors.items %}
@@ -216,6 +227,10 @@
             
             <label for="id_email">Email</label>
             {{ form.email }}
+            <small class="text-muted mb-2 d-block">
+                <i class="fas fa-info-circle me-1"></i>
+                <strong>Importante:</strong> Seu email será usado como nome de usuário para login
+            </small>
             
             <label for="id_celular">Celular</label>
             {{ form.celular }}

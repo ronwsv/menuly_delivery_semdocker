@@ -79,6 +79,11 @@
     </div>
 </div>
 
+{% if trial_info %}
+<!-- Widget de Trial Status -->
+{% include "admin_loja/includes/trial_widget.html" %}
+{% endif %}
+
 <!-- Notificações recentes -->
 <div class="row">
     <div class="col-md-8">

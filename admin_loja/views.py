@@ -2,7 +2,7 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponseRedirect
 from django import forms
 from django.contrib import messages
@@ -241,8 +241,19 @@ def admin_loja_avancar_status_pedido(request, pedido_id):
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin-loja/pedidos/'))
 
 class AdminLojaLoginForm(forms.Form):
-    username = forms.CharField(label='Usuário')
-    password = forms.CharField(widget=forms.PasswordInput, label='Senha')
+    username = forms.CharField(
+        label='Email (Usuário)',
+        widget=forms.TextInput(attrs={
+            'placeholder': 'seu@email.com',
+            'autocomplete': 'email'
+        })
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'placeholder': 'Sua senha'
+        }), 
+        label='Senha'
+    )
 
 def admin_loja_login(request):
     error = None
@@ -2031,6 +2042,92 @@ def admin_loja_redefinir_senha(request, token):
         'user': user
     })
 
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def gerenciar_trials(request):
+    """View para visualizar e gerenciar contas trial"""
+    from core.models import Usuario
+    from django.db.models import Q
+    from datetime import timedelta
+    
+    # Data limite: 7 dias atrás
+    data_limite = timezone.now() - timedelta(days=7)
+    
+    # Se o formulário foi enviado para executar limpeza
+    if request.method == 'POST' and 'executar_limpeza' in request.POST:
+        # Importar a task
+        from core.tasks import desativar_trial_expirados
+        
+        # Executar sincronamente para teste
+        result = desativar_trial_expirados.delay()
+        
+        messages.success(request, 
+            f'Limpeza de trials expirados iniciada. '
+            f'Verifique o log para mais detalhes.'
+        )
+        
+        return redirect('admin_loja:gerenciar_trials')
+    
+    # Usuários em trial (sem plano)
+    usuarios_trial = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True
+    ).prefetch_related('restaurantes')
+    
+    # Trials expirados
+    trials_expirados = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True,
+        date_joined__lt=data_limite
+    ).prefetch_related('restaurantes')
+    
+    # Trials recentes (últimos 7 dias)
+    trials_recentes = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        restaurantes__plano__isnull=True,
+        is_active=True,
+        date_joined__gte=data_limite
+    ).prefetch_related('restaurantes')
+    
+    # Contas desativadas
+    contas_desativadas = Usuario.objects.filter(
+        tipo_usuario='lojista',
+        is_active=False,
+        restaurantes__plano__isnull=True
+    ).prefetch_related('restaurantes').order_by('-date_joined')[:20]  # Limitando a 20 mais recentes
+    
+    return render(request, 'admin_loja/gerenciar_trials.html', {
+        'trials_expirados': trials_expirados,
+        'trials_recentes': trials_recentes,
+        'contas_desativadas': contas_desativadas,
+        'total_trial': usuarios_trial.count(),
+        'total_expirados': trials_expirados.count(),
+        'total_recentes': trials_recentes.count(),
+        'data_limite': data_limite,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def reativar_trial(request, user_id):
+    """Reativa uma conta trial por mais 7 dias"""
+    from core.models import Usuario
+    
+    # Obter o usuário ou 404
+    usuario = get_object_or_404(Usuario, pk=user_id)
+    
+    # Atualizar a data de cadastro para hoje
+    usuario.date_joined = timezone.now()
+    usuario.is_active = True
+    usuario.save()
+    
+    messages.success(request, f'Trial de {usuario.username} reativado com sucesso por mais 7 dias.')
+    
+    # Redirecionar para a página de gerenciamento
+    return redirect('admin_loja:gerenciar_trials')
 
 # ==================== VIEWS DE GERENCIAMENTO DE TRIALS ====================
 

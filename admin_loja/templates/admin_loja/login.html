@@ -256,8 +256,12 @@
         <div class="login-subtitle">Acesse o painel do lojista para gerenciar sua loja.</div>
         <form method="post" autocomplete="off" role="form" aria-label="Formulário de login">
             {% csrf_token %}
-            <label for="id_username">Usuário</label>
+            <label for="id_username">Email (Usuário)</label>
             {{ form.username }}
+            <small class="text-muted mb-2 d-block">
+                <i class="fas fa-info-circle me-1"></i>
+                Use o email que você cadastrou
+            </small>
             <label for="id_password">Senha</label>
             {{ form.password }}
             <button type="submit" aria-label="Fazer login no sistema">
@@ -265,6 +269,12 @@
             </button>
         </form>
         {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+        
+        <!-- Dica de login -->
+        <div class="alert alert-light mt-3" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 0.9rem;">
+            <i class="fas fa-lightbulb text-warning me-2"></i>
+            <strong>Dica:</strong> Use o mesmo email que você cadastrou como nome de usuário.
+        </div>
         
         <!-- Links adicionais -->
         <div class="login-links">
